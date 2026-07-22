@@ -1,26 +1,60 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #faf8f4;
+  --foreground: #2b2620;
+  --card: #ffffff;
+  --accent: #4f8fb3;
+  --accent-dark: #3a6d8a;
+  --accent-tint: #eaf3f8;
+  --muted: #6b6357;
+  --border: #e7e1d6;
+  --pastel-pink: #eec4d4;
+  --pastel-yellow: #f3e2b3;
+  --pastel-lavender: #d9cdea;
+  --pastel-mint: #bfe0d1;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-accent: var(--accent);
+  --color-accent-dark: var(--accent-dark);
+  --color-accent-tint: var(--accent-tint);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-pastel-pink: var(--pastel-pink);
+  --color-pastel-yellow: var(--pastel-yellow);
+  --color-pastel-lavender: var(--pastel-lavender);
+  --color-pastel-mint: var(--pastel-mint);
+  --font-sans: var(--font-body);
+  --font-serif: var(--font-heading);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/*
+ * The public site always uses the light theme above, regardless of the
+ * visitor's system setting. A manual dark mode toggle (for logged-in
+ * customers, in their account settings) sets data-theme="dark" on <html>
+ * to opt in to these values — it is not applied automatically.
+ */
+:root[data-theme="dark"] {
+  --background: #17181a;
+  --foreground: #f1efe9;
+  --card: #201f22;
+  --accent: #6fa8c7;
+  --accent-dark: #8fbfda;
+  --accent-tint: #1e2a30;
+  --muted: #a3a099;
+  --border: #2c2b2e;
+  --pastel-pink: #4a333c;
+  --pastel-yellow: #4a4230;
+  --pastel-lavender: #35304a;
+  --pastel-mint: #2b3f37;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
