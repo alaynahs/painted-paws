@@ -69,6 +69,9 @@ export default function SiteFooter() {
               By appointment only. No walk-ins. Curbside hand-off: text on
               arrival and we&apos;ll meet you outside.
             </p>
+            <p className="mt-2 text-sm font-medium text-accent-dark">
+              Fully insured — up to $2,000,000 in liability coverage.
+            </p>
             <p className="mt-4 text-sm text-muted">
               Questions? Call or text{" "}
               <a
