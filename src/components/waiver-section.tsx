@@ -221,6 +221,17 @@ export default function WaiverSection({
           </p>
           <p>
             <strong className="text-foreground/90">
+              Assumption of Risk.
+            </strong>{" "}
+            Grooming carries inherent risks, including but not limited to
+            nicks, cuts, or abrasions from clippers, scissors, or nail
+            trimming; skin or coat reactions to shampoos or other products;
+            stress-related behavior or minor injury; and aggravation of
+            pre-existing or undiagnosed health conditions. You voluntarily
+            assume these risks on behalf of yourself and your pet.
+          </p>
+          <p>
+            <strong className="text-foreground/90">
               Behavioral &amp; Refusal of Service.
             </strong>{" "}
             You must disclose any history of biting, aggression, or high
@@ -242,6 +253,33 @@ export default function WaiverSection({
             </strong>{" "}
             You may grant permission for photos or video of your pet to be
             used for marketing, website design, and social media.
+          </p>
+          <p className="font-semibold text-foreground/90 uppercase">
+            Release of Liability. To the fullest extent permitted by law, you
+            release, waive, and discharge Painted Paws and its owner from any
+            and all claims, demands, or causes of action arising from
+            ordinary negligence in connection with grooming services,
+            including the risks described above. This release does not apply
+            to gross negligence or intentional misconduct.
+          </p>
+          <p>
+            <strong className="text-foreground/90">
+              Indemnification.
+            </strong>{" "}
+            You agree to indemnify and hold harmless Painted Paws from any
+            claims, costs, or legal fees brought by a third party (including
+            family members or veterinarians) arising from your pet&apos;s
+            care, except where caused by Painted Paws&apos; gross negligence
+            or intentional misconduct.
+          </p>
+          <p>
+            <strong className="text-foreground/90">
+              Severability &amp; Governing Law.
+            </strong>{" "}
+            If any part of this waiver is found unenforceable, the remaining
+            terms remain in full effect. This agreement is governed by the
+            laws of the State of Texas, and any dispute shall be resolved in
+            the county where the appointment took place.
           </p>
           <p>
             <strong className="text-foreground/90">
