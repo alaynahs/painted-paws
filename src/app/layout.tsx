@@ -66,15 +66,19 @@ export default async function RootLayout({
         <SiteHeader
           isAdmin={isAdmin}
           authSlotDesktop={
-            <AuthStatus className="whitespace-nowrap text-sm text-foreground/80 transition-colors hover:text-accent-dark lg:text-base" />
+            <AuthStatus
+              className={`whitespace-nowrap text-foreground/80 transition-colors hover:text-accent-dark ${
+                isAdmin ? "text-xs lg:text-sm" : "text-sm lg:text-base"
+              }`}
+            />
           }
           authSlotMobile={
             <AuthStatus className="rounded-lg px-2 py-3 text-base text-foreground/90 hover:bg-accent-tint" />
           }
           adminSlotDesktop={
             <AdminNavLinks
-              className="flex shrink-0 items-center gap-2.5 border-l border-border pl-3 lg:gap-4 lg:pl-4"
-              linkClassName="whitespace-nowrap text-sm font-medium text-accent-dark transition-colors hover:text-accent lg:text-base"
+              className="flex shrink-0 items-center gap-2 border-l border-border pl-3 lg:gap-3 lg:pl-4"
+              linkClassName="whitespace-nowrap text-xs font-medium text-accent-dark transition-colors hover:text-accent lg:text-sm"
             />
           }
           adminSlotMobile={

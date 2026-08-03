@@ -51,12 +51,18 @@ export default function SiteHeader({
           </span>
         </Link>
 
-        <nav className="hidden min-w-0 flex-1 items-center justify-end gap-2.5 md:flex lg:gap-4">
+        <nav
+          className={`hidden min-w-0 flex-1 items-center justify-end md:flex ${
+            isAdmin ? "gap-2 lg:gap-3" : "gap-2.5 lg:gap-4"
+          }`}
+        >
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="whitespace-nowrap text-sm text-foreground/80 transition-colors hover:text-accent-dark lg:text-base"
+              className={`whitespace-nowrap text-foreground/80 transition-colors hover:text-accent-dark ${
+                isAdmin ? "text-xs lg:text-sm" : "text-sm lg:text-base"
+              }`}
             >
               {link.label}
             </Link>
