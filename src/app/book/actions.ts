@@ -1030,7 +1030,7 @@ async function createAppointmentCheckoutSession(
             // Stripe fetches this from its own servers, so it only renders
             // once this image is reachable at a real public URL (i.e. once
             // the site is deployed, not while testing on localhost).
-            images: [`${origin}/checkout-photo.jpg`],
+            images: [`${origin}/logo.png`],
           },
           unit_amount: Math.round(price * 100),
         },
