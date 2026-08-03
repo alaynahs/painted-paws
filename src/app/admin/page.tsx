@@ -92,7 +92,7 @@ export default async function AdminDashboardPage({
       <div className="mt-6 flex items-center justify-between gap-4">
         <Link
           href={`/admin?start=${prevStart}`}
-          className="rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+          className="shrink-0 rounded-full border border-border px-5 py-2.5 text-sm whitespace-nowrap font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
         >
           ← Previous week
         </Link>
@@ -101,7 +101,7 @@ export default async function AdminDashboardPage({
         </p>
         <Link
           href={`/admin?start=${nextStart}`}
-          className="rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+          className="shrink-0 rounded-full border border-border px-5 py-2.5 text-sm whitespace-nowrap font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
         >
           Next week →
         </Link>

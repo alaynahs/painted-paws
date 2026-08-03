@@ -56,7 +56,7 @@ export default function SiteHeader({
             <Link
               key={link.href}
               href={link.href}
-              className="whitespace-nowrap text-xs text-foreground/80 transition-colors hover:text-accent-dark lg:text-sm"
+              className="whitespace-nowrap text-sm text-foreground/80 transition-colors hover:text-accent-dark lg:text-base"
             >
               {link.label}
             </Link>
@@ -66,7 +66,7 @@ export default function SiteHeader({
           {!isAdmin && (
             <Link
               href="/book"
-              className="shrink-0 rounded-full bg-accent px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-dark lg:px-5 lg:py-2 lg:text-sm"
+              className="shrink-0 rounded-full bg-accent px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-accent-dark lg:px-5 lg:py-2 lg:text-base"
             >
               Book Now
             </Link>
