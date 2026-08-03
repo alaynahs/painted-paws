@@ -385,7 +385,6 @@ export default function BookingFlow({
           coat: pet.coat,
           service: dogService,
           isPuppy: pet.is_puppy ?? false,
-          isDoodle: false,
           deshed,
         },
         config,

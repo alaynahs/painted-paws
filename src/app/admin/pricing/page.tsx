@@ -268,16 +268,11 @@ export default async function AdminPricingPage({
 
         <Section title="Flat Fees">
           <form action={updateFlatFees}>
-            <div className="mt-4 grid max-w-md grid-cols-3 gap-3">
+            <div className="mt-4 grid max-w-md grid-cols-2 gap-3">
               <NumberField
                 name="flatFee-deshed"
                 label="De-Shed Treatment"
                 defaultValue={config.flatFees.deshed}
-              />
-              <NumberField
-                name="flatFee-doodleCoatMaintenance"
-                label="Doodle Coat Maintenance"
-                defaultValue={config.flatFees.doodleCoatMaintenance}
               />
               <NumberField
                 name="flatFee-pickupDropoff"

@@ -111,7 +111,6 @@ export async function updateFlatFees(formData: FormData) {
     ...c,
     flatFees: {
       deshed: num(formData, "flatFee-deshed"),
-      doodleCoatMaintenance: num(formData, "flatFee-doodleCoatMaintenance"),
       pickupDropoff: num(formData, "flatFee-pickupDropoff"),
     },
   }));

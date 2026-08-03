@@ -87,7 +87,6 @@ export default function GroomPackPicker({
       coat: pet.coat,
       service,
       isPuppy: pet.is_puppy ?? false,
-      isDoodle: false,
       deshed: false,
     },
     config,

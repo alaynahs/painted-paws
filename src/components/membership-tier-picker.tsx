@@ -65,7 +65,6 @@ export default function MembershipTierPicker({
         coat: pet.coat,
         service: MEMBERSHIP_TIER_SERVICE[t],
         isPuppy: false,
-        isDoodle: false,
         deshed: false,
       },
       config,

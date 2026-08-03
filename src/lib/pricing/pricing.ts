@@ -69,7 +69,6 @@ export interface DogPriceInput {
   coat: CoatLength;
   service: DogBookingService;
   isPuppy: boolean;
-  isDoodle: boolean;
   deshed: boolean;
 }
 
@@ -120,16 +119,6 @@ export function calculateDogPrice(
       label: `${DOG_SERVICE_LABELS[service]} (${DOG_WEIGHT_LABELS[weightClass]})`,
       amount: base,
     });
-
-    if (
-      input.isDoodle &&
-      (weightClass === "medium" || weightClass === "large")
-    ) {
-      lines.push({
-        label: "Doodle coat maintenance fee",
-        amount: config.flatFees.doodleCoatMaintenance,
-      });
-    }
   }
 
   if (input.deshed) {
@@ -390,7 +379,6 @@ export interface PricingConfig {
   };
   flatFees: {
     deshed: number;
-    doodleCoatMaintenance: number;
     pickupDropoff: number;
   };
   addOns: {
@@ -442,7 +430,7 @@ export const DEFAULT_PRICING_CONFIG: PricingConfig = {
     waterlessBath: { under20: byCoat(95, 115), over20: byCoat(105, 125) },
     waterlessLightTrim: { under20: byCoat(105, 120), over20: byCoat(115, 130) },
   },
-  flatFees: { deshed: 15, doodleCoatMaintenance: 10, pickupDropoff: 25 },
+  flatFees: { deshed: 15, pickupDropoff: 25 },
   addOns: {
     dog: [5, 10, 10, 12, 12, 15, 15, 15, 15, 15, 15, 19, 20, 20, 20, 22, 30, 30, 30, 30],
     cat: [15, 15, 15, 15, 15, 20, 25, 30, 30, 30, 35, 45],

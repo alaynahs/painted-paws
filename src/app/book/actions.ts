@@ -105,7 +105,6 @@ function computeAppointmentPrice(
             coat: pet.coat,
             service: service as DogBookingService,
             isPuppy: pet.is_puppy ?? false,
-            isDoodle: false,
             deshed,
           },
           config,
