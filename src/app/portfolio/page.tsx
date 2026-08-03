@@ -1,15 +1,7 @@
 import Link from "next/link";
 import PawIcon from "@/components/paw-icon";
 import RevealOnScroll from "@/components/reveal-on-scroll";
-
-const transformations = [
-  { caption: "Goldendoodle", tag: "Teddy Bear Cut" },
-  { caption: "Shih Tzu", tag: "Full Groom" },
-  { caption: "Poodle Mix", tag: "Breed Standard Cut" },
-  { caption: "Yorkshire Terrier", tag: "Bath & Blowout" },
-  { caption: "Husky", tag: "De-Shed Treatment" },
-  { caption: "Schnauzer", tag: "Face, Feet & Sanitary Trim" },
-];
+import { createClient } from "@/lib/supabase/server";
 
 const creativeGrooms = [
   { caption: "Accent Color Pop", tag: "Ears & Tail" },
@@ -71,22 +63,35 @@ const testimonials = [
 function PhotoTile({
   caption,
   tag,
+  src,
   comingSoon = false,
 }: {
   caption: string;
   tag: string;
+  src?: string;
   comingSoon?: boolean;
 }) {
   return (
     <div className="group overflow-hidden rounded-2xl border border-border bg-card">
-      <div className="relative flex aspect-square flex-col items-center justify-center gap-3 border-b border-border bg-accent-tint text-muted">
+      <div className="relative flex aspect-square flex-col items-center justify-center gap-3 overflow-hidden border-b border-border bg-accent-tint text-muted">
         {comingSoon && (
           <span className="absolute top-3 right-3 rounded-full bg-accent px-3 py-1 text-[10px] font-medium uppercase tracking-wide text-white shadow-sm">
             Coming Soon
           </span>
         )}
-        <PawIcon className="h-8 w-8 opacity-40" />
-        <span className="text-xs">Photo coming soon</span>
+        {src ? (
+          // eslint-disable-next-line @next/next/no-img-element -- dynamic portfolio photos, not known at build time
+          <img
+            src={src}
+            alt={caption}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <>
+            <PawIcon className="h-8 w-8 opacity-40" />
+            <span className="text-xs">Photo coming soon</span>
+          </>
+        )}
       </div>
       <div className="p-4">
         <p className="font-serif text-base text-foreground">{caption}</p>
@@ -96,7 +101,22 @@ function PhotoTile({
   );
 }
 
-export default function PortfolioPage() {
+export default async function PortfolioPage() {
+  const supabase = await createClient();
+  const { data: photos } = await supabase
+    .from("site_photos")
+    .select("*")
+    .eq("location", "portfolio")
+    .order("sort_order", { ascending: true });
+
+  const transformations = (photos ?? []).map((p) => ({
+    id: p.id,
+    caption: p.caption,
+    tag: p.tag ?? "",
+    src: supabase.storage.from("site-photos").getPublicUrl(p.storage_path).data
+      .publicUrl,
+  }));
+
   return (
     <div>
       <section className="mx-auto max-w-4xl px-6 pt-16 pb-10 text-center">
@@ -107,20 +127,20 @@ export default function PortfolioPage() {
           Every dog has a story.
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-muted">
-          A look at recent transformations — from a refreshing bath and
-          breed-standard cut to a full creative makeover. Real photos are on
-          their way; check back soon.
+          A look at recent transformations, from a refreshing bath and
+          breed-standard cut to a full creative makeover. More real photos
+          added as they come in.
         </p>
       </section>
 
       <section className="mx-auto max-w-6xl px-6 py-10">
         <h2 className="font-serif text-2xl text-foreground">
-          Before &amp; After
+          Recent Grooms
         </h2>
         <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {transformations.map((t, i) => (
-            <RevealOnScroll key={t.caption} delay={(i % 3) * 100}>
-              <PhotoTile caption={t.caption} tag={t.tag} />
+            <RevealOnScroll key={t.id} delay={(i % 3) * 100}>
+              <PhotoTile caption={t.caption} tag={t.tag} src={t.src} />
             </RevealOnScroll>
           ))}
         </div>
@@ -138,7 +158,7 @@ export default function PortfolioPage() {
           </div>
           <p className="mt-2 text-sm text-muted">
             Bold color and full design transformations, applied with pet-safe
-            dye. Not bookable yet — check back soon!
+            dye. Not bookable yet. Check back soon!
           </p>
           <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {creativeGrooms.map((t, i) => (

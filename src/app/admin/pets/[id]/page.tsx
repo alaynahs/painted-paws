@@ -2,13 +2,26 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/supabase/admin";
 import { updatePet } from "@/app/account/pets/actions";
-import { addGroomNote } from "@/app/admin/actions";
-import { confirmAppointment } from "@/app/book/actions";
+import {
+  addGroomNote,
+  markAppointmentComplete,
+  setCustomerDoNotBook,
+  setPetActive,
+  setPetDoNotBook,
+} from "@/app/admin/actions";
+import { confirmAppointment, getNoShowCount } from "@/app/book/actions";
+import { MAX_NO_SHOWS } from "@/lib/booking-hours";
 import PetForm from "@/components/pet-form";
 import MembershipCard from "@/components/membership-card";
 import CancelAppointmentButton from "@/components/cancel-appointment-button";
+import ShowMoreList from "@/components/show-more-list";
 import { formatDate, formatHour } from "@/lib/format";
-import { formatServiceLabel, monthsSince } from "@/lib/pricing/pricing";
+import {
+  formatServiceLabel,
+  GROOM_PACK_SERVICE_LABELS,
+  monthsSince,
+  type GroomPackService,
+} from "@/lib/pricing/pricing";
 
 export default async function AdminPetDetailPage({
   params,
@@ -20,11 +33,20 @@ export default async function AdminPetDetailPage({
 
   const { data: pet } = await supabase
     .from("pets")
-    .select("*, profiles:owner_id(full_name, phone)")
+    .select("*, profiles:owner_id(full_name, phone, do_not_book)")
     .eq("id", id)
     .single();
 
   if (!pet) notFound();
+
+  const togglePetActive = setPetActive.bind(null, pet.id, !pet.is_active);
+  const toggleCustomerDoNotBook = setCustomerDoNotBook.bind(
+    null,
+    pet.owner_id,
+    !pet.profiles?.do_not_book,
+    pet.id,
+  );
+  const togglePetDoNotBook = setPetDoNotBook.bind(null, pet.id, !pet.do_not_book);
 
   const { data: appointments } = await supabase
     .from("appointments")
@@ -52,12 +74,20 @@ export default async function AdminPetDetailPage({
     !!pet.birth_date &&
     monthsSince(pet.birth_date) < 4;
 
+  const noShowCount = await getNoShowCount(supabase, pet.owner_id);
+
   const { data: membership } = await supabase
     .from("memberships")
     .select("*")
     .eq("pet_id", id)
     .eq("status", "active")
     .maybeSingle();
+
+  const { data: groomPacks } = await supabase
+    .from("groom_credit_packs")
+    .select("*")
+    .eq("pet_id", id)
+    .order("created_at", { ascending: false });
 
   const inspoUrls: Record<string, string> = {};
   await Promise.all(
@@ -106,6 +136,66 @@ export default async function AdminPetDetailPage({
         Owner: {pet.profiles?.full_name ?? "Unknown"}
         {pet.profiles?.phone ? ` · ${pet.profiles.phone}` : ""}
       </p>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        {noShowCount > 0 && (
+          <p
+            className={`inline-block rounded-full px-3 py-1 text-xs font-medium ${
+              noShowCount >= MAX_NO_SHOWS
+                ? "bg-accent text-white"
+                : "bg-accent-tint text-accent-dark"
+            }`}
+          >
+            {noShowCount} no-show{noShowCount === 1 ? "" : "s"}
+            {noShowCount >= MAX_NO_SHOWS ? " (blocked from online booking)" : ""}
+          </p>
+        )}
+        {!pet.is_active && (
+          <p className="inline-block rounded-full bg-accent-tint px-3 py-1 text-xs font-medium text-accent-dark">
+            Inactive
+          </p>
+        )}
+        {pet.profiles?.do_not_book && (
+          <p className="inline-block rounded-full bg-accent px-3 py-1 text-xs font-medium text-white">
+            Customer blocked from booking
+          </p>
+        )}
+        {pet.do_not_book && (
+          <p className="inline-block rounded-full bg-accent px-3 py-1 text-xs font-medium text-white">
+            This pet blocked from booking
+          </p>
+        )}
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <form action={togglePetActive}>
+          <button
+            type="submit"
+            className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+          >
+            {pet.is_active ? "Mark Pet Inactive" : "Mark Pet Active"}
+          </button>
+        </form>
+        <form action={togglePetDoNotBook}>
+          <button
+            type="submit"
+            className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+          >
+            {pet.do_not_book
+              ? "Allow This Pet to Book Again"
+              : "Block This Pet From Booking"}
+          </button>
+        </form>
+        <form action={toggleCustomerDoNotBook}>
+          <button
+            type="submit"
+            className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+          >
+            {pet.profiles?.do_not_book
+              ? "Allow This Customer to Book Again"
+              : "Block This Customer From Booking"}
+          </button>
+        </form>
+      </div>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_320px]">
         <div className="space-y-8">
@@ -198,27 +288,11 @@ export default async function AdminPetDetailPage({
         <aside className="space-y-6 lg:sticky lg:top-20 lg:self-start">
           <section className="rounded-2xl border border-border bg-card p-5">
             <h2 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
-              Membership
-            </h2>
-            {membership ? (
-              <div className="mt-2">
-                <MembershipCard
-                  membership={{ ...membership, pets: { name: pet.name } }}
-                  showCancel={false}
-                />
-              </div>
-            ) : (
-              <p className="mt-2 text-sm text-muted">Not a member.</p>
-            )}
-          </section>
-
-          <section className="rounded-2xl border border-border bg-card p-5">
-            <h2 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
               Rabies Vaccine
             </h2>
             {isPuppyExempt ? (
               <p className="mt-2 text-sm text-muted">
-                🐶 Exempt — under 4 months old.
+                🐶 Exempt: under 4 months old.
               </p>
             ) : (
               <>
@@ -251,6 +325,72 @@ export default async function AdminPetDetailPage({
 
           <section className="rounded-2xl border border-border bg-card p-5">
             <h2 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
+              Membership
+            </h2>
+            {membership ? (
+              <div className="mt-2">
+                <MembershipCard
+                  membership={{ ...membership, pets: { name: pet.name } }}
+                  showCancel={false}
+                />
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-muted">Not a member.</p>
+            )}
+          </section>
+
+          <section className="rounded-2xl border border-border bg-card p-5">
+            <h2 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
+              Groom Packs
+            </h2>
+            {groomPacks && groomPacks.length > 0 ? (
+              <div className="mt-2 space-y-2">
+                {groomPacks.map((pack) => {
+                  const remaining =
+                    pack.paid_count + pack.free_count - pack.credits_used;
+                  return (
+                    <div
+                      key={pack.id}
+                      className="rounded-xl border border-border bg-background p-3"
+                    >
+                      <div className="flex items-baseline justify-between gap-2">
+                        <p className="text-sm font-medium text-foreground">
+                          {
+                            GROOM_PACK_SERVICE_LABELS[
+                              pack.service as GroomPackService
+                            ]
+                          }
+                        </p>
+                        <span
+                          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${
+                            pack.payment_status === "paid"
+                              ? "bg-accent-tint text-accent-dark"
+                              : "bg-background text-muted"
+                          }`}
+                        >
+                          {pack.payment_status}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-muted">
+                        {pack.payment_status === "paid"
+                          ? `${remaining} of ${pack.paid_count + pack.free_count} credits remaining`
+                          : "Awaiting payment confirmation"}
+                      </p>
+                      <p className="mt-1 text-xs text-muted">
+                        Bought {formatDate(pack.created_at.slice(0, 10))} · $
+                        {pack.total_price}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-muted">No groom packs.</p>
+            )}
+          </section>
+
+          <section className="rounded-2xl border border-border bg-card p-5">
+            <h2 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
               Upcoming Appointments
             </h2>
             {upcomingAppointments.length > 0 ? (
@@ -277,13 +417,15 @@ export default async function AdminPetDetailPage({
             </h2>
             {pastAppointments.length > 0 ? (
               <div className="mt-3 max-h-[32rem] space-y-2 overflow-y-auto pr-1">
-                {pastAppointments.map((appt) => (
-                  <AppointmentCard
-                    key={appt.id}
-                    appt={appt}
-                    inspoUrl={inspoUrls[appt.id]}
-                  />
-                ))}
+                <ShowMoreList initialCount={3}>
+                  {pastAppointments.map((appt) => (
+                    <AppointmentCard
+                      key={appt.id}
+                      appt={appt}
+                      inspoUrl={inspoUrls[appt.id]}
+                    />
+                  ))}
+                </ShowMoreList>
               </div>
             ) : (
               <p className="mt-3 text-sm text-muted">No past appointments.</p>
@@ -366,6 +508,16 @@ function AppointmentCard({
                 className="rounded-full bg-accent px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-dark"
               >
                 Confirm
+              </button>
+            </form>
+          )}
+          {appt.status !== "completed" && (
+            <form action={markAppointmentComplete.bind(null, appt.id)}>
+              <button
+                type="submit"
+                className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+              >
+                Mark Complete
               </button>
             </form>
           )}

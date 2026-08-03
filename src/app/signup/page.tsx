@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { signup } from "@/app/auth/actions";
+import GoogleSignInButton from "@/components/google-signin-button";
 
 export default async function SignupPage({
   searchParams,
@@ -17,7 +18,7 @@ export default async function SignupPage({
         Create an Account
       </h1>
       <p className="mt-3 text-center text-sm text-muted">
-        Set up your account once, then add your pet&apos;s info — you&apos;ll
+        Set up your account once, then add your pet&apos;s info. You&apos;ll
         pick from your saved pets every time you book.
       </p>
 
@@ -27,7 +28,21 @@ export default async function SignupPage({
         </p>
       )}
 
-      <form action={signup} className="mt-8 space-y-4">
+      <div className="mt-8">
+        <GoogleSignInButton />
+      </div>
+      <p className="mt-2 text-center text-xs text-muted">
+        Signing up with Google skips straight to your account — just add your
+        phone number there so we can text booking updates.
+      </p>
+
+      <div className="mt-6 flex items-center gap-3 text-xs text-muted">
+        <span className="h-px flex-1 bg-border" />
+        or sign up with email
+        <span className="h-px flex-1 bg-border" />
+      </div>
+
+      <form action={signup} className="mt-6 space-y-4">
         <div>
           <label className="text-sm font-medium text-foreground" htmlFor="fullName">
             Your name

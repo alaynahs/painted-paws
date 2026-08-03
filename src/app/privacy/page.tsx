@@ -29,7 +29,7 @@ export default function PrivacyPage() {
               and photos you upload for haircut inspiration
             </li>
             <li>
-              Payment status (whether an appointment is paid or unpaid) — we
+              Payment status (whether an appointment is paid or unpaid). We
               do not store your card number; payments are processed securely
               by Stripe
             </li>
@@ -76,7 +76,7 @@ export default function PrivacyPage() {
             Who We Share Data With
           </h2>
           <p className="mt-3 text-muted">
-            We use trusted third-party services to run the business —
+            We use trusted third-party services to run the business:
             Supabase (data storage), Stripe (payments), Resend (email), and
             Twilio (text messages). Each only receives what they need to do
             their job (e.g., Stripe never sees your pet&apos;s name; Twilio

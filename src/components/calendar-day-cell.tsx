@@ -18,7 +18,7 @@ export default function CalendarDayCell({
   day: number;
   inMonth: boolean;
   isToday: boolean;
-  appointments: { hour: number; petName: string }[];
+  appointments: { id: string; hour: number; petName: string }[];
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -85,12 +85,17 @@ export default function CalendarDayCell({
       {open && count > 0 && (
         <div className="absolute left-0 top-full z-20 mt-1 w-52 rounded-xl border border-border bg-card p-3 shadow-lg">
           <ul className="space-y-1.5 text-xs text-foreground/90">
-            {appointments.map((a, i) => (
-              <li key={i}>
-                <span className="font-medium text-accent-dark">
-                  {formatHour(a.hour)}
-                </span>{" "}
-                — {a.petName}
+            {appointments.map((a) => (
+              <li key={a.id}>
+                <Link
+                  href={`/admin/appointments/${a.id}`}
+                  className="hover:underline"
+                >
+                  <span className="font-medium text-accent-dark">
+                    {formatHour(a.hour)}
+                  </span>{" "}
+                  · {a.petName}
+                </Link>
               </li>
             ))}
           </ul>

@@ -1,9 +1,15 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { joinMembership } from "@/app/membership/actions";
+import { joinMembership, purchaseGroomPack } from "@/app/membership/actions";
 import MembershipCard from "@/components/membership-card";
 import MembershipTierPicker from "@/components/membership-tier-picker";
+import GroomPackPicker from "@/components/groom-pack-picker";
 import RevealOnScroll from "@/components/reveal-on-scroll";
+import {
+  GROOM_PACK_SERVICE_LABELS,
+  type GroomPackService,
+} from "@/lib/pricing/pricing";
+import { getPricingConfig } from "@/lib/pricing/config";
 
 export default async function MembershipPage({
   searchParams,
@@ -15,6 +21,7 @@ export default async function MembershipPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const config = await getPricingConfig();
 
   if (!user) {
     return (
@@ -49,7 +56,7 @@ export default async function MembershipPage({
 
   const { data: pets } = await supabase
     .from("pets")
-    .select("id, name, breed, species, weight_lb, coat")
+    .select("id, name, breed, species, weight_lb, coat, is_puppy")
     .eq("owner_id", user.id)
     .eq("species", "dog")
     .order("created_at", { ascending: true });
@@ -63,6 +70,18 @@ export default async function MembershipPage({
   const enrolledPetIds = new Set((memberships ?? []).map((m) => m.pet_id));
   const availablePets = (pets ?? []).filter((p) => !enrolledPetIds.has(p.id));
 
+  const { data: groomPacks } = await supabase
+    .from("groom_credit_packs")
+    .select("*, pets(name)")
+    .eq("customer_id", user.id)
+    .order("created_at", { ascending: false });
+
+  const activePacks = (groomPacks ?? []).filter(
+    (p) =>
+      p.payment_status === "paid" &&
+      p.credits_used < p.paid_count + p.free_count,
+  );
+
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
       <p className="text-sm font-medium tracking-wide text-accent-dark uppercase">
@@ -72,8 +91,10 @@ export default async function MembershipPage({
         Monthly Memberships
       </h1>
       <p className="mt-3 text-muted">
-        For regulars — lock in priority booking and discounted add-ons, with a
-        free service built in as you go.
+        For regulars: a monthly membership at your dog&apos;s normal groom
+        price that unlocks priority booking plus discounted add-ons and
+        bundles. Or skip the subscription and pre-purchase a pack of grooms
+        at a built-in discount instead.
       </p>
 
       {joined && (
@@ -111,7 +132,7 @@ export default async function MembershipPage({
         </h2>
         {!pets || pets.length === 0 ? (
           <p className="mt-4 text-sm text-muted">
-            Memberships are for dogs right now — add a dog to your pet
+            Memberships are for dogs right now. Add a dog to your pet
             profile to enroll.{" "}
             <Link href="/account/pets/new" className="text-accent-dark hover:underline">
               Add a pet
@@ -123,31 +144,89 @@ export default async function MembershipPage({
           </p>
         ) : (
           <div className="mt-4">
-            <MembershipTierPicker pets={availablePets} action={joinMembership} />
+            <MembershipTierPicker pets={availablePets} action={joinMembership} config={config} />
           </div>
         )}
       </RevealOnScroll>
 
-      <RevealOnScroll delay={200} className="mt-8 rounded-2xl border border-border bg-card p-6">
+      {activePacks.length > 0 && (
+        <RevealOnScroll delay={150} className="mt-8 rounded-2xl border border-border bg-card p-6">
+          <h2 className="font-serif text-lg text-foreground">
+            Your Groom Packs
+          </h2>
+          <div className="mt-4 space-y-3">
+            {activePacks.map((pack) => {
+              const remaining =
+                pack.paid_count + pack.free_count - pack.credits_used;
+              return (
+                <div
+                  key={pack.id}
+                  className="rounded-xl border border-border bg-background p-4"
+                >
+                  <p className="font-serif text-base text-foreground">
+                    {pack.pets?.name ?? "Pet"} ·{" "}
+                    {
+                      GROOM_PACK_SERVICE_LABELS[
+                        pack.service as GroomPackService
+                      ]
+                    }
+                  </p>
+                  <p className="mt-1 text-xs text-muted">
+                    {remaining} credit{remaining === 1 ? "" : "s"} remaining
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </RevealOnScroll>
+      )}
+
+      <RevealOnScroll delay={275} className="mt-8 rounded-2xl border border-border bg-card p-6">
+        <h2 className="font-serif text-lg text-foreground">
+          Pre-Purchase a Groom Pack
+        </h2>
+        <p className="mt-2 text-sm text-muted">
+          Skip the subscription: buy a batch of Baths or Full Grooms upfront
+          and get extra visits free. Credits stay on your account and never
+          expire, redeemed one at a time whenever you book that dog for that
+          service.
+        </p>
+        {!pets || pets.length === 0 ? (
+          <p className="mt-4 text-sm text-muted">
+            Groom packs are for dogs right now. Add a dog to the pet profile
+            to buy one.{" "}
+            <Link href="/account/pets/new" className="text-accent-dark hover:underline">
+              Add a pet
+            </Link>
+          </p>
+        ) : (
+          <div className="mt-4">
+            <GroomPackPicker pets={pets} action={purchaseGroomPack} config={config} />
+          </div>
+        )}
+      </RevealOnScroll>
+
+      <RevealOnScroll delay={300} className="mt-8 rounded-2xl border border-border bg-card p-6">
         <h2 className="font-serif text-lg text-foreground">
           How memberships work
         </h2>
         <ul className="mt-4 space-y-3 text-sm text-muted">
           <li>
             <span className="font-medium text-foreground/90">
-              One grooming visit a month, at 10% off.
+              The groom itself is priced normally.
             </span>{" "}
-            Each tier includes one appointment per month at that tier&apos;s
-            service level (Bath, Trim, or Full Groom), discounted 10% off the
-            regular price for your dog&apos;s weight and coat — additional
-            appointments that month are booked and priced separately, as
-            usual.
+            Each tier includes one monthly appointment at that tier&apos;s
+            service level (Bath, Trim, or Full Groom), priced the same as
+            booking à la carte for your dog&apos;s weight and coat.
+            Membership doesn&apos;t discount the groom, it unlocks the perks
+            below. Additional appointments that month are booked and priced
+            separately, as usual.
           </li>
           <li>
             <span className="font-medium text-foreground/90">
               One membership per dog.
             </span>{" "}
-            Enroll each dog separately. Memberships are for dogs only — cats
+            Enroll each dog separately. Memberships are for dogs only. Cats
             aren&apos;t eligible right now.
           </li>
           <li>
@@ -158,15 +237,7 @@ export default async function MembershipPage({
           </li>
           <li>
             <span className="font-medium text-foreground/90">
-              A free service, on a schedule.
-            </span>{" "}
-            Depending on your tier, every few months of membership earns your
-            dog a completely free groom — see the exact cadence under each
-            tier above.
-          </li>
-          <li>
-            <span className="font-medium text-foreground/90">
-              Discounted add-on bundles.
+              {config.memberAddonDiscountPercent}% off add-on bundles.
             </span>{" "}
             Optional bundles (teeth brushing, nail grinding, and more) are
             available at a member-only discount, on top of your monthly
@@ -174,10 +245,69 @@ export default async function MembershipPage({
           </li>
           <li>
             <span className="font-medium text-foreground/90">
+              {config.memberAddonDiscountPercent}% off individual
+              add-ons.
+            </span>{" "}
+            Prefer to pick and choose instead of a bundle? Every individual
+            add-on is also available to members at a discount, and can be
+            added right when you join above.
+          </li>
+          <li>
+            <span className="font-medium text-foreground/90">
               Billed online, cancel anytime.
             </span>{" "}
-            Memberships are paid online only — no long-term contract, cancel
+            Memberships are paid online only. No long-term contract, cancel
             whenever you&apos;d like.
+          </li>
+        </ul>
+      </RevealOnScroll>
+
+      <RevealOnScroll delay={400} className="mt-8 rounded-2xl border border-border bg-card p-6">
+        <h2 className="font-serif text-lg text-foreground">
+          How pre-purchases work
+        </h2>
+        <ul className="mt-4 space-y-3 text-sm text-muted">
+          <li>
+            <span className="font-medium text-foreground/90">
+              Priced at your dog&apos;s own rate.
+            </span>{" "}
+            A pack is priced using that specific dog&apos;s Bath or Full
+            Groom rate based on weight and coat, the same as booking à la
+            carte. Bath and Full Groom credits aren&apos;t interchangeable.
+          </li>
+          <li>
+            <span className="font-medium text-foreground/90">
+              Buy 5, get 1 free, or buy 9, get 3 more free.
+            </span>{" "}
+            Pick whichever pack size fits how often you visit.
+          </li>
+          <li>
+            <span className="font-medium text-foreground/90">
+              Credits never expire.
+            </span>{" "}
+            They stay on your account and are redeemed one at a time,
+            whenever you book that dog for that same service.
+          </li>
+          <li>
+            <span className="font-medium text-foreground/90">
+              Credits cover the base groom only.
+            </span>{" "}
+            De-shed treatment, creative color, add-ons, bundles, and pickup
+            &amp; drop-off still cost extra at booking, same as normal.
+          </li>
+          <li>
+            <span className="font-medium text-foreground/90">
+              Add a bundle or add-ons at purchase, optional.
+            </span>{" "}
+            If that dog already has an active membership, your member
+            discount applies to anything added to the pack.
+          </li>
+          <li>
+            <span className="font-medium text-foreground/90">
+              One-time payment, no subscription.
+            </span>{" "}
+            Pay once online for the whole pack. No membership required to
+            buy one.
           </li>
         </ul>
       </RevealOnScroll>

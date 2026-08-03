@@ -1,12 +1,19 @@
 import type { CoatLength } from "./breeds";
 
+// Promotions (name, discount %, date range, usage cap, appointment
+// lead-time rule) are managed as a list in the `promotions` table — see
+// src/lib/promotions/ — rather than as part of this static pricing config.
+// This is a plain, pure discount calculator any promotion can use.
+export function applyDiscount(price: number, discountPercent: number): number {
+  return Math.round(price * (1 - discountPercent / 100) * 100) / 100;
+}
+
 export type DogWeightClass = "small" | "medium" | "large" | "xlarge";
 export type CatWeightClass = "under20" | "over20";
 export type DogServiceLevel = "bath" | "trim" | "haircut";
 export type DogBookingService = DogServiceLevel | "puppyIntro";
 export type CatServiceLevel = "bath" | "lightTrim";
-
-const byCoat = (short: number, long: number) => ({ short, long });
+export type PuppyWeightBand = "under5" | "under10" | "under20" | "over20";
 
 export const DOG_WEIGHT_LABELS: Record<DogWeightClass, string> = {
   small: "Small (1–10 lb)",
@@ -26,36 +33,6 @@ export function catWeightClass(weightLb: number): CatWeightClass {
   return weightLb > 20 ? "over20" : "under20";
 }
 
-const DOG_BATH: Record<DogWeightClass, { short: number; long: number }> = {
-  small: byCoat(65, 75),
-  medium: byCoat(75, 85),
-  large: byCoat(85, 100),
-  xlarge: byCoat(105, 120),
-};
-
-const DOG_TRIM: Record<DogWeightClass, { short: number; long: number }> = {
-  small: byCoat(72, 80),
-  medium: byCoat(82, 90),
-  large: byCoat(92, 110),
-  xlarge: byCoat(122, 135),
-};
-
-const DOG_HAIRCUT: Record<DogWeightClass, { short: number; long: number }> = {
-  small: byCoat(85, 95),
-  medium: byCoat(95, 105),
-  large: byCoat(105, 120),
-  xlarge: byCoat(135, 150),
-};
-
-const DOG_SERVICE_TABLES: Record<
-  DogServiceLevel,
-  Record<DogWeightClass, { short: number; long: number }>
-> = {
-  bath: DOG_BATH,
-  trim: DOG_TRIM,
-  haircut: DOG_HAIRCUT,
-};
-
 export const DOG_SERVICE_LABELS: Record<DogBookingService, string> = {
   bath: "Bath",
   trim: "Tidy Up (bath + trim)",
@@ -69,11 +46,8 @@ export const DOG_SERVICE_DESCRIPTIONS: Record<DogBookingService, string> = {
   haircut:
     "All Bath inclusions, plus a full body contour or breed-standard cut.",
   puppyIntro:
-    "A gentle, low-stress first grooming experience — introduces your puppy to the tub, dryer, and table with lots of positive reinforcement and short breaks. Puppies only.",
+    "A gentle, low-stress first grooming experience. Introduces your puppy to the tub, dryer, and table with lots of positive reinforcement and short breaks. Puppies only.",
 };
-
-// Puppies under 6 months are priced by absolute weight, not the adult classes.
-type PuppyWeightBand = "under5" | "under10" | "under20" | "over20";
 
 export const PUPPY_WEIGHT_LABELS: Record<PuppyWeightBand, string> = {
   under5: "Under 5 lb",
@@ -82,44 +56,13 @@ export const PUPPY_WEIGHT_LABELS: Record<PuppyWeightBand, string> = {
   over20: "20 lb+",
 };
 
+// Puppies under 6 months are priced by absolute weight, not the adult classes.
 export function puppyWeightBand(weightLb: number): PuppyWeightBand {
   if (weightLb < 5) return "under5";
   if (weightLb < 10) return "under10";
   if (weightLb < 20) return "under20";
   return "over20";
 }
-
-const PUPPY_BATH: Record<PuppyWeightBand, number> = {
-  under5: 35,
-  under10: 45,
-  under20: 50,
-  over20: 60,
-};
-
-const PUPPY_TRIM: Record<PuppyWeightBand, number> = {
-  under5: 42,
-  under10: 52,
-  under20: 57,
-  over20: 67,
-};
-
-const PUPPY_HAIRCUT: Record<PuppyWeightBand, number> = {
-  under5: 50,
-  under10: 60,
-  under20: 65,
-  over20: 75,
-};
-
-const PUPPY_SERVICE_TABLES: Record<DogServiceLevel, Record<PuppyWeightBand, number>> = {
-  bath: PUPPY_BATH,
-  trim: PUPPY_TRIM,
-  haircut: PUPPY_HAIRCUT,
-};
-
-export const PUPPY_INTRO_PRICE = 25;
-
-export const DESHED_FEE = 15;
-export const DOODLE_COAT_MAINTENANCE_FEE = 10;
 
 export interface DogPriceInput {
   weightLb: number;
@@ -140,7 +83,10 @@ export interface PriceResult {
   lines: PriceBreakdownLine[];
 }
 
-export function calculateDogPrice(input: DogPriceInput): PriceResult {
+export function calculateDogPrice(
+  input: DogPriceInput,
+  config: PricingConfig,
+): PriceResult {
   const lines: PriceBreakdownLine[] = [];
 
   // Defensive: the flat intro rate only applies to pets actually flagged as
@@ -148,10 +94,10 @@ export function calculateDogPrice(input: DogPriceInput): PriceResult {
   if (input.service === "puppyIntro" && input.isPuppy) {
     lines.push({
       label: "Puppy Intro to Grooming",
-      amount: PUPPY_INTRO_PRICE,
+      amount: config.puppy.introPrice,
     });
     if (input.deshed) {
-      lines.push({ label: "De-shed treatment", amount: DESHED_FEE });
+      lines.push({ label: "De-shed treatment", amount: config.flatFees.deshed });
     }
     const total = lines.reduce((sum, l) => sum + l.amount, 0);
     return { total, lines };
@@ -162,14 +108,14 @@ export function calculateDogPrice(input: DogPriceInput): PriceResult {
 
   if (input.isPuppy) {
     const band = puppyWeightBand(input.weightLb);
-    const base = PUPPY_SERVICE_TABLES[service][band];
+    const base = config.puppy[service][band];
     lines.push({
       label: `Puppy ${DOG_SERVICE_LABELS[service]} (${PUPPY_WEIGHT_LABELS[band]})`,
       amount: base,
     });
   } else {
     const weightClass = dogWeightClass(input.weightLb);
-    const base = DOG_SERVICE_TABLES[service][weightClass][input.coat];
+    const base = config.dog[service][weightClass][input.coat];
     lines.push({
       label: `${DOG_SERVICE_LABELS[service]} (${DOG_WEIGHT_LABELS[weightClass]})`,
       amount: base,
@@ -181,38 +127,18 @@ export function calculateDogPrice(input: DogPriceInput): PriceResult {
     ) {
       lines.push({
         label: "Doodle coat maintenance fee",
-        amount: DOODLE_COAT_MAINTENANCE_FEE,
+        amount: config.flatFees.doodleCoatMaintenance,
       });
     }
   }
 
   if (input.deshed) {
-    lines.push({ label: "De-shed treatment", amount: DESHED_FEE });
+    lines.push({ label: "De-shed treatment", amount: config.flatFees.deshed });
   }
 
   const total = lines.reduce((sum, l) => sum + l.amount, 0);
   return { total, lines };
 }
-
-const CAT_BATH: Record<CatWeightClass, { short: number; long: number }> = {
-  under20: byCoat(115, 135),
-  over20: byCoat(130, 145),
-};
-
-const CAT_LIGHT_TRIM: Record<CatWeightClass, { short: number; long: number }> = {
-  under20: byCoat(125, 140),
-  over20: byCoat(135, 150),
-};
-
-const CAT_WATERLESS_BATH: Record<CatWeightClass, { short: number; long: number }> = {
-  under20: byCoat(105, 125),
-  over20: byCoat(115, 135),
-};
-
-const CAT_WATERLESS_LIGHT_TRIM: Record<CatWeightClass, { short: number; long: number }> = {
-  under20: byCoat(115, 130),
-  over20: byCoat(125, 140),
-};
 
 export const CAT_SERVICE_LABELS: Record<CatServiceLevel, string> = {
   bath: "Bath",
@@ -244,17 +170,20 @@ export interface CatPriceInput {
   deshed: boolean;
 }
 
-export function calculateCatPrice(input: CatPriceInput): PriceResult {
+export function calculateCatPrice(
+  input: CatPriceInput,
+  config: PricingConfig,
+): PriceResult {
   const lines: PriceBreakdownLine[] = [];
   const weightClass = catWeightClass(input.weightLb);
 
   const table = input.waterless
     ? input.service === "bath"
-      ? CAT_WATERLESS_BATH
-      : CAT_WATERLESS_LIGHT_TRIM
+      ? config.cat.waterlessBath
+      : config.cat.waterlessLightTrim
     : input.service === "bath"
-      ? CAT_BATH
-      : CAT_LIGHT_TRIM;
+      ? config.cat.bath
+      : config.cat.lightTrim;
 
   const base = table[weightClass][input.coat];
   const weightLabel = weightClass === "over20" ? "over 20 lb" : "under 20 lb";
@@ -264,7 +193,7 @@ export function calculateCatPrice(input: CatPriceInput): PriceResult {
   });
 
   if (input.deshed) {
-    lines.push({ label: "De-shed treatment", amount: DESHED_FEE });
+    lines.push({ label: "De-shed treatment", amount: config.flatFees.deshed });
   }
 
   const total = lines.reduce((sum, l) => sum + l.amount, 0);
@@ -276,41 +205,54 @@ export interface AddOn {
   price: number;
 }
 
-export const DOG_ADD_ONS: AddOn[] = [
-  { name: "Bow or bandana", price: 5 },
-  { name: "Paw + nose balm", price: 10 },
-  { name: "Ear cleaning", price: 10 },
-  { name: "Ear plucking", price: 12 },
-  { name: "Deep coat conditioner", price: 12 },
-  { name: "Paw pad shave", price: 15 },
-  { name: "Bow + braids", price: 15 },
-  { name: "De-matting (15 min)", price: 15 },
-  { name: "De-matting (30 min)", price: 30 },
-  { name: "Extra brushing (15 min)", price: 15 },
-  { name: "Extra brushing (30 min)", price: 30 },
-  { name: "Extra scissoring (15 min)", price: 15 },
-  { name: "Extra scissoring (30 min)", price: 30 },
-  { name: "Nail polish", price: 17 },
-  { name: "Teeth brushing", price: 19 },
-  { name: "Anal glands", price: 20 },
-  { name: "Flea bath", price: 20 },
-  { name: "Nail trim", price: 22 },
-  { name: "Sanitary shave", price: 20 },
-  { name: "Nail grinding", price: 30 },
+// Add-on names are fixed — only their prices are editable (via
+// pricing_config.addOns.dog/.cat, matched positionally against these
+// arrays). Adding/removing/renaming an add-on is still a code change.
+export const DOG_ADD_ON_NAMES: string[] = [
+  "Bow or bandana",
+  "Paw + nose balm",
+  "Ear cleaning",
+  "Ear plucking",
+  "Deep coat conditioner",
+  "Paw pad shave",
+  "Bow + braids",
+  "De-matting (15 min)",
+  "Extra brushing (15 min)",
+  "Extra scissoring (15 min)",
+  "Nail polish",
+  "Teeth brushing",
+  "Anal glands",
+  "Flea bath",
+  "Sanitary shave",
+  "Nail trim",
+  "De-matting (30 min)",
+  "Extra brushing (30 min)",
+  "Extra scissoring (30 min)",
+  "Nail grinding",
 ];
 
-export const CAT_ADD_ONS: AddOn[] = [
-  { name: "Ear cleaning", price: 15 },
-  { name: "Paw pad shave", price: 15 },
-  { name: "Sanitary trim", price: 20 },
-  { name: "De-matting (15 min)", price: 15 },
-  { name: "De-matting (30 min)", price: 30 },
-  { name: "Extra brushing (15 min)", price: 15 },
-  { name: "Extra brushing (30 min)", price: 30 },
-  { name: "Extra scissoring (15 min)", price: 15 },
-  { name: "Extra scissoring (30 min)", price: 30 },
-  { name: "Nail trim", price: 25 },
+export const CAT_ADD_ON_NAMES: string[] = [
+  "Ear cleaning",
+  "Paw pad shave",
+  "De-matting (15 min)",
+  "Extra brushing (15 min)",
+  "Extra scissoring (15 min)",
+  "Sanitary trim",
+  "Nail trim",
+  "De-matting (30 min)",
+  "Extra brushing (30 min)",
+  "Extra scissoring (30 min)",
+  "Nail Caps (2 paws)",
+  "Nail Caps (4 paws)",
 ];
+
+export function dogAddOns(config: PricingConfig): AddOn[] {
+  return DOG_ADD_ON_NAMES.map((name, i) => ({ name, price: config.addOns.dog[i] }));
+}
+
+export function catAddOns(config: PricingConfig): AddOn[] {
+  return CAT_ADD_ON_NAMES.map((name, i) => ({ name, price: config.addOns.cat[i] }));
+}
 
 export type PackageTier = "freshStart" | "pampered" | "vip";
 
@@ -324,21 +266,26 @@ export const PACKAGE_DESCRIPTIONS: Record<PackageTier, string> = {
   freshStart:
     "Teeth brushing, cologne, bandana or bow, and a deep coat conditioner.",
   pampered: "Everything in Fresh Start, plus nail grinding.",
-  vip: "Everything in Pampered, plus a paw & nose balm massage, VIP shampoo & conditioner, and a discount on your next visit.",
+  vip: "Everything in Pampered, plus a paw & nose balm, massage, VIP shampoo & conditioner, and a discount on your next visit.",
 };
 
-// Members get the same add-on bundles at a discount.
-export const MEMBER_PACKAGE_PRICES: Record<PackageTier, number> = {
-  freshStart: 15,
-  pampered: 20,
-  vip: 25,
-};
+export function applyMemberAddonDiscount(
+  price: number,
+  config: PricingConfig,
+): number {
+  return Math.round(price * (1 - config.memberAddonDiscountPercent / 100));
+}
 
-export const PACKAGE_PRICES: Record<PackageTier, number> = {
-  freshStart: 25,
-  pampered: 30,
-  vip: 35,
-};
+// Members get the same add-on bundles at the same discount rate.
+export function memberPackagePrices(
+  config: PricingConfig,
+): Record<PackageTier, number> {
+  return {
+    freshStart: applyMemberAddonDiscount(config.packages.freshStart, config),
+    pampered: applyMemberAddonDiscount(config.packages.pampered, config),
+    vip: applyMemberAddonDiscount(config.packages.vip, config),
+  };
+}
 
 export type CreativeTier = "accentPop" | "showstopper" | "fantasy";
 
@@ -351,13 +298,14 @@ export const CREATIVE_TIER_LABELS: Record<CreativeTier, string> = {
 export function calculateCreativePrice(
   tier: CreativeTier,
   weightLb: number,
+  config: PricingConfig,
 ): number {
-  if (tier === "accentPop") return 40;
-  if (tier === "showstopper") return 100;
-  // fantasy: priced by weight
-  if (weightLb <= 15) return 115;
-  if (weightLb <= 40) return 150;
-  return 250;
+  if (tier === "accentPop") return config.creative.accentPop;
+  if (tier === "showstopper") return config.creative.showstopper;
+  // fantasy: priced by weight (breakpoints are structural, not editable)
+  if (weightLb <= 15) return config.creative.fantasy.upTo15;
+  if (weightLb <= 40) return config.creative.fantasy.upTo40;
+  return config.creative.fantasy.over40;
 }
 
 // Monthly memberships — dogs only, matching the three core service levels.
@@ -375,28 +323,30 @@ export const MEMBERSHIP_TIER_SERVICE: Record<MembershipTier, DogServiceLevel> = 
   couturePup: "haircut",
 };
 
-// Members get their monthly groom at a discount off the regular à la carte
-// price for that same service/weight/coat.
-export const MEMBERSHIP_GROOM_DISCOUNT = 0.1;
-
-export function applyMembershipDiscount(price: number): number {
-  return Math.round(price * (1 - MEMBERSHIP_GROOM_DISCOUNT) * 100) / 100;
-}
-
 export const MEMBERSHIP_TIER_DESCRIPTIONS: Record<MembershipTier, string> = {
   spaPup:
-    "Monthly Bath + Brush at 10% off, priority booking, discounted add-ons.",
+    "Monthly Bath at your dog's normal rate, priority booking, discounted add-ons and packages.",
   royalPup:
-    "Monthly Bath + Trim at 10% off, priority booking, discounted add-ons.",
+    "Monthly Bath + Trim at your dog's normal rate, priority booking, discounted add-ons and packages.",
   couturePup:
-    "Monthly Bath + Full Haircut at 10% off, priority booking, discounted add-ons.",
+    "Monthly Bath + Full Haircut at your dog's normal rate, priority booking, discounted add-ons and packages.",
 };
 
-// After this many months subscribed, the next month is free.
-export const MEMBERSHIP_FREE_MONTH_THRESHOLD: Record<MembershipTier, number> = {
-  spaPup: 3,
-  royalPup: 4,
-  couturePup: 5,
+// One-time pre-purchased groom credit packs — priced at the pet's own Bath
+// or Full Groom rate, credits never expire.
+export type GroomPackService = "bath" | "haircut";
+export type GroomPackTier = "five" | "nine";
+
+export const GROOM_PACK_SERVICES: GroomPackService[] = ["bath", "haircut"];
+
+export const GROOM_PACK_SERVICE_LABELS: Record<GroomPackService, string> = {
+  bath: "Bath",
+  haircut: "Full Groom",
+};
+
+export const GROOM_PACK_TIER_LABELS: Record<GroomPackTier, string> = {
+  five: "Buy 5, Get 1 Free",
+  nine: "Buy 9, Get 3 More Free",
 };
 
 export function monthsSince(dateStr: string): number {
@@ -407,3 +357,105 @@ export function monthsSince(dateStr: string): number {
     (now.getMonth() - start.getMonth())
   );
 }
+
+// --- Editable pricing config --------------------------------------------
+// Every number below is editable from /admin/pricing (backed by the
+// pricing_config DB table). DEFAULT_PRICING_CONFIG is the fallback used if
+// the DB read ever fails, and mirrors the exact values this app shipped
+// with before the pricing editor existed, so nothing changes if the DB
+// row is ever missing.
+
+export interface WeightCoatPrice {
+  short: number;
+  long: number;
+}
+
+export interface PricingConfig {
+  dog: {
+    bath: Record<DogWeightClass, WeightCoatPrice>;
+    trim: Record<DogWeightClass, WeightCoatPrice>;
+    haircut: Record<DogWeightClass, WeightCoatPrice>;
+  };
+  puppy: {
+    bath: Record<PuppyWeightBand, number>;
+    trim: Record<PuppyWeightBand, number>;
+    haircut: Record<PuppyWeightBand, number>;
+    introPrice: number;
+  };
+  cat: {
+    bath: Record<CatWeightClass, WeightCoatPrice>;
+    lightTrim: Record<CatWeightClass, WeightCoatPrice>;
+    waterlessBath: Record<CatWeightClass, WeightCoatPrice>;
+    waterlessLightTrim: Record<CatWeightClass, WeightCoatPrice>;
+  };
+  flatFees: {
+    deshed: number;
+    doodleCoatMaintenance: number;
+    pickupDropoff: number;
+  };
+  addOns: {
+    dog: number[];
+    cat: number[];
+  };
+  packages: Record<PackageTier, number>;
+  memberAddonDiscountPercent: number;
+  creative: {
+    accentPop: number;
+    showstopper: number;
+    fantasy: { upTo15: number; upTo40: number; over40: number };
+  };
+  groomPacks: Record<GroomPackTier, { paidCount: number; freeCount: number }>;
+}
+
+const byCoat = (short: number, long: number): WeightCoatPrice => ({ short, long });
+
+export const DEFAULT_PRICING_CONFIG: PricingConfig = {
+  dog: {
+    bath: {
+      small: byCoat(55, 65),
+      medium: byCoat(65, 75),
+      large: byCoat(75, 90),
+      xlarge: byCoat(95, 110),
+    },
+    trim: {
+      small: byCoat(62, 70),
+      medium: byCoat(72, 80),
+      large: byCoat(82, 100),
+      xlarge: byCoat(112, 125),
+    },
+    haircut: {
+      small: byCoat(75, 85),
+      medium: byCoat(85, 95),
+      large: byCoat(95, 110),
+      xlarge: byCoat(125, 140),
+    },
+  },
+  puppy: {
+    bath: { under5: 25, under10: 35, under20: 40, over20: 50 },
+    trim: { under5: 32, under10: 42, under20: 47, over20: 57 },
+    haircut: { under5: 40, under10: 50, under20: 55, over20: 65 },
+    introPrice: 25,
+  },
+  cat: {
+    bath: { under20: byCoat(105, 125), over20: byCoat(120, 135) },
+    lightTrim: { under20: byCoat(115, 130), over20: byCoat(125, 140) },
+    waterlessBath: { under20: byCoat(95, 115), over20: byCoat(105, 125) },
+    waterlessLightTrim: { under20: byCoat(105, 120), over20: byCoat(115, 130) },
+  },
+  flatFees: { deshed: 15, doodleCoatMaintenance: 10, pickupDropoff: 25 },
+  addOns: {
+    dog: [5, 10, 10, 12, 12, 15, 15, 15, 15, 15, 15, 19, 20, 20, 20, 22, 30, 30, 30, 30],
+    cat: [15, 15, 15, 15, 15, 20, 25, 30, 30, 30, 35, 45],
+  },
+  packages: { freshStart: 25, pampered: 30, vip: 35 },
+  memberAddonDiscountPercent: 15,
+  creative: {
+    accentPop: 40,
+    showstopper: 100,
+    fantasy: { upTo15: 115, upTo40: 150, over40: 250 },
+  },
+  groomPacks: {
+    five: { paidCount: 5, freeCount: 1 },
+    nine: { paidCount: 9, freeCount: 3 },
+  },
+};

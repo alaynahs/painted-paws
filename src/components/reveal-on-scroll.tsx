@@ -20,10 +20,7 @@ export default function RevealOnScroll({
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          observer.disconnect();
-        }
+        setVisible(entry.isIntersecting);
       },
       { threshold: 0.15, rootMargin: "0px 0px -60px 0px" },
     );

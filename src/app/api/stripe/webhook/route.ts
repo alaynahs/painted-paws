@@ -29,6 +29,8 @@ export async function POST(request: NextRequest) {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
     const appointmentId = session.metadata?.appointmentId;
+    const packId = session.metadata?.packId;
+    const membershipId = session.metadata?.membershipId;
 
     if (appointmentId) {
       const supabase = createServiceClient();
@@ -36,6 +38,30 @@ export async function POST(request: NextRequest) {
         .from("appointments")
         .update({ payment_status: "paid" })
         .eq("id", appointmentId);
+    }
+
+    if (packId) {
+      const supabase = createServiceClient();
+      await supabase
+        .from("groom_credit_packs")
+        .update({ payment_status: "paid" })
+        .eq("id", packId);
+    }
+
+    if (membershipId) {
+      const supabase = createServiceClient();
+      await supabase
+        .from("memberships")
+        .update({
+          status: "active",
+          stripe_subscription_id:
+            typeof session.subscription === "string"
+              ? session.subscription
+              : null,
+          stripe_customer_id:
+            typeof session.customer === "string" ? session.customer : null,
+        })
+        .eq("id", membershipId);
     }
   }
 

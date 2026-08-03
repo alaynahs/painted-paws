@@ -1,0 +1,77 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { requireAdmin } from "@/lib/supabase/admin";
+
+function revalidateEverywhere() {
+  revalidatePath("/admin/pricing");
+  revalidatePath("/book");
+  revalidatePath("/");
+}
+
+function readPromotionFields(formData: FormData) {
+  const maxUsesRaw = (formData.get("maxUses") as string)?.trim();
+  const leadDaysRaw = (formData.get("maxAppointmentLeadDays") as string)?.trim();
+  return {
+    name: ((formData.get("name") as string) || "").trim(),
+    discountPercent: Number(formData.get("discountPercent")),
+    maxUses: maxUsesRaw ? Number(maxUsesRaw) : null,
+    startsAt: formData.get("startsAt") as string,
+    endsAt: formData.get("endsAt") as string,
+    maxAppointmentLeadDays: leadDaysRaw ? Number(leadDaysRaw) : null,
+  };
+}
+
+export async function createPromotion(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const fields = readPromotionFields(formData);
+
+  if (!fields.name || !fields.startsAt || !fields.endsAt || !Number.isFinite(fields.discountPercent)) {
+    redirect("/admin/pricing?error=Please+fill+out+the+promotion+form.");
+  }
+
+  await supabase.from("promotions").insert({
+    name: fields.name,
+    discount_percent: fields.discountPercent,
+    max_uses: fields.maxUses,
+    starts_at: new Date(fields.startsAt).toISOString(),
+    ends_at: new Date(fields.endsAt).toISOString(),
+    max_appointment_lead_days: fields.maxAppointmentLeadDays,
+    active: true,
+  });
+
+  revalidateEverywhere();
+  redirect("/admin/pricing?saved=promotion-created");
+}
+
+export async function updatePromotion(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const id = formData.get("id") as string;
+  const fields = readPromotionFields(formData);
+  const active = formData.get("active") === "true";
+
+  await supabase
+    .from("promotions")
+    .update({
+      name: fields.name,
+      discount_percent: fields.discountPercent,
+      max_uses: fields.maxUses,
+      starts_at: new Date(fields.startsAt).toISOString(),
+      ends_at: new Date(fields.endsAt).toISOString(),
+      max_appointment_lead_days: fields.maxAppointmentLeadDays,
+      active,
+    })
+    .eq("id", id);
+
+  revalidateEverywhere();
+  redirect("/admin/pricing?saved=promotion-updated");
+}
+
+export async function deletePromotion(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const id = formData.get("id") as string;
+  await supabase.from("promotions").delete().eq("id", id);
+  revalidateEverywhere();
+  redirect("/admin/pricing?saved=promotion-deleted");
+}

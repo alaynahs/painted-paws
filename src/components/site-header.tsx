@@ -10,14 +10,21 @@ const navLinks = [
   { href: "/services", label: "Services" },
   { href: "/portfolio", label: "Portfolio" },
   { href: "/membership", label: "Membership" },
+  { href: "/faq", label: "FAQ" },
 ];
 
 export default function SiteHeader({
   authSlotDesktop,
   authSlotMobile,
+  adminSlotDesktop,
+  adminSlotMobile,
+  isAdmin = false,
 }: {
   authSlotDesktop: ReactNode;
   authSlotMobile: ReactNode;
+  adminSlotDesktop: ReactNode;
+  adminSlotMobile: ReactNode;
+  isAdmin?: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -28,44 +35,47 @@ export default function SiteHeader({
         <BackButton />
         <Link
           href="/"
-          className="flex flex-1 items-center gap-2.5"
+          className="flex shrink-0 items-center gap-2.5"
           onClick={() => setOpen(false)}
         >
           <Image
             src="/logo.png"
             alt="Painted Paws"
-            width={44}
+            width={30}
             height={40}
-            className="h-10 w-auto"
+            className="h-8 w-auto lg:h-10"
             priority
           />
-          <span className="font-serif text-xl italic tracking-tight text-foreground">
+          <span className="font-serif text-lg italic tracking-tight text-foreground lg:text-xl">
             Painted Paws
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-8 md:flex">
+        <nav className="hidden min-w-0 flex-1 items-center justify-end gap-2.5 md:flex lg:gap-4">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="text-sm text-foreground/80 transition-colors hover:text-accent-dark"
+              className="whitespace-nowrap text-xs text-foreground/80 transition-colors hover:text-accent-dark lg:text-sm"
             >
               {link.label}
             </Link>
           ))}
           {authSlotDesktop}
-          <Link
-            href="/book"
-            className="rounded-full bg-accent px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-dark"
-          >
-            Book Now
-          </Link>
+          {adminSlotDesktop}
+          {!isAdmin && (
+            <Link
+              href="/book"
+              className="shrink-0 rounded-full bg-accent px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-dark lg:px-5 lg:py-2 lg:text-sm"
+            >
+              Book Now
+            </Link>
+          )}
         </nav>
 
         <button
           type="button"
-          className="relative z-10 flex h-10 w-10 shrink-0 flex-col items-center justify-center gap-1.5 md:hidden"
+          className="relative z-10 ml-auto flex h-10 w-10 shrink-0 flex-col items-center justify-center gap-1.5 md:hidden"
           aria-label="Toggle menu"
           aria-expanded={open}
           onClick={() => setOpen(true)}
@@ -88,7 +98,7 @@ export default function SiteHeader({
         onClick={() => setOpen(false)}
       />
       <div
-        className={`absolute top-0 right-0 flex h-full w-72 max-w-[80vw] flex-col bg-background p-6 shadow-xl transition-transform duration-300 ease-in-out ${
+        className={`absolute top-0 right-0 flex h-full w-72 max-w-[80vw] flex-col overflow-y-auto bg-background p-6 shadow-xl transition-transform duration-300 ease-in-out ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -117,8 +127,12 @@ export default function SiteHeader({
               {link.label}
             </Link>
           ))}
-          <span onClick={() => setOpen(false)}>{authSlotMobile}</span>
+          <div className="contents" onClick={() => setOpen(false)}>
+            {authSlotMobile}
+          </div>
         </nav>
+
+        <div onClick={() => setOpen(false)}>{adminSlotMobile}</div>
 
         <Link
           href="/book"

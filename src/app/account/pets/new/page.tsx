@@ -24,7 +24,7 @@ export default async function NewPetPage({
         Add a Pet
       </h1>
       <p className="mt-3 text-sm text-muted">
-        Save your pet&apos;s info once — you&apos;ll just pick them by name
+        Save your pet&apos;s info once. You&apos;ll just pick them by name
         every time you book.
       </p>
 

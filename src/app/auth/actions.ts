@@ -28,7 +28,7 @@ export async function signup(formData: FormData) {
   if (!smsConsent) {
     redirect(
       `/signup?error=${encodeURIComponent(
-        "Please agree to receive appointment texts to continue — that's how we send booking confirmations and reminders.",
+        "Please agree to receive appointment texts to continue. That's how we send booking confirmations and reminders.",
       )}`,
     );
   }
@@ -64,6 +64,27 @@ export async function signup(formData: FormData) {
   }
 
   redirect("/account");
+}
+
+export async function signInWithGoogle() {
+  const supabase = await createClient();
+  const origin = (await headers()).get("origin");
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${origin}/auth/callback?next=/account`,
+    },
+  });
+
+  if (error || !data.url) {
+    redirect(
+      `/login?error=${encodeURIComponent(
+        error?.message ?? "Could not start Google sign-in.",
+      )}`,
+    );
+  }
+  redirect(data.url);
 }
 
 export async function logout() {
@@ -108,7 +129,7 @@ export async function updatePassword(formData: FormData) {
 
   redirect(
     `/login?message=${encodeURIComponent(
-      "Password updated — log in with your new password.",
+      "Password updated. Log in with your new password.",
     )}`,
   );
 }
@@ -118,8 +139,24 @@ export async function updatePassword(formData: FormData) {
 // so it stays on /account with a message instead of bouncing to /login.
 export async function updatePasswordFromAccount(formData: FormData) {
   const supabase = await createClient();
+  const currentPassword = formData.get("currentPassword") as string;
   const password = formData.get("password") as string;
   const confirmPassword = formData.get("confirmPassword") as string;
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) redirect("/login");
+
+  const { error: currentPasswordError } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: currentPassword,
+  });
+  if (currentPasswordError) {
+    redirect(
+      `/account?error=${encodeURIComponent("Current password is incorrect.")}`,
+    );
+  }
 
   if (password !== confirmPassword) {
     redirect(`/account?error=${encodeURIComponent("Passwords don't match.")}`);

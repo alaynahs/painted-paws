@@ -1,12 +1,14 @@
+import Image from "next/image";
 import Link from "next/link";
 import HeroFadeGallery from "@/components/hero-fade-gallery";
 import PawIcon from "@/components/paw-icon";
 import RevealOnScroll from "@/components/reveal-on-scroll";
+import { createClient } from "@/lib/supabase/server";
 
 const features = [
   {
     title: "One-on-one, always",
-    body: "Your pet is the only one here for their appointment — no kennels, no crowded lobby, no waiting in a cage between steps.",
+    body: "Your pet is the only one here for their appointment. No kennels, no crowded lobby, no waiting in a cage between steps.",
   },
   {
     title: "In-home studio",
@@ -14,7 +16,7 @@ const features = [
   },
   {
     title: "Dogs & cats welcome",
-    body: "Baths, trims, and full grooms for pups — plus gentle bath and tidy services for the cats of the house too.",
+    body: "Baths, trims, and full grooms for pups, plus gentle bath and tidy services for the cats of the house too.",
   },
   {
     title: "Regular grooming",
@@ -26,38 +28,52 @@ const features = [
   },
   {
     title: "Curbside hand-off",
-    body: "Text when you arrive and we'll meet you at the car — simple, contactless drop-off and pickup.",
+    body: "Text when you arrive and we'll meet you at the car for simple, contactless drop-off and pickup.",
   },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient();
+  const { data: heroPhotos } = await supabase
+    .from("site_photos")
+    .select("*")
+    .eq("location", "hero")
+    .order("sort_order", { ascending: true });
+
+  const galleryItems = (heroPhotos ?? []).map((p) => ({
+    src: supabase.storage.from("site-photos").getPublicUrl(p.storage_path)
+      .data.publicUrl,
+    caption: p.caption,
+  }));
+
   return (
     <div>
       <section className="mx-auto max-w-6xl px-6 pt-16 pb-20 sm:pt-24 sm:pb-28">
         <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="max-w-2xl">
-            <p className="text-sm font-medium tracking-wide text-accent-dark uppercase">
-              Austin, TX &middot; By appointment only
+            <p className="text-xs font-semibold tracking-widest text-accent-dark uppercase">
+              Located in Pflugerville, Austin, TX &middot; By appointment
+              only
             </p>
-            <h1 className="mt-4 font-serif text-4xl leading-tight text-foreground sm:text-6xl">
-              Boutique pet grooming,{" "}
+            <h1 className="mt-5 font-serif text-5xl leading-[1.05] tracking-tight text-foreground sm:text-7xl">
+              One-on-one{" "}
               <span className="italic text-accent-dark">
-                one pup (or kitty) at a time.
+                pet grooming.
               </span>
             </h1>
-            <p className="mt-6 text-lg text-muted">
+            <p className="mt-6 max-w-lg text-lg leading-relaxed text-muted">
               Painted Paws is a private, in-home grooming studio for pets who
-              deserve unhurried, one-on-one attention — from classic baths to
+              deserve unhurried, one-on-one attention, from classic baths to
               breed-standard haircuts, in a space built for calm, not chaos.
             </p>
             <div className="mt-5 flex flex-wrap items-center gap-2 text-sm text-muted">
-              <span className="rounded-full bg-pastel-pink/60 px-3 py-1 font-medium text-foreground/80">
+              <span className="rounded-full bg-pastel-pink/70 px-3 py-1 font-semibold text-foreground/85">
                 🐾 Woof-approved
               </span>
-              <span className="rounded-full bg-pastel-mint/60 px-3 py-1 font-medium text-foreground/80">
+              <span className="rounded-full bg-pastel-mint/70 px-3 py-1 font-semibold text-foreground/85">
                 🐱 Meow-approved
               </span>
-              <span className="rounded-full bg-pastel-yellow/60 px-3 py-1 font-medium text-foreground/80">
+              <span className="rounded-full bg-pastel-yellow/70 px-3 py-1 font-semibold text-foreground/85">
                 ✨ Zero cages, always
               </span>
             </div>
@@ -77,7 +93,7 @@ export default function Home() {
             </div>
           </div>
 
-          <HeroFadeGallery />
+          <HeroFadeGallery items={galleryItems.length > 0 ? galleryItems : undefined} />
         </div>
       </section>
 
@@ -85,19 +101,82 @@ export default function Home() {
         <div className="mx-auto grid max-w-6xl gap-10 px-6 py-16 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((f, i) => (
             <RevealOnScroll key={f.title} delay={(i % 3) * 100}>
-              <h2 className="font-serif text-lg text-foreground">{f.title}</h2>
-              <p className="mt-2 text-sm text-muted">{f.body}</p>
+              <h2 className="font-serif text-xl font-medium text-foreground">{f.title}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-muted">{f.body}</p>
             </RevealOnScroll>
           ))}
         </div>
       </section>
 
+      <section className="border-b border-border">
+        <div className="mx-auto max-w-6xl px-6 py-20">
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
+            <RevealOnScroll className="mx-auto w-full max-w-sm">
+              <div className="relative aspect-[3/4] overflow-hidden rounded-2xl border border-border">
+                <Image
+                  src="/about-groomer-corgi.jpg"
+                  alt="The Painted Paws groomer with her cat"
+                  fill
+                  className="object-cover"
+                />
+              </div>
+            </RevealOnScroll>
+            <RevealOnScroll delay={100}>
+              <p className="text-sm font-medium tracking-wide text-accent-dark uppercase">
+                About
+              </p>
+              <h2 className="mt-3 font-serif text-3xl text-foreground">
+                Meet Painted Paws
+              </h2>
+              <p className="mt-4 text-muted">
+                Painted Paws is a private, in-home grooming studio in Austin,
+                TX. Every appointment is one-on-one. Your dog is never left in
+                a kennel or crated between steps. It&apos;s a calmer, more
+                personal alternative to a busy commercial salon, whether
+                you&apos;re after a classic breed-standard cut or a bold
+                creative transformation.
+              </p>
+              <p className="mt-4 text-muted">
+                I started off as a dog walker and sitter, then a bather,
+                eventually going to school to become a groomer, and then a
+                professional pet stylist. I&apos;ve since gone solo to give
+                pets the kind of
+                experience I always wished they could have. Most corporate
+                grooming settings are built around speed, which never really
+                gives a pet the chance to get truly comfortable with the
+                process, and it can be a genuinely stressful experience for
+                them. Painted Paws exists to do it differently: unhurried,
+                personalized, and paced around your pet, not the clock.
+              </p>
+              <p className="mt-4 text-muted">
+                Animals have been part of my life since childhood. I&apos;ve
+                personally raised birds, rabbits, guinea pigs, a horse, dogs,
+                cats, and even a hedgehog, so I bring a genuine, well-rounded
+                understanding of animal behavior and comfort to every
+                appointment.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="rounded-full bg-accent-tint px-3 py-1 text-xs font-medium text-foreground/80">
+                  ✓ Certified
+                </span>
+                <span className="rounded-full bg-accent-tint px-3 py-1 text-xs font-medium text-foreground/80">
+                  ✓ Licensed
+                </span>
+                <span className="rounded-full bg-accent-tint px-3 py-1 text-xs font-medium text-foreground/80">
+                  ✓ Insured
+                </span>
+              </div>
+            </RevealOnScroll>
+          </div>
+        </div>
+      </section>
+
       <section className="mx-auto max-w-6xl px-6 py-20">
         <RevealOnScroll className="text-center">
-          <p className="text-sm font-medium tracking-wide text-accent-dark uppercase">
+          <p className="text-xs font-semibold tracking-widest text-accent-dark uppercase">
             The Painted Paws experience
           </p>
-          <h2 className="mx-auto mt-3 max-w-2xl font-serif text-3xl text-foreground">
+          <h2 className="mx-auto mt-3 max-w-2xl font-serif text-4xl tracking-tight text-foreground">
             Less salon, more spa day.
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-muted">
@@ -125,7 +204,7 @@ export default function Home() {
             </h3>
             <p className="mt-2 text-sm text-muted">
               Patient, low-stress handling for anxious first-timers and
-              seasoned spa-day regulars alike — at their pace, not the clock&apos;s.
+              seasoned spa-day regulars alike, at their pace, not the clock&apos;s.
             </p>
           </RevealOnScroll>
           <RevealOnScroll delay={200} className="rounded-2xl border border-border bg-accent-tint p-6 text-center">
@@ -145,16 +224,16 @@ export default function Home() {
         <div className="mx-auto max-w-6xl px-6 py-20">
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <RevealOnScroll>
-              <p className="text-sm font-medium tracking-wide text-accent-dark uppercase">
+              <p className="text-xs font-semibold tracking-widest text-accent-dark uppercase">
                 What we offer
               </p>
-              <h2 className="mt-3 font-serif text-3xl text-foreground">
+              <h2 className="mt-3 font-serif text-4xl tracking-tight text-foreground">
                 From a refreshing bath to a full breed-standard cut.
               </h2>
               <p className="mt-4 text-muted">
                 Every appointment starts with a bath, brush-out, nail trim,
                 and ear cleaning. From there, choose a breed-standard
-                haircut or a tidy trim — priced to your pet&apos;s coat and
+                haircut or a tidy trim, priced to your pet&apos;s coat and
                 weight. (Creative color coming soon!)
               </p>
               <Link
@@ -166,8 +245,8 @@ export default function Home() {
             </RevealOnScroll>
             <RevealOnScroll delay={150} className="rounded-2xl border border-border bg-accent-tint p-8">
               <p className="font-serif text-xl italic text-foreground">
-                &ldquo;This doodle came in with six months of growth —
-                let&apos;s bring back the teddy-bear cut.&rdquo;
+                &ldquo;This doodle came in with six months of growth.
+                Let&apos;s bring back the teddy-bear cut.&rdquo;
               </p>
               <p className="mt-4 text-sm text-muted">
                 Every pet has a story. Follow along on Instagram for
@@ -186,7 +265,7 @@ export default function Home() {
             </span>
             <PawIcon className="h-5 w-5 text-accent-dark" />
             <p className="mt-4 font-serif text-lg italic text-foreground">
-              &ldquo;He usually shakes the whole car ride here — today he
+              &ldquo;He usually shakes the whole car ride here. Today he
               fell asleep on the table.&rdquo;
             </p>
             <p className="mt-3 text-sm text-muted">
@@ -201,7 +280,7 @@ export default function Home() {
             <PawIcon className="h-5 w-5 text-accent-dark" />
             <p className="mt-4 font-serif text-lg italic text-foreground">
               &ldquo;Didn&apos;t think we&apos;d find anyone patient enough
-              for her — turns out she just needed a quieter room.&rdquo;
+              for her. Turns out she just needed a quieter room.&rdquo;
             </p>
             <p className="mt-3 text-sm text-muted">
               Cats get the same one-on-one, no-rush treatment as every dog
@@ -211,9 +290,28 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="border-t border-border">
+        <div className="mx-auto max-w-6xl px-6 py-20">
+          <RevealOnScroll className="rounded-2xl border border-border bg-accent-tint p-8">
+            <h3 className="font-serif text-lg text-foreground">
+              Curbside Hand-Off Policy
+            </h3>
+            <p className="mt-3 text-sm text-muted">
+              To keep the studio calm and stress-free, our home workspace is
+              a pet-only zone. When you arrive, park in the driveway and send
+              a quick text. We&apos;ll meet you at your car to bring your dog
+              in, and do the same for pickup once the groom is complete.
+            </p>
+            <p className="mt-3 text-sm font-medium text-foreground">
+              No walk-ins. Appointments only.
+            </p>
+          </RevealOnScroll>
+        </div>
+      </section>
+
       <section className="border-t border-border bg-accent-tint">
         <RevealOnScroll className="mx-auto max-w-6xl px-6 py-16 text-center">
-          <h2 className="font-serif text-3xl text-foreground">
+          <h2 className="font-serif text-4xl tracking-tight text-foreground">
             Ready to book your pup&apos;s (or kitty&apos;s) spa day?
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-muted">

@@ -59,17 +59,21 @@ export default async function AdminCalendarPage({
 
   const { data: appointments } = await supabase
     .from("appointments")
-    .select("appointment_date, appointment_hour, pets(name)")
+    .select("id, appointment_date, appointment_hour, pets(name)")
     .neq("status", "cancelled")
     .gte("appointment_date", gridStart)
     .lte("appointment_date", gridEnd)
     .order("appointment_hour", { ascending: true });
 
-  const appointmentsByDay: Record<string, { hour: number; petName: string }[]> = {};
+  const appointmentsByDay: Record<
+    string,
+    { id: string; hour: number; petName: string }[]
+  > = {};
   for (const appt of appointments ?? []) {
     const list = appointmentsByDay[appt.appointment_date] ?? [];
     const pet = Array.isArray(appt.pets) ? appt.pets[0] : appt.pets;
     list.push({
+      id: appt.id,
       hour: appt.appointment_hour,
       petName: pet?.name ?? "Unknown pet",
     });
@@ -138,8 +142,8 @@ export default async function AdminCalendarPage({
 
       <p className="mt-6 text-xs text-muted">
         Each paw print is one scheduled appointment. Hover or tap a day to
-        preview times and pets, or click through to jump to its week in the
-        schedule.
+        preview times and pets, click a booking to open it directly, or jump
+        to its week in the schedule.
       </p>
     </div>
   );

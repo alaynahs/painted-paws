@@ -9,11 +9,15 @@ export interface GalleryItem {
 }
 
 const DEFAULT_ITEMS: GalleryItem[] = [
-  { caption: "Goldendoodle — Teddy Bear Cut" },
-  { caption: "Shih Tzu — Full Groom" },
-  { caption: "Yorkshire Terrier — Bath & Blowout" },
-  { caption: "Schnauzer — Face, Feet & Sanitary Trim" },
-  { caption: "Husky — De-Shed Treatment" },
+  { src: "/portfolio/poodle-breed-standard.jpg", caption: "Standard Poodle · Bath & Full Groom" },
+  { src: "/portfolio/bath-time.jpg", caption: "Aussiedoodle · In the Tub" },
+  { src: "/portfolio/bichon-frise.jpg", caption: "Bichon Frise · Bath & Full Groom" },
+  { src: "/portfolio/maltese.jpg", caption: "Maltese Mix · Bath & Full Groom" },
+  { src: "/portfolio/husky-face.jpg", caption: "Husky · De-Shed Treatment" },
+  { src: "/portfolio/corgi.jpg", caption: "Corgi · Bath & Blowout" },
+  { src: "/portfolio/toy-poodle.jpg", caption: "Mini Goldendoodle · Bath & Full Groom" },
+  { src: "/portfolio/australian-shepherd.jpg", caption: "Australian Shepherd · Bath & Blowout" },
+  { src: "/portfolio/sheltie-mix.jpg", caption: "Mini Australian Shepherd · Bath & Brush" },
 ];
 
 export default function HeroFadeGallery({
@@ -66,7 +70,7 @@ export default function HeroFadeGallery({
             <img
               src={item.src}
               alt={item.caption}
-              className="h-full w-full object-cover"
+              className="absolute inset-0 h-full w-full object-cover"
             />
           ) : (
             <>

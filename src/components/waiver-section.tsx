@@ -6,7 +6,6 @@ export type YesNo = "yes" | "no" | null;
 
 export interface WaiverState {
   vaccinatedLast24h: YesNo;
-  vaccinesCurrent: YesNo;
   behavioralConcerns: YesNo;
   behavioralNote: string;
   seniorOrSpecialNeeds: YesNo;
@@ -21,7 +20,6 @@ export interface WaiverState {
 
 export const WAIVER_DEFAULTS: WaiverState = {
   vaccinatedLast24h: null,
-  vaccinesCurrent: null,
   behavioralConcerns: null,
   behavioralNote: "",
   seniorOrSpecialNeeds: null,
@@ -39,7 +37,6 @@ export const WAIVER_DEFAULTS: WaiverState = {
 export function isWaiverValid(w: WaiverState): boolean {
   return (
     w.vaccinatedLast24h === "no" &&
-    w.vaccinesCurrent === "yes" &&
     w.liabilityAccepted &&
     w.signedName.trim() !== ""
   );
@@ -91,7 +88,7 @@ const EXPLAIN_CONFIG: Record<
   matted: {
     title: "Tell us a bit more",
     prompt:
-      "Can you tell us a bit about the matting — how severe, and where on the body?",
+      "Can you tell us a bit about the matting, how severe, and where on the body?",
     field: "mattedNote",
   },
 };
@@ -103,7 +100,7 @@ export default function WaiverSection({
   value: WaiverState;
   onChange: (patch: Partial<WaiverState>) => void;
 }) {
-  const [activeModal, setActiveModal] = useState<ExplainKey | "vaccineBlocked" | null>(
+  const [activeModal, setActiveModal] = useState<ExplainKey | "vaccinated24h" | null>(
     null,
   );
   const [draftNote, setDraftNote] = useState("");
@@ -119,7 +116,7 @@ export default function WaiverSection({
   }
 
   function saveExplain() {
-    if (activeModal && activeModal !== "vaccineBlocked") {
+    if (activeModal && activeModal !== "vaccinated24h") {
       onChange({ [EXPLAIN_CONFIG[activeModal].field]: draftNote });
     }
     setActiveModal(null);
@@ -133,11 +130,6 @@ export default function WaiverSection({
         type="hidden"
         name="waiverVaccinatedLast24h"
         value={String(value.vaccinatedLast24h === "yes")}
-      />
-      <input
-        type="hidden"
-        name="waiverVaccinesCurrent"
-        value={String(value.vaccinesCurrent === "yes")}
       />
       <input
         type="hidden"
@@ -181,14 +173,22 @@ export default function WaiverSection({
         Groomer Safety Waiver
       </h3>
       <p className="mt-1 text-xs text-muted">
-        Required before every appointment — a few quick questions, then sign
+        Required before every appointment: a few quick questions, then sign
         below.
       </p>
 
       <p className="mt-3 text-xs font-medium text-foreground/80">
         Full waiver text (scroll to read):
       </p>
-      <div className="mt-2 max-h-56 space-y-2 overflow-y-auto rounded-xl border border-border bg-background p-3 text-xs text-muted">
+      <div className="mt-2 max-h-36 space-y-2 overflow-y-auto rounded-xl border border-border bg-background p-3 text-xs text-muted">
+          <p>
+            <strong className="text-foreground/90">
+              Look Great Guarantee.
+            </strong>{" "}
+            If you&apos;re not happy with something about your pet&apos;s
+            haircut, let us know within 3 days of the appointment and
+            we&apos;ll fix it free of charge.
+          </p>
           <p>
             <strong className="text-foreground/90">
               Vaccination &amp; Health Policy.
@@ -261,27 +261,9 @@ export default function WaiverSection({
           </p>
           <YesNoPills
             value={value.vaccinatedLast24h}
-            onChange={(v) => onChange({ vaccinatedLast24h: v })}
-          />
-        </div>
-        {value.vaccinatedLast24h === "yes" && (
-          <p className="rounded-lg bg-accent-tint px-3 py-2 text-xs text-foreground">
-            For your pet&apos;s safety, we can&apos;t groom within 24 hours of
-            a new vaccine. Please pick a later date, or contact us to
-            reschedule.
-          </p>
-        )}
-
-        <div className="flex items-center justify-between gap-4">
-          <p className="text-sm text-foreground/90">
-            Is your pet current on all required vaccinations, including
-            Rabies?
-          </p>
-          <YesNoPills
-            value={value.vaccinesCurrent}
             onChange={(v) => {
-              onChange({ vaccinesCurrent: v });
-              if (v === "no") setActiveModal("vaccineBlocked");
+              onChange({ vaccinatedLast24h: v });
+              if (v === "yes") setActiveModal("vaccinated24h");
             }}
           />
         </div>
@@ -335,6 +317,12 @@ export default function WaiverSection({
             }}
           />
         </div>
+        {value.severelyMatted === "yes" && (
+          <p className="rounded-lg bg-accent-tint px-3 py-2 text-xs text-foreground">
+            A shave-down may be needed for your pet&apos;s comfort and safety.
+            Additional handling fees may apply.
+          </p>
+        )}
         {value.severelyMatted === "yes" && value.mattedNote && (
           <p className="rounded-lg bg-background px-3 py-2 text-xs text-muted">
             {value.mattedNote}
@@ -390,7 +378,37 @@ export default function WaiverSection({
         </div>
       </div>
 
-      {activeModal && activeModal !== "vaccineBlocked" && (
+      {activeModal === "vaccinated24h" && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setActiveModal(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="font-serif text-lg text-foreground">
+              Let&apos;s pick another date
+            </p>
+            <p className="mt-1 text-sm text-muted">
+              For your pet&apos;s safety, we can&apos;t groom within 24 hours
+              of a new vaccine. Please pick a later date, or contact us to
+              reschedule.
+            </p>
+            <div className="mt-4 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setActiveModal(null)}
+                className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-dark"
+              >
+                Okay, got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeModal && activeModal !== "vaccinated24h" && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
           onClick={() => setActiveModal(null)}
@@ -426,37 +444,6 @@ export default function WaiverSection({
                 className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-dark"
               >
                 Save
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeModal === "vaccineBlocked" && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          onClick={() => setActiveModal(null)}
-        >
-          <div
-            className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p className="font-serif text-lg text-foreground">
-              We can&apos;t service your pet just yet
-            </p>
-            <p className="mt-2 text-sm text-muted">
-              For the safety of every furry guest, we require a current
-              rabies vaccination before grooming. Please book once your pet
-              has received their shot — we can&apos;t wait to see you both
-              soon!
-            </p>
-            <div className="mt-4 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setActiveModal(null)}
-                className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-dark"
-              >
-                Okay, got it
               </button>
             </div>
           </div>

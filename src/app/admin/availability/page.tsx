@@ -39,7 +39,7 @@ export default async function AdminAvailabilityPage() {
       </div>
       <p className="mt-3 text-sm text-muted">
         Close off a whole day or a specific hour so customers can&apos;t book
-        it. Appointments already booked are unaffected — this only blocks new
+        it. Appointments already booked are unaffected. This only blocks new
         bookings.
       </p>
 
@@ -127,7 +127,7 @@ export default async function AdminAvailabilityPage() {
           Close a week (or any range of days)
         </h2>
         <p className="mt-1 text-xs text-muted">
-          Closes every day in the range, all day — handy for vacations or
+          Closes every day in the range, all day. Handy for vacations or
           time off.
         </p>
         <form action={addBlockedDateRange} className="mt-4 space-y-4">
@@ -209,8 +209,8 @@ export default async function AdminAvailabilityPage() {
                   <p className="text-sm font-medium text-foreground">
                     {formatDate(b.blocked_date)}
                     {b.blocked_hour === null
-                      ? " — All day"
-                      : ` — ${formatHour(b.blocked_hour)}`}
+                      ? " · All day"
+                      : ` · ${formatHour(b.blocked_hour)}`}
                   </p>
                   {b.reason && (
                     <p className="mt-0.5 text-xs text-muted">{b.reason}</p>

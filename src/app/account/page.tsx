@@ -9,10 +9,13 @@ import CancelAppointmentButton from "@/components/cancel-appointment-button";
 import { confirmAppointment, payAppointmentNow } from "@/app/book/actions";
 import { updatePasswordFromAccount } from "@/app/auth/actions";
 import MembershipCard from "@/components/membership-card";
-import ChangePasswordCard from "@/components/change-password-card";
 import PastAppointmentsList from "@/components/past-appointments-list";
 import { formatDate, formatHour } from "@/lib/format";
-import { formatServiceLabel } from "@/lib/pricing/pricing";
+import {
+  formatServiceLabel,
+  GROOM_PACK_SERVICE_LABELS,
+  type GroomPackService,
+} from "@/lib/pricing/pricing";
 
 export default async function AccountPage({
   searchParams,
@@ -58,15 +61,35 @@ export default async function AccountPage({
         ? a.appointment_hour - b.appointment_hour
         : a.appointment_date.localeCompare(b.appointment_date),
     );
-  const pastAppointments = (appointments ?? []).filter(
-    (a) => a.appointment_date < todayStr || a.status === "cancelled",
-  );
+  const CANCELLED_VISIBLE_MS = 48 * 60 * 60 * 1000;
+  const now = new Date().getTime();
+  const pastAppointments = (appointments ?? [])
+    .filter((a) => {
+      if (a.status === "cancelled") {
+        return (
+          !!a.cancelled_at &&
+          now - new Date(a.cancelled_at).getTime() < CANCELLED_VISIBLE_MS
+        );
+      }
+      return a.appointment_date < todayStr;
+    });
 
   const { data: memberships } = await supabase
     .from("memberships")
     .select("*, pets(name)")
     .eq("customer_id", user.id)
     .eq("status", "active");
+
+  const { data: groomPacks } = await supabase
+    .from("groom_credit_packs")
+    .select("*, pets(name)")
+    .eq("customer_id", user.id)
+    .eq("payment_status", "paid")
+    .order("created_at", { ascending: false });
+
+  const activeGroomPacks = (groomPacks ?? []).filter(
+    (p) => p.credits_used < p.paid_count + p.free_count,
+  );
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
@@ -76,15 +99,6 @@ export default async function AccountPage({
       <h1 className="mt-3 font-serif text-3xl text-foreground">
         {profile?.full_name ? `Hi, ${profile.full_name}` : "Your Account"}
       </h1>
-
-      {profile?.role === "admin" && (
-        <Link
-          href="/admin"
-          className="mt-4 inline-block rounded-full border border-accent-dark px-4 py-1.5 text-xs font-medium text-accent-dark hover:bg-accent-tint"
-        >
-          Go to Admin Dashboard →
-        </Link>
-      )}
 
       {booked && (
         <p className="mt-6 rounded-xl border border-accent/40 bg-accent-tint px-4 py-3 text-sm text-foreground">
@@ -129,7 +143,7 @@ export default async function AccountPage({
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                   <p className="font-serif text-base text-foreground">
-                    {appt.pets?.name} — {formatDate(appt.appointment_date)} at{" "}
+                    {appt.pets?.name} · {formatDate(appt.appointment_date)} at{" "}
                     {formatHour(appt.appointment_hour)}
                   </p>
                   <p className="text-sm font-medium text-accent-dark">
@@ -193,16 +207,6 @@ export default async function AccountPage({
         payAppointmentNowAction={payAppointmentNow}
       />
 
-      <ContactInfoCard
-        fullName={profile?.full_name ?? ""}
-        phone={profile?.phone ?? ""}
-        email={user.email ?? ""}
-        updateProfileAction={updateProfile}
-        updateEmailAction={updateEmail}
-      />
-
-      <ChangePasswordCard updatePasswordAction={updatePasswordFromAccount} />
-
       <section className="mt-8 rounded-2xl border border-border bg-card p-6">
         <div className="flex items-center justify-between">
           <h2 className="font-serif text-lg text-foreground">Your Pets</h2>
@@ -233,7 +237,7 @@ export default async function AccountPage({
           </div>
         ) : (
           <p className="mt-4 text-sm text-muted">
-            No pets saved yet — add one to get started booking.
+            No pets saved yet. Add one to get started booking.
           </p>
         )}
       </section>
@@ -259,7 +263,63 @@ export default async function AccountPage({
             Not enrolled in a membership yet.
           </p>
         )}
+
+        <div className="mt-6 border-t border-border pt-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
+              Groom Packs
+            </h3>
+            <Link
+              href="/membership"
+              className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+            >
+              Buy a pack
+            </Link>
+          </div>
+          {activeGroomPacks.length > 0 ? (
+            <div className="mt-4 space-y-3">
+              {activeGroomPacks.map((pack) => {
+                const remaining =
+                  pack.paid_count + pack.free_count - pack.credits_used;
+                return (
+                  <div
+                    key={pack.id}
+                    className="rounded-xl border border-border bg-background p-4"
+                  >
+                    <p className="font-serif text-base text-foreground">
+                      {pack.pets?.name ?? "Pet"} ·{" "}
+                      {
+                        GROOM_PACK_SERVICE_LABELS[
+                          pack.service as GroomPackService
+                        ]
+                      }
+                    </p>
+                    <p className="mt-1 text-xs text-muted">
+                      {remaining} of {pack.paid_count + pack.free_count}{" "}
+                      credit{pack.paid_count + pack.free_count === 1 ? "" : "s"}{" "}
+                      remaining
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="mt-4 text-sm text-muted">
+              No groom packs yet. Pre-purchase a batch of Baths or Full
+              Grooms and get extra visits free.
+            </p>
+          )}
+        </div>
       </section>
+
+      <ContactInfoCard
+        fullName={profile?.full_name ?? ""}
+        phone={profile?.phone ?? ""}
+        email={user.email ?? ""}
+        updateProfileAction={updateProfile}
+        updateEmailAction={updateEmail}
+        updatePasswordAction={updatePasswordFromAccount}
+      />
 
       <section className="mt-8 rounded-2xl border border-border bg-card p-6">
         <h2 className="font-serif text-lg text-foreground">Appearance</h2>

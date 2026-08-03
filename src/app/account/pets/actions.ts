@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/supabase/admin";
 import { monthsSince } from "@/lib/pricing/pricing";
 
 function readPetFields(formData: FormData) {
@@ -28,13 +29,20 @@ export async function createPet(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const fields = readPetFields(formData);
+  if (fields.species === "dog" && !fields.birth_date) {
+    redirect(
+      `/account/pets/new?error=${encodeURIComponent("Please enter your dog's date of birth.")}`,
+    );
+  }
+
   // Defensive: guarantee a profile row exists so the pet's owner_id
   // foreign key can't fail if the signup trigger didn't create one.
   await supabase.from("profiles").upsert({ id: user.id });
 
   const { error } = await supabase.from("pets").insert({
     owner_id: user.id,
-    ...readPetFields(formData),
+    ...fields,
   });
 
   if (error) {
@@ -43,13 +51,55 @@ export async function createPet(formData: FormData) {
   redirect("/account");
 }
 
+// Lets an admin add a pet's first profile on a customer's behalf (e.g. a
+// walk-in or phone booking where the customer hasn't set one up yet).
+export async function adminCreatePet(customerId: string, formData: FormData) {
+  const { supabase } = await requireAdmin();
+
+  const fields = readPetFields(formData);
+  if (fields.species === "dog" && !fields.birth_date) {
+    redirect(
+      `/admin/pets/new?customerId=${customerId}&error=${encodeURIComponent(
+        "Please enter the dog's date of birth.",
+      )}`,
+    );
+  }
+
+  // Defensive: guarantee a profile row exists so the pet's owner_id
+  // foreign key can't fail if the signup trigger didn't create one.
+  await supabase.from("profiles").upsert({ id: customerId });
+
+  const { data: pet, error } = await supabase
+    .from("pets")
+    .insert({ owner_id: customerId, ...fields })
+    .select("id")
+    .single();
+
+  if (error || !pet) {
+    redirect(
+      `/admin/pets/new?customerId=${customerId}&error=${encodeURIComponent(
+        error?.message ?? "Could not add pet",
+      )}`,
+    );
+  }
+
+  redirect(`/admin/pets/${pet.id}`);
+}
+
 export async function updatePet(formData: FormData) {
   const supabase = await createClient();
   const petId = formData.get("petId") as string;
 
+  const fields = readPetFields(formData);
+  if (fields.species === "dog" && !fields.birth_date) {
+    redirect(
+      `/account/pets/${petId}?error=${encodeURIComponent("Please enter your dog's date of birth.")}`,
+    );
+  }
+
   const { error } = await supabase
     .from("pets")
-    .update(readPetFields(formData))
+    .update(fields)
     .eq("id", petId);
 
   if (error) {

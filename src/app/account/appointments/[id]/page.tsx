@@ -3,13 +3,14 @@ import { createClient } from "@/lib/supabase/server";
 import { cancelAppointment } from "@/app/book/actions";
 import BookingFlow from "@/components/booking-flow";
 import {
-  CAT_ADD_ONS,
+  CAT_ADD_ON_NAMES,
   CREATIVE_TIER_LABELS,
-  DOG_ADD_ONS,
+  DOG_ADD_ON_NAMES,
   PACKAGE_LABELS,
   type CreativeTier,
   type PackageTier,
 } from "@/lib/pricing/pricing";
+import { getPricingConfig } from "@/lib/pricing/config";
 
 export default async function EditAppointmentPage({
   params,
@@ -36,11 +37,22 @@ export default async function EditAppointmentPage({
   if (!appointment || !appointment.pets) notFound();
 
   const cancelWithId = cancelAppointment.bind(null, appointment.id);
+  const config = await getPricingConfig();
+
+  let promoDiscountPercent: number | null = null;
+  if (appointment.promo_id) {
+    const { data: promo } = await supabase
+      .from("promotions")
+      .select("discount_percent")
+      .eq("id", appointment.promo_id)
+      .single();
+    promoDiscountPercent = promo?.discount_percent ?? null;
+  }
 
   const addOns: string[] = appointment.add_ons ?? [];
   const catalog =
-    appointment.pets.species === "dog" ? DOG_ADD_ONS : CAT_ADD_ONS;
-  const addOnNames = addOns.filter((a) => catalog.some((c) => c.name === a));
+    appointment.pets.species === "dog" ? DOG_ADD_ON_NAMES : CAT_ADD_ON_NAMES;
+  const addOnNames = addOns.filter((a) => catalog.includes(a));
 
   const creativeTier =
     (Object.entries(CREATIVE_TIER_LABELS) as [CreativeTier, string][]).find(
@@ -83,7 +95,9 @@ export default async function EditAppointmentPage({
             hour: appointment.appointment_hour,
             paymentMethod: appointment.payment_method,
             customerNote: appointment.customer_note ?? "",
+            promoDiscountPercent,
           }}
+          config={config}
         />
       </div>
 

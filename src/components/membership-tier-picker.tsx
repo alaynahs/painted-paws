@@ -2,17 +2,17 @@
 
 import { useState } from "react";
 import {
-  applyMembershipDiscount,
+  applyMemberAddonDiscount,
   calculateDogPrice,
-  MEMBER_PACKAGE_PRICES,
-  MEMBERSHIP_FREE_MONTH_THRESHOLD,
-  MEMBERSHIP_GROOM_DISCOUNT,
+  dogAddOns,
+  memberPackagePrices,
   MEMBERSHIP_TIER_LABELS,
   MEMBERSHIP_TIER_SERVICE,
   PACKAGE_DESCRIPTIONS,
   PACKAGE_LABELS,
   type MembershipTier,
   type PackageTier,
+  type PricingConfig,
 } from "@/lib/pricing/pricing";
 import type { CoatLength } from "@/lib/pricing/breeds";
 
@@ -32,15 +32,18 @@ export default function MembershipTierPicker({
   action,
   hiddenFields,
   submitLabel = "Join Membership",
+  config,
 }: {
   pets: Pet[];
   action: (formData: FormData) => void;
   hiddenFields?: Record<string, string>;
   submitLabel?: string;
+  config: PricingConfig;
 }) {
   const [petId, setPetId] = useState(pets[0]?.id ?? "");
   const [tier, setTier] = useState<MembershipTier>("spaPup");
   const [addonBundle, setAddonBundle] = useState<PackageTier | "none">("none");
+  const [addonNames, setAddonNames] = useState<string[]>([]);
   // Memberships are billed automatically each month, so online payment only.
   const paymentMethod = "online" as const;
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -50,26 +53,38 @@ export default function MembershipTierPicker({
   if (pets.length === 0) {
     return (
       <p className="text-sm text-muted">
-        No dogs available to enroll — add a dog to the pet profile first.
+        No dogs available to enroll. Add a dog to the pet profile first.
       </p>
     );
   }
 
   function monthlyPriceFor(t: MembershipTier) {
-    const basePrice = calculateDogPrice({
-      weightLb: pet.weight_lb,
-      coat: pet.coat,
-      service: MEMBERSHIP_TIER_SERVICE[t],
-      isPuppy: false,
-      isDoodle: false,
-      deshed: false,
-    }).total;
-    return applyMembershipDiscount(basePrice);
+    return calculateDogPrice(
+      {
+        weightLb: pet.weight_lb,
+        coat: pet.coat,
+        service: MEMBERSHIP_TIER_SERVICE[t],
+        isPuppy: false,
+        isDoodle: false,
+        deshed: false,
+      },
+      config,
+    ).total;
   }
 
+  function toggleAddonName(name: string) {
+    setAddonNames((prev) =>
+      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name],
+    );
+  }
+
+  const memberPackages = memberPackagePrices(config);
   const tierPrice = monthlyPriceFor(tier);
-  const bundlePrice = addonBundle !== "none" ? MEMBER_PACKAGE_PRICES[addonBundle] : 0;
-  const total = tierPrice + bundlePrice;
+  const bundlePrice = addonBundle !== "none" ? memberPackages[addonBundle] : 0;
+  const addonNamesTotal = dogAddOns(config)
+    .filter((a) => addonNames.includes(a.name))
+    .reduce((sum, a) => sum + applyMemberAddonDiscount(a.price, config), 0);
+  const total = tierPrice + bundlePrice + addonNamesTotal;
 
   return (
     <form action={action} className="space-y-6">
@@ -80,6 +95,7 @@ export default function MembershipTierPicker({
       <input type="hidden" name="petId" value={petId} />
       <input type="hidden" name="tier" value={tier} />
       <input type="hidden" name="addonBundle" value={addonBundle} />
+      <input type="hidden" name="addonNames" value={JSON.stringify(addonNames)} />
       <input type="hidden" name="paymentMethod" value={paymentMethod} />
 
       {pets.length > 1 && (
@@ -127,27 +143,35 @@ export default function MembershipTierPicker({
                 </span>
               </div>
               <ul className="mt-2 space-y-1 text-xs text-muted">
-                <li>• {MEMBERSHIP_GROOM_DISCOUNT * 100}% off every groom</li>
                 <li>• Priority booking</li>
-                <li>• Discounted add-on bundles</li>
                 <li>
-                  • Free groom every {MEMBERSHIP_FREE_MONTH_THRESHOLD[t]}{" "}
-                  months
+                  • {config.memberAddonDiscountPercent}% off individual
+                  add-ons
+                </li>
+                <li>
+                  • {config.memberAddonDiscountPercent}% off add-on
+                  bundles
                 </li>
               </ul>
             </button>
           ))}
         </div>
         <p className="mt-2 text-xs text-muted">
-          {`Priced for ${pet.name} at today's rates — already includes your ${MEMBERSHIP_GROOM_DISCOUNT * 100}% member discount off the regular weight/coat pricing.`}
+          {`Priced for ${pet.name} at today's normal rate for this service, same as booking à la carte. Membership doesn't change the groom price — it unlocks priority booking plus discounted add-ons and bundles.`}
         </p>
       </div>
 
       <div>
         <label className="text-sm font-medium text-foreground">
           Equip a discounted add-on bundle{" "}
-          <span className="font-normal text-muted">(optional)</span>
+          <span className="font-normal text-muted">
+            ({config.memberAddonDiscountPercent}% off, optional)
+          </span>
         </label>
+        <p className="mt-1 text-xs text-muted">
+          These are also offered as individual add-ons. Layer any of them
+          onto a core service to tailor the visit.
+        </p>
         <div className="mt-2 grid gap-3 sm:grid-cols-2">
           <button
             type="button"
@@ -160,7 +184,7 @@ export default function MembershipTierPicker({
           >
             <p className="font-serif text-base text-foreground">None</p>
             <p className="mt-1 text-xs text-muted">
-              Just the groom — add bundles later if you change your mind.
+              Just the groom. Add bundles later if you change your mind.
             </p>
           </button>
           {BUNDLE_TIERS.map((b) => (
@@ -179,7 +203,7 @@ export default function MembershipTierPicker({
                   {PACKAGE_LABELS[b]}
                 </p>
                 <span className="shrink-0 text-sm font-medium text-accent-dark">
-                  ${MEMBER_PACKAGE_PRICES[b]}/mo
+                  ${memberPackages[b]}/mo
                 </span>
               </div>
               <p className="mt-1 text-xs text-muted">
@@ -192,10 +216,47 @@ export default function MembershipTierPicker({
 
       <div>
         <label className="text-sm font-medium text-foreground">
+          Add individual add-ons{" "}
+          <span className="font-normal text-muted">(optional)</span>
+        </label>
+        <p className="mt-1 text-xs text-muted">
+          Pick any number of individual add-ons to include with your
+          membership every month, each at your member discount.
+        </p>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          {[...dogAddOns(config)].sort((a, b) => a.price - b.price).map((addOn) => (
+            <label
+              key={addOn.name}
+              className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm text-foreground/90"
+            >
+              <span className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={addonNames.includes(addOn.name)}
+                  onChange={() => toggleAddonName(addOn.name)}
+                  className="h-4 w-4 rounded border-border accent-accent"
+                />
+                {addOn.name}
+              </span>
+              <span className="shrink-0 text-xs">
+                <span className="text-muted line-through">
+                  ${addOn.price}
+                </span>{" "}
+                <span className="font-medium text-accent-dark">
+                  ${applyMemberAddonDiscount(addOn.price, config)}
+                </span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="text-sm font-medium text-foreground">
           Payment
         </label>
         <p className="mt-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground/90">
-          Pay online — memberships are billed automatically each month.
+          Pay online. Memberships are billed automatically each month.
         </p>
       </div>
 
@@ -240,6 +301,12 @@ export default function MembershipTierPicker({
                 <div className="flex justify-between text-muted">
                   <span>Bundle</span>
                   <span>{PACKAGE_LABELS[addonBundle]}</span>
+                </div>
+              )}
+              {addonNames.length > 0 && (
+                <div className="flex justify-between text-muted">
+                  <span>Add-ons</span>
+                  <span>{addonNames.join(", ")}</span>
                 </div>
               )}
               <div className="flex justify-between text-muted">

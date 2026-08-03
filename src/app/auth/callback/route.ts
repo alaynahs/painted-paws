@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.redirect(
     `${origin}/login?error=${encodeURIComponent(
-      "That link is invalid or has expired — please try again.",
+      "That link is invalid or has expired. Please try again.",
     )}`,
   );
 }

@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# local dev tunnel logs
+tunnel.log
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

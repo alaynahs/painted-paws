@@ -1,25 +1,27 @@
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/supabase/admin";
 import { cancelAppointment } from "@/app/book/actions";
+import { markAppointmentComplete } from "@/app/admin/actions";
 import BookingFlow from "@/components/booking-flow";
 import {
-  CAT_ADD_ONS,
+  CAT_ADD_ON_NAMES,
   CREATIVE_TIER_LABELS,
-  DOG_ADD_ONS,
+  DOG_ADD_ON_NAMES,
   PACKAGE_LABELS,
   type CreativeTier,
   type PackageTier,
 } from "@/lib/pricing/pricing";
+import { getPricingConfig } from "@/lib/pricing/config";
 
 export default async function AdminEditAppointmentPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; message?: string }>;
 }) {
   const { id } = await params;
-  const { error } = await searchParams;
+  const { error, message } = await searchParams;
   const { supabase } = await requireAdmin();
 
   const { data: appointment } = await supabase
@@ -31,11 +33,23 @@ export default async function AdminEditAppointmentPage({
   if (!appointment || !appointment.pets) notFound();
 
   const cancelWithId = cancelAppointment.bind(null, appointment.id);
+  const markCompleteWithId = markAppointmentComplete.bind(null, appointment.id);
+  const config = await getPricingConfig();
+
+  let promoDiscountPercent: number | null = null;
+  if (appointment.promo_id) {
+    const { data: promo } = await supabase
+      .from("promotions")
+      .select("discount_percent")
+      .eq("id", appointment.promo_id)
+      .single();
+    promoDiscountPercent = promo?.discount_percent ?? null;
+  }
 
   const addOns: string[] = appointment.add_ons ?? [];
   const catalog =
-    appointment.pets.species === "dog" ? DOG_ADD_ONS : CAT_ADD_ONS;
-  const addOnNames = addOns.filter((a) => catalog.some((c) => c.name === a));
+    appointment.pets.species === "dog" ? DOG_ADD_ON_NAMES : CAT_ADD_ON_NAMES;
+  const addOnNames = addOns.filter((a) => catalog.includes(a));
 
   const creativeTier =
     (Object.entries(CREATIVE_TIER_LABELS) as [CreativeTier, string][]).find(
@@ -50,7 +64,7 @@ export default async function AdminEditAppointmentPage({
   return (
     <div className="mx-auto max-w-2xl px-6 py-16">
       <p className="text-sm font-medium tracking-wide text-accent-dark uppercase">
-        Admin — Edit appointment
+        Admin · Edit appointment
       </p>
       <h1 className="mt-3 font-serif text-3xl text-foreground">
         {appointment.pets.name}&apos;s Appointment
@@ -65,6 +79,31 @@ export default async function AdminEditAppointmentPage({
           {error}
         </p>
       )}
+      {message && (
+        <p className="mt-6 rounded-xl border border-accent/40 bg-accent-tint px-4 py-3 text-sm text-foreground">
+          {message}
+        </p>
+      )}
+
+      <div className="mt-6">
+        {appointment.status === "completed" ? (
+          <p className="rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground/90">
+            ✓ Marked complete — thank-you email sent
+          </p>
+        ) : (
+          <form action={markCompleteWithId}>
+            <button
+              type="submit"
+              className="rounded-full bg-accent px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-dark"
+            >
+              Mark Complete / Sent Home
+            </button>
+            <p className="mt-1.5 text-xs text-muted">
+              Emails the pet parent their tip &amp; review link.
+            </p>
+          </form>
+        )}
+      </div>
 
       <div className="mt-8">
         <BookingFlow
@@ -82,7 +121,12 @@ export default async function AdminEditAppointmentPage({
             hour: appointment.appointment_hour,
             paymentMethod: appointment.payment_method,
             customerNote: appointment.customer_note ?? "",
+            pickupDropoff: appointment.pickup_dropoff ?? false,
+            pickupAddress: appointment.pickup_address ?? "",
+            promoDiscountPercent,
           }}
+          config={config}
+          isAdmin
         />
       </div>
 

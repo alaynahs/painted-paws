@@ -37,13 +37,13 @@ export default async function LeaveReviewPage({
         {pet?.name ?? "Your pet"} is all set 🐾
       </h1>
       <p className="mt-3 text-muted">
-        Thanks so much for trusting us with {pet?.name ?? "your pet"} today —
-        we&apos;d love to hear how it went.
+        Thanks so much for trusting us with {pet?.name ?? "your pet"}{" "}
+        today. We&apos;d love to hear how it went.
       </p>
 
       {tipped && (
         <p className="mt-6 rounded-xl border border-accent/40 bg-accent-tint px-4 py-3 text-sm text-foreground">
-          Tip sent — thank you so much for your generosity!
+          Tip sent. Thank you so much for your generosity!
         </p>
       )}
       {error && (

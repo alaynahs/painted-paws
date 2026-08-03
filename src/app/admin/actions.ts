@@ -1,9 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { requireAdmin } from "@/lib/supabase/admin";
-import { notifyText, type NotificationType } from "@/lib/notifications/service";
+import { notifyEmail, notifyText, type NotificationType } from "@/lib/notifications/service";
 import {
   cantReachClientSms,
   mobileDropoffOnWaySms,
@@ -11,7 +12,41 @@ import {
   mobilePickupOnWaySms,
   pickup15MinSms,
   pickupReadySms,
+  postVisitThankYouEmail,
 } from "@/lib/notifications/templates";
+
+// Marks a pet inactive (e.g. after they've passed away) so they no longer
+// show up as a bookable option — their profile and history stay intact.
+export async function setPetActive(petId: string, isActive: boolean) {
+  const { supabase } = await requireAdmin();
+  await supabase.from("pets").update({ is_active: isActive }).eq("id", petId);
+  revalidatePath(`/admin/pets/${petId}`);
+}
+
+// Blocks (or unblocks) a customer's whole account from booking online,
+// independent of the automatic no-show-count block — for cases like an
+// incident where they shouldn't be allowed back, regardless of which pet.
+export async function setCustomerDoNotBook(
+  customerId: string,
+  doNotBook: boolean,
+  petId: string,
+) {
+  const { supabase } = await requireAdmin();
+  await supabase
+    .from("profiles")
+    .update({ do_not_book: doNotBook })
+    .eq("id", customerId);
+  revalidatePath(`/admin/pets/${petId}`);
+}
+
+// Blocks (or unblocks) just this one pet from booking online — e.g. a pet
+// who's become impossible to safely groom, while the pet parent themselves
+// is still welcome back (with this or another pet, in person/by phone).
+export async function setPetDoNotBook(petId: string, doNotBook: boolean) {
+  const { supabase } = await requireAdmin();
+  await supabase.from("pets").update({ do_not_book: doNotBook }).eq("id", petId);
+  revalidatePath(`/admin/pets/${petId}`);
+}
 
 export async function addGroomNote(formData: FormData) {
   const { supabase } = await requireAdmin();
@@ -115,6 +150,70 @@ export async function sendQuickMessage(formData: FormData) {
   }
 
   await notifyText(supabase, target, type as NotificationType, body);
+}
+
+// Marks the visit done and emails the pet parent the tip/review page link.
+// Texting isn't fully set up yet, so this is email-only for now — the same
+// notifications_log type ("post_visit_thank_you") is ready for an SMS
+// counterpart whenever that's wired up.
+interface AppointmentEmailContact {
+  id: string;
+  customer_id: string;
+  pets: { id: string; name: string } | { id: string; name: string }[] | null;
+  profiles:
+    | { full_name: string | null; email: string | null }
+    | { full_name: string | null; email: string | null }[]
+    | null;
+}
+
+export async function markAppointmentComplete(appointmentId: string) {
+  const { supabase } = await requireAdmin();
+
+  const { data } = await supabase
+    .from("appointments")
+    .select(
+      "id, customer_id, pets(id, name), profiles:customer_id(full_name, email)",
+    )
+    .eq("id", appointmentId)
+    .single();
+
+  const appt = data as AppointmentEmailContact | null;
+  if (!appt) redirect("/admin");
+
+  const pet = one(appt.pets);
+  const profile = one(appt.profiles);
+
+  await supabase
+    .from("appointments")
+    .update({ status: "completed" })
+    .eq("id", appointmentId);
+
+  if (profile?.email) {
+    const origin = (await headers()).get("origin");
+    await notifyEmail(
+      supabase,
+      {
+        customerId: appt.customer_id,
+        petId: pet?.id ?? null,
+        appointmentId: appt.id,
+        email: profile.email,
+      },
+      "post_visit_thank_you",
+      postVisitThankYouEmail({
+        firstName: (profile.full_name || "there").split(" ")[0],
+        petName: pet?.name ?? "Your pet",
+        reviewUrl: `${origin}/leave-a-review/${appt.id}`,
+      }),
+    );
+  }
+
+  redirect(
+    `/admin/appointments/${appointmentId}?message=${encodeURIComponent(
+      profile?.email
+        ? "Marked complete — thank-you email sent."
+        : "Marked complete — no email on file to notify.",
+    )}`,
+  );
 }
 
 export async function addBlockedSlot(formData: FormData) {

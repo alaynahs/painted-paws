@@ -7,24 +7,38 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { requireAdmin } from "@/lib/supabase/admin";
 import { stripe } from "@/lib/stripe/client";
 import {
+  applyMemberAddonDiscount,
+  applyDiscount,
   calculateCatPrice,
   calculateCreativePrice,
   calculateDogPrice,
+  catAddOns,
   catWeightClass,
-  CAT_ADD_ONS,
   CREATIVE_TIER_LABELS,
+  dogAddOns,
   dogWeightClass,
-  DOG_ADD_ONS,
   formatServiceLabel,
+  memberPackagePrices,
   PACKAGE_LABELS,
-  PACKAGE_PRICES,
   type CatServiceLevel,
   type CreativeTier,
   type DogBookingService,
+  type GroomPackService,
   type PackageTier,
+  type PricingConfig,
 } from "@/lib/pricing/pricing";
-import { BOOKING_HOURS, MAX_APPOINTMENTS_PER_DAY } from "@/lib/booking-hours";
+import { getPricingConfig } from "@/lib/pricing/config";
+import { getActivePromotion } from "@/lib/promotions/actions";
+import { promotionAppliesToDate } from "@/lib/promotions/helpers";
+import {
+  BOOKING_HOURS,
+  MAX_APPOINTMENTS_PER_DAY,
+  MAX_NO_SHOWS,
+  NO_SHOW_GRACE_MINUTES,
+  PICKUP_MIN_LEAD_HOURS,
+} from "@/lib/booking-hours";
 import { formatDate, formatHour } from "@/lib/format";
+import { checkPickupEligibility } from "@/lib/geocoding";
 import { notifyEmail, notifyText } from "@/lib/notifications/service";
 import {
   BUSINESS_EMAIL,
@@ -52,47 +66,82 @@ function computeAppointmentPrice(
   addOnNames: string[],
   packageTier: string,
   standalone: boolean,
+  pickupDropoff: boolean,
+  hasMembership: boolean,
+  redeemedCredit: boolean,
+  promoDiscountPercent: number | null,
+  config: PricingConfig,
 ) {
+  const pickupFee = pickupDropoff ? config.flatFees.pickupDropoff : 0;
+  const pickupLabel = pickupDropoff ? ["Pickup & Drop-Off"] : [];
+  const addOnPrice = (price: number) =>
+    hasMembership ? applyMemberAddonDiscount(price, config) : price;
+  const maybeApplyPromo = (price: number) =>
+    promoDiscountPercent != null ? applyDiscount(price, promoDiscountPercent) : price;
+
   if (standalone) {
-    const catalog = pet.species === "dog" ? DOG_ADD_ONS : CAT_ADD_ONS;
+    const catalog = pet.species === "dog" ? dogAddOns(config) : catAddOns(config);
     const selectedAddOns = catalog.filter((a) => addOnNames.includes(a.name));
     return {
-      price: selectedAddOns.reduce((sum, a) => sum + a.price, 0),
-      addOns: selectedAddOns.map((a) => a.name),
+      price:
+        maybeApplyPromo(
+          selectedAddOns.reduce((sum, a) => sum + addOnPrice(a.price), 0),
+        ) + pickupFee,
+      addOns: [...selectedAddOns.map((a) => a.name), ...pickupLabel],
     };
   }
 
-  const result =
-    pet.species === "dog"
-      ? calculateDogPrice({
-          weightLb: pet.weight_lb,
-          coat: pet.coat,
-          service: service as DogBookingService,
-          isPuppy: pet.is_puppy ?? false,
-          isDoodle: false,
-          deshed,
-        })
-      : calculateCatPrice({
-          weightLb: pet.weight_lb,
-          coat: pet.coat,
-          service: service as CatServiceLevel,
-          waterless: false,
-          deshed,
-        });
+  // A redeemed groom pack credit covers the base weight/coat groom price
+  // only — de-shed, creative color, add-ons, bundles, and pickup still cost
+  // extra on top, same as the à la carte price for those items.
+  const baseTotal = redeemedCredit
+    ? deshed
+      ? config.flatFees.deshed
+      : 0
+    : pet.species === "dog"
+      ? calculateDogPrice(
+          {
+            weightLb: pet.weight_lb,
+            coat: pet.coat,
+            service: service as DogBookingService,
+            isPuppy: pet.is_puppy ?? false,
+            isDoodle: false,
+            deshed,
+          },
+          config,
+        ).total
+      : calculateCatPrice(
+          {
+            weightLb: pet.weight_lb,
+            coat: pet.coat,
+            service: service as CatServiceLevel,
+            waterless: false,
+            deshed,
+          },
+          config,
+        ).total;
 
   const creativeAddOnPrice =
     creativeTier !== "none" && pet.species === "dog"
-      ? calculateCreativePrice(creativeTier as CreativeTier, pet.weight_lb)
+      ? calculateCreativePrice(creativeTier as CreativeTier, pet.weight_lb, config)
       : 0;
 
-  const catalog = pet.species === "dog" ? DOG_ADD_ONS : CAT_ADD_ONS;
+  const catalog = pet.species === "dog" ? dogAddOns(config) : catAddOns(config);
   const selectedAddOns = catalog.filter((a) => addOnNames.includes(a.name));
-  const addOnsTotal = selectedAddOns.reduce((sum, a) => sum + a.price, 0);
+  const addOnsTotal = selectedAddOns.reduce(
+    (sum, a) => sum + addOnPrice(a.price),
+    0,
+  );
 
   const packagePrice =
-    packageTier !== "none" ? PACKAGE_PRICES[packageTier as PackageTier] : 0;
+    packageTier !== "none"
+      ? hasMembership
+        ? memberPackagePrices(config)[packageTier as PackageTier]
+        : config.packages[packageTier as PackageTier]
+      : 0;
 
   const labels = [
+    ...(redeemedCredit ? ["Groom pack credit redeemed"] : []),
     ...(deshed ? ["De-shed treatment"] : []),
     ...(creativeTier !== "none"
       ? [CREATIVE_TIER_LABELS[creativeTier as CreativeTier]]
@@ -101,12 +150,68 @@ function computeAppointmentPrice(
     ...(packageTier !== "none"
       ? [PACKAGE_LABELS[packageTier as PackageTier]]
       : []),
+    ...pickupLabel,
   ];
 
   return {
-    price: result.total + creativeAddOnPrice + addOnsTotal + packagePrice,
+    price:
+      maybeApplyPromo(
+        baseTotal + creativeAddOnPrice + addOnsTotal + packagePrice,
+      ) + pickupFee,
     addOns: labels,
   };
+}
+
+async function petHasActiveMembership(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  petId: string,
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("memberships")
+    .select("id")
+    .eq("pet_id", petId)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+  return !!data;
+}
+
+interface RedeemablePack {
+  id: string;
+  paid_count: number;
+  free_count: number;
+  credits_used: number;
+}
+
+async function findRedeemablePack(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  petId: string,
+  service: string,
+): Promise<RedeemablePack | null> {
+  if (service !== "bath" && service !== "haircut") return null;
+
+  const { data } = await supabase
+    .from("groom_credit_packs")
+    .select("id, paid_count, free_count, credits_used")
+    .eq("pet_id", petId)
+    .eq("service", service as GroomPackService)
+    .eq("payment_status", "paid")
+    .order("created_at", { ascending: true });
+
+  return (
+    (data ?? []).find((p) => p.credits_used < p.paid_count + p.free_count) ??
+    null
+  );
+}
+
+async function redeemPackCredit(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  pack: RedeemablePack,
+) {
+  await supabase
+    .from("groom_credit_packs")
+    .update({ credits_used: pack.credits_used + 1 })
+    .eq("id", pack.id);
 }
 
 function readBookingFields(formData: FormData) {
@@ -125,6 +230,9 @@ function readBookingFields(formData: FormData) {
     paymentMethod: formData.get("paymentMethod") as string,
     customerNote: (formData.get("customerNote") as string) || null,
     haircutDescription: (formData.get("haircutDescription") as string) || null,
+    pickupDropoff: formData.get("pickupDropoff") === "true",
+    pickupAddress: (formData.get("pickupAddress") as string) || null,
+    redeemCredit: formData.get("redeemCredit") === "true",
   };
 }
 
@@ -150,7 +258,6 @@ function readWaiverFields(formData: FormData) {
     signedName: (formData.get("waiverSignedName") as string) || "",
     signedDate: (formData.get("waiverSignedDate") as string) || "",
     vaccinatedLast24h: formData.get("waiverVaccinatedLast24h") === "true",
-    vaccinesCurrent: formData.get("waiverVaccinesCurrent") === "true",
     behavioralConcerns: formData.get("waiverBehavioralConcerns") === "true",
     behavioralNote: (formData.get("waiverBehavioralNote") as string) || null,
     seniorOrSpecialNeeds:
@@ -166,10 +273,7 @@ function readWaiverFields(formData: FormData) {
 
 function waiverError(w: ReturnType<typeof readWaiverFields>): string | null {
   if (w.vaccinatedLast24h) {
-    return "Pets vaccinated in the last 24 hours can't be groomed yet — please pick a later date.";
-  }
-  if (!w.vaccinesCurrent) {
-    return "Your pet must be current on all required vaccinations to book.";
+    return "Pets vaccinated in the last 24 hours can't be groomed yet. Please pick a later date.";
   }
   if (!w.liabilityAccepted) {
     return "Please accept the waiver terms to book.";
@@ -200,7 +304,6 @@ async function insertWaiverSigning(
     pet_id: petId,
     signed_name: waiver.signedName,
     vaccinated_last_24h: waiver.vaccinatedLast24h,
-    vaccines_current: waiver.vaccinesCurrent,
     behavioral_concerns: waiver.behavioralConcerns,
     behavioral_note: waiver.behavioralNote,
     senior_or_special_needs: waiver.seniorOrSpecialNeeds,
@@ -430,6 +533,97 @@ export async function getUnavailableDates(
   return Array.from(unavailable);
 }
 
+export async function getNoShowCount(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  customerId: string,
+): Promise<number> {
+  const { count } = await supabase
+    .from("appointments")
+    .select("id", { count: "exact", head: true })
+    .eq("customer_id", customerId)
+    .eq("no_show", true);
+  return count ?? 0;
+}
+
+export async function isBlockedFromOnlineBooking(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  customerId: string,
+): Promise<boolean> {
+  const [{ data: profile }, noShowCount] = await Promise.all([
+    supabase.from("profiles").select("do_not_book").eq("id", customerId).single(),
+    getNoShowCount(supabase, customerId),
+  ]);
+  return !!profile?.do_not_book || noShowCount >= MAX_NO_SHOWS;
+}
+
+const NO_SHOW_BLOCK_MESSAGE =
+  "Online booking isn't available for this account right now. Please email booking@paintedpawsaustin.com to book your appointment.";
+
+const PICKUP_OUT_OF_RANGE_MESSAGE =
+  "That address is outside our 15-minute pickup & drop-off radius. Please email booking@paintedpawsaustin.com if you have any questions.";
+
+const PICKUP_UNVERIFIED_MESSAGE =
+  "We couldn't verify that address is within our 15-minute pickup & drop-off radius. Please email booking@paintedpawsaustin.com to confirm before booking pickup & drop-off.";
+
+const PAST_TIME_MESSAGE =
+  "That time has already passed. Please choose a different time.";
+
+const PICKUP_LEAD_TIME_MESSAGE = `Pickup & drop-off appointments must be booked at least ${PICKUP_MIN_LEAD_HOURS} hour${PICKUP_MIN_LEAD_HOURS === 1 ? "" : "s"} in advance. Please choose a later time or a different day.`;
+
+function bookingTimeError(
+  date: string,
+  hour: number,
+  pickupDropoff: boolean,
+): string | null {
+  const apptTime = appointmentDateTime(date, hour);
+  const now = new Date();
+  if (apptTime.getTime() <= now.getTime()) return PAST_TIME_MESSAGE;
+  if (pickupDropoff) {
+    const minLeadMs = PICKUP_MIN_LEAD_HOURS * 60 * 60 * 1000;
+    if (apptTime.getTime() - now.getTime() < minLeadMs) {
+      return PICKUP_LEAD_TIME_MESSAGE;
+    }
+  }
+  return null;
+}
+
+async function pickupAddressError(
+  pickupDropoff: boolean,
+  pickupAddress: string | null,
+): Promise<string | null> {
+  if (!pickupDropoff || !pickupAddress) return null;
+  const eligibility = await checkPickupEligibility(pickupAddress);
+  if (eligibility.status === "ineligible") return PICKUP_OUT_OF_RANGE_MESSAGE;
+  if (eligibility.status === "unknown") return PICKUP_UNVERIFIED_MESSAGE;
+  return null;
+}
+
+export async function checkPickupAddress(address: string) {
+  return checkPickupEligibility(address);
+}
+
+export async function getPetMembershipStatus(petId: string) {
+  const supabase = await createClient();
+  return petHasActiveMembership(supabase, petId);
+}
+
+export async function getAvailableGroomCredits(petId: string, service: string) {
+  if (service !== "bath" && service !== "haircut") return 0;
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("groom_credit_packs")
+    .select("paid_count, free_count, credits_used")
+    .eq("pet_id", petId)
+    .eq("service", service as GroomPackService)
+    .eq("payment_status", "paid");
+
+  return (data ?? []).reduce(
+    (sum, p) => sum + Math.max(0, p.paid_count + p.free_count - p.credits_used),
+    0,
+  );
+}
+
 export async function createAppointment(formData: FormData) {
   const supabase = await createClient();
   const {
@@ -437,11 +631,36 @@ export async function createAppointment(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  if (await isBlockedFromOnlineBooking(supabase, user.id)) {
+    redirect(`/book?error=${encodeURIComponent(NO_SHOW_BLOCK_MESSAGE)}`);
+  }
+
   const fields = readBookingFields(formData);
   const waiver = readWaiverFields(formData);
   const waiverIssue = waiverError(waiver);
   if (waiverIssue) {
     redirect(`/book?error=${encodeURIComponent(waiverIssue)}`);
+  }
+
+  const timeIssue = bookingTimeError(fields.date, fields.hour, fields.pickupDropoff);
+  if (timeIssue) {
+    redirect(`/book?error=${encodeURIComponent(timeIssue)}`);
+  }
+
+  const pickupIssue = await pickupAddressError(
+    fields.pickupDropoff,
+    fields.pickupAddress,
+  );
+  if (pickupIssue) {
+    redirect(`/book?error=${encodeURIComponent(pickupIssue)}`);
+  }
+
+  // Paying online at booking is the only option now — fail fast, before
+  // creating the appointment, if Stripe isn't configured to take the charge.
+  if (!stripe) {
+    redirect(
+      `/book?error=${encodeURIComponent("Online payment isn't set up yet — please email booking@paintedpawsaustin.com to book.")}`,
+    );
   }
 
   const { data: pet } = await supabase
@@ -451,7 +670,28 @@ export async function createAppointment(formData: FormData) {
     .single();
 
   if (!pet) redirect("/book?error=Pet%20not%20found");
+  if (!pet.is_active) {
+    redirect(
+      `/book?error=${encodeURIComponent("This pet's profile is inactive and can't be booked online.")}`,
+    );
+  }
+  if (pet.do_not_book) {
+    redirect(
+      `/book?error=${encodeURIComponent("This pet can't be booked online. Please email booking@paintedpawsaustin.com.")}`,
+    );
+  }
 
+  const hasMembership = await petHasActiveMembership(supabase, fields.petId);
+  const redeemablePack = fields.redeemCredit
+    ? await findRedeemablePack(supabase, fields.petId, fields.service)
+    : null;
+  const activePromotion = await getActivePromotion();
+  const promoApplies =
+    !!activePromotion &&
+    promotionAppliesToDate(activePromotion.maxAppointmentLeadDays, fields.date);
+  const promoDiscountPercent = promoApplies ? activePromotion!.discountPercent : null;
+  const promoId = promoApplies ? activePromotion!.id : null;
+  const config = await getPricingConfig();
   const { price, addOns } = computeAppointmentPrice(
     pet,
     fields.service,
@@ -460,6 +700,11 @@ export async function createAppointment(formData: FormData) {
     fields.addOnNames,
     fields.packageTier,
     fields.standalone,
+    fields.pickupDropoff,
+    hasMembership,
+    !!redeemablePack,
+    promoDiscountPercent,
+    config,
   );
 
   const inspoPhotoPath = await uploadInspoPhoto(supabase, user.id, formData);
@@ -473,17 +718,24 @@ export async function createAppointment(formData: FormData) {
       add_ons: addOns,
       appointment_date: fields.date,
       appointment_hour: fields.hour,
-      payment_method: fields.paymentMethod,
+      payment_method: "online",
       price,
       customer_note: fields.customerNote,
       haircut_description: fields.haircutDescription,
       inspo_photo_path: inspoPhotoPath,
+      pickup_dropoff: fields.pickupDropoff,
+      pickup_address: fields.pickupAddress,
+      promo_id: promoId,
     })
     .select("id")
     .single();
 
   if (error || !appointment) {
     redirect(`/book?error=${encodeURIComponent(error?.message ?? "Could not book")}`);
+  }
+
+  if (redeemablePack) {
+    await redeemPackCredit(supabase, redeemablePack);
   }
 
   await insertWaiverSigning(supabase, {
@@ -505,7 +757,23 @@ export async function createAppointment(formData: FormData) {
     price,
   });
 
-  redirect("/account?booked=1");
+  const origin = (await headers()).get("origin");
+  const checkoutUrl = await createAppointmentCheckoutSession(
+    origin,
+    appointment.id,
+    pet.name,
+    fields.service,
+    price,
+    "/account?booked=1&message=Payment+received.+Thank+you!",
+    `/account?booked=1&error=${encodeURIComponent("Your appointment is booked, but payment wasn't completed. Please pay from your account to confirm your spot.")}`,
+  );
+
+  if (!checkoutUrl) {
+    redirect(
+      `/account?booked=1&error=${encodeURIComponent("Your appointment is booked, but checkout couldn't start. Please pay from your account to confirm your spot.")}`,
+    );
+  }
+  redirect(checkoutUrl);
 }
 
 async function isAdminUser(
@@ -534,6 +802,21 @@ export async function updateAppointment(formData: FormData) {
     ? `/admin/appointments/${appointmentId}`
     : `/account/appointments/${appointmentId}`;
 
+  if (!admin) {
+    const timeIssue = bookingTimeError(fields.date, fields.hour, fields.pickupDropoff);
+    if (timeIssue) {
+      redirect(`${editPath}?error=${encodeURIComponent(timeIssue)}`);
+    }
+
+    const pickupIssue = await pickupAddressError(
+      fields.pickupDropoff,
+      fields.pickupAddress,
+    );
+    if (pickupIssue) {
+      redirect(`${editPath}?error=${encodeURIComponent(pickupIssue)}`);
+    }
+  }
+
   const { data: pet } = await supabase
     .from("pets")
     .select("*")
@@ -544,6 +827,29 @@ export async function updateAppointment(formData: FormData) {
     redirect(`${editPath}?error=Pet%20not%20found`);
   }
 
+  // Edits neither grant nor revoke a promo — whatever this appointment
+  // already had (or didn't) at booking time carries over as-is, at that
+  // promotion's original discount rate.
+  const { data: existingAppt } = await supabase
+    .from("appointments")
+    .select("promo_id")
+    .eq("id", appointmentId)
+    .single();
+  let promoDiscountPercent: number | null = null;
+  if (existingAppt?.promo_id) {
+    const { data: promo } = await supabase
+      .from("promotions")
+      .select("discount_percent")
+      .eq("id", existingAppt.promo_id)
+      .single();
+    promoDiscountPercent = promo?.discount_percent ?? null;
+  }
+
+  const hasMembership = await petHasActiveMembership(supabase, fields.petId);
+  const redeemablePack = fields.redeemCredit
+    ? await findRedeemablePack(supabase, fields.petId, fields.service)
+    : null;
+  const config = await getPricingConfig();
   const { price, addOns } = computeAppointmentPrice(
     pet,
     fields.service,
@@ -552,7 +858,16 @@ export async function updateAppointment(formData: FormData) {
     fields.addOnNames,
     fields.packageTier,
     fields.standalone,
+    fields.pickupDropoff,
+    hasMembership,
+    !!redeemablePack,
+    promoDiscountPercent,
+    config,
   );
+
+  if (redeemablePack) {
+    await redeemPackCredit(supabase, redeemablePack);
+  }
 
   let query = supabase
     .from("appointments")
@@ -564,6 +879,8 @@ export async function updateAppointment(formData: FormData) {
       payment_method: fields.paymentMethod,
       price,
       customer_note: fields.customerNote,
+      pickup_dropoff: fields.pickupDropoff,
+      pickup_address: fields.pickupAddress,
     })
     .eq("id", appointmentId);
 
@@ -580,6 +897,10 @@ export async function updateAppointment(formData: FormData) {
   redirect(admin ? "/admin?saved=1" : "/account?saved=1");
 }
 
+function appointmentDateTime(date: string, hour: number): Date {
+  return new Date(`${date}T${String(hour).padStart(2, "0")}:00:00`);
+}
+
 export async function cancelAppointment(appointmentId: string) {
   const supabase = await createClient();
   const {
@@ -589,9 +910,31 @@ export async function cancelAppointment(appointmentId: string) {
 
   const admin = await isAdminUser(supabase, user.id);
 
+  const { data: appt } = await supabase
+    .from("appointments")
+    .select("appointment_date, appointment_hour")
+    .eq("id", appointmentId)
+    .single();
+
+  let noShow = false;
+  if (appt) {
+    const scheduled = appointmentDateTime(
+      appt.appointment_date,
+      appt.appointment_hour,
+    );
+    const deadline = admin
+      ? new Date(scheduled.getTime() + NO_SHOW_GRACE_MINUTES * 60 * 1000)
+      : scheduled;
+    noShow = new Date().getTime() > deadline.getTime();
+  }
+
   let query = supabase
     .from("appointments")
-    .update({ status: "cancelled" })
+    .update({
+      status: "cancelled",
+      cancelled_at: new Date().toISOString(),
+      no_show: noShow,
+    })
     .eq("id", appointmentId);
 
   if (!admin) {
@@ -662,6 +1005,45 @@ export async function confirmAppointment(appointmentId: string) {
   );
 }
 
+// Shared by payAppointmentNow (pay later from the account page) and
+// createAppointment (pay-at-booking, now the only option for online
+// bookings) so both go through the exact same Stripe Checkout setup.
+async function createAppointmentCheckoutSession(
+  origin: string | null,
+  appointmentId: string,
+  petName: string,
+  service: string,
+  price: number,
+  successPath: string,
+  cancelPath: string,
+): Promise<string | null> {
+  if (!stripe) return null;
+  const session = await stripe.checkout.sessions.create({
+    mode: "payment",
+    payment_method_types: ["card"],
+    line_items: [
+      {
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: `${petName} · ${formatServiceLabel(service)}`,
+            // Stripe fetches this from its own servers, so it only renders
+            // once this image is reachable at a real public URL (i.e. once
+            // the site is deployed, not while testing on localhost).
+            images: [`${origin}/checkout-photo.jpg`],
+          },
+          unit_amount: Math.round(price * 100),
+        },
+        quantity: 1,
+      },
+    ],
+    metadata: { appointmentId },
+    success_url: `${origin}${successPath}`,
+    cancel_url: `${origin}${cancelPath}`,
+  });
+  return session.url;
+}
+
 export async function payAppointmentNow(appointmentId: string) {
   const supabase = await createClient();
   const {
@@ -688,32 +1070,18 @@ export async function payAppointmentNow(appointmentId: string) {
   const pet = Array.isArray(appt.pets) ? appt.pets[0] : appt.pets;
   const origin = (await headers()).get("origin");
 
-  const session = await stripe.checkout.sessions.create({
-    mode: "payment",
-    payment_method_types: ["card"],
-    line_items: [
-      {
-        price_data: {
-          currency: "usd",
-          product_data: {
-            name: `${pet?.name ?? "Pet"} — ${formatServiceLabel(appt.service)}`,
-            // Stripe fetches this from its own servers, so it only renders
-            // once this image is reachable at a real public URL (i.e. once
-            // the site is deployed, not while testing on localhost).
-            images: [`${origin}/checkout-photo.jpg`],
-          },
-          unit_amount: Math.round(appt.price * 100),
-        },
-        quantity: 1,
-      },
-    ],
-    metadata: { appointmentId: appt.id },
-    success_url: `${origin}/account?message=Payment+received.+Thank+you!`,
-    cancel_url: `${origin}/account?message=Payment+cancelled.`,
-  });
+  const checkoutUrl = await createAppointmentCheckoutSession(
+    origin,
+    appt.id,
+    pet?.name ?? "Pet",
+    appt.service,
+    appt.price,
+    "/account?message=Payment+received.+Thank+you!",
+    "/account?message=Payment+cancelled.",
+  );
 
-  if (!session.url) redirect("/account?error=Could%20not%20start%20checkout");
-  redirect(session.url);
+  if (!checkoutUrl) redirect("/account?error=Could%20not%20start%20checkout");
+  redirect(checkoutUrl);
 }
 
 const MAX_TIP_CENTS = 50000; // $500 sanity cap
@@ -775,15 +1143,37 @@ export async function payTip(formData: FormData) {
   redirect(session.url);
 }
 
-export async function searchCustomersByPhone(phone: string) {
+// Matches on phone, email, or a pet's name — whichever the admin has on
+// hand when a customer calls in.
+export async function searchCustomers(query: string) {
   const { supabase } = await requireAdmin();
-  const digits = phone.replace(/\D/g, "");
-  if (!digits) return [];
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+
+  const digits = trimmed.replace(/\D/g, "");
+
+  const [{ data: byPhone }, { data: byEmail }, { data: petsByName }] =
+    await Promise.all([
+      digits
+        ? supabase.from("profiles").select("id").ilike("phone", `%${digits}%`)
+        : Promise.resolve({ data: [] as { id: string }[] }),
+      supabase.from("profiles").select("id").ilike("email", `%${trimmed}%`),
+      supabase.from("pets").select("owner_id").ilike("name", `%${trimmed}%`),
+    ]);
+
+  const profileIds = Array.from(
+    new Set<string>([
+      ...(byPhone ?? []).map((p) => p.id),
+      ...(byEmail ?? []).map((p) => p.id),
+      ...(petsByName ?? []).map((p) => p.owner_id),
+    ]),
+  );
+  if (profileIds.length === 0) return [];
 
   const { data: profiles } = await supabase
     .from("profiles")
-    .select("id, full_name, phone")
-    .ilike("phone", `%${digits}%`);
+    .select("id, full_name, phone, email")
+    .in("id", profileIds);
 
   if (!profiles || profiles.length === 0) return [];
 
@@ -835,6 +1225,11 @@ export async function adminCreateAppointment(formData: FormData) {
 
   if (!pet) redirect("/admin/book?error=Pet%20not%20found");
 
+  const hasMembership = await petHasActiveMembership(supabase, fields.petId);
+  const redeemablePack = fields.redeemCredit
+    ? await findRedeemablePack(supabase, fields.petId, fields.service)
+    : null;
+  const config = await getPricingConfig();
   const { price, addOns } = computeAppointmentPrice(
     pet,
     fields.service,
@@ -843,6 +1238,11 @@ export async function adminCreateAppointment(formData: FormData) {
     fields.addOnNames,
     fields.packageTier,
     fields.standalone,
+    fields.pickupDropoff,
+    hasMembership,
+    !!redeemablePack,
+    null, // admin phone bookings don't draw from the online-booking promo pool
+    config,
   );
 
   const inspoPhotoPath = await uploadInspoPhoto(supabase, customerId, formData);
@@ -861,6 +1261,8 @@ export async function adminCreateAppointment(formData: FormData) {
       customer_note: fields.customerNote,
       haircut_description: fields.haircutDescription,
       inspo_photo_path: inspoPhotoPath,
+      pickup_dropoff: fields.pickupDropoff,
+      pickup_address: fields.pickupAddress,
     })
     .select("id")
     .single();
@@ -869,6 +1271,10 @@ export async function adminCreateAppointment(formData: FormData) {
     redirect(
       `/admin/book?error=${encodeURIComponent(error?.message ?? "Could not book")}`,
     );
+  }
+
+  if (redeemablePack) {
+    await redeemPackCredit(supabase, redeemablePack);
   }
 
   await insertWaiverSigning(supabase, {

@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/lib/supabase/admin";
 import AdminMembershipSearch from "@/components/admin-membership-search";
 import MembershipCard from "@/components/membership-card";
+import { getPricingConfig } from "@/lib/pricing/config";
 
 export default async function AdminMembershipsPage({
   searchParams,
@@ -15,6 +16,8 @@ export default async function AdminMembershipsPage({
     .select("*, pets(name), profiles:customer_id(full_name, phone)")
     .eq("status", "active")
     .order("started_at", { ascending: false });
+
+  const config = await getPricingConfig();
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-16">
@@ -45,7 +48,7 @@ export default async function AdminMembershipsPage({
           tier.
         </p>
         <div className="mt-4">
-          <AdminMembershipSearch />
+          <AdminMembershipSearch config={config} />
         </div>
       </section>
 

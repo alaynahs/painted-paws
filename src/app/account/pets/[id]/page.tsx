@@ -85,7 +85,7 @@ export default async function EditPetPage({
         {isPuppyExempt ? (
           <p className="mt-1 text-sm text-muted">
             🐶 Puppies under 4 months don&apos;t need a rabies vaccine on file
-            yet — we&apos;ll ask for one once they&apos;re old enough.
+            yet. We&apos;ll ask for one once they&apos;re old enough.
           </p>
         ) : (
           <>
@@ -95,7 +95,7 @@ export default async function EditPetPage({
                 {pet.rabies_uploaded_at &&
                   ` ${formatDate(pet.rabies_uploaded_at.slice(0, 10))}`}
                 {pet.rabies_expires_at &&
-                  ` — expires ${formatDate(pet.rabies_expires_at)}`}
+                  ` · expires ${formatDate(pet.rabies_expires_at)}`}
                 .
               </p>
             )}
@@ -103,7 +103,7 @@ export default async function EditPetPage({
               <p className="mt-1 text-sm text-foreground">
                 Your on-file record expired
                 {pet.rabies_expires_at && ` on ${formatDate(pet.rabies_expires_at)}`}
-                — please upload an updated one below.
+                . Please upload an updated one below.
               </p>
             )}
             {!pet.rabies_vaccine_path && !isExpired && (

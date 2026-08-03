@@ -11,7 +11,7 @@ const dogCore = [
   {
     name: "De-Shed Bath",
     blurb: "Everything in a Bath, with a deep-shedding treatment.",
-    includes: "All Bath inclusions, plus a de-shedding treatment.",
+    includes: "All Bath inclusions, plus 15 minutes of extra brushing and a de-shedding treatment.",
   },
   {
     name: "Tidy Up",
@@ -34,7 +34,7 @@ const catCore = [
   {
     name: "De-Shed Bath",
     blurb: "Everything in a Bath, with a deep-shedding treatment.",
-    includes: "All Bath inclusions, plus a de-shedding treatment.",
+    includes: "All Bath inclusions, plus 15 minutes of extra brushing and a de-shedding treatment.",
   },
   {
     name: "Light Tidy",
@@ -67,6 +67,7 @@ const catAddOns = [
   "Sanitary trim",
   "Extra brushing",
   "Nail trim",
+  "Nail caps",
 ];
 
 const packages = [
@@ -83,7 +84,7 @@ const packages = [
   {
     name: "VIP Treatment",
     altName: "Prestige",
-    body: "Everything in Pampered, plus a paw & nose balm massage, VIP shampoo & conditioner, and a discount on your next visit.",
+    body: "Everything in Pampered, plus a paw & nose balm, massage, VIP shampoo & conditioner, and a discount on your next visit.",
   },
 ];
 
@@ -105,21 +106,21 @@ const creativeTiers = [
 const memberships = [
   {
     name: "Spa Pup",
-    body: "Monthly Bath + Brush at 10% off, priority booking, discounted add-ons. Subscribe 3 months and get a 4th month free.",
+    body: "Monthly Bath + Brush at 10% off, priority booking, and discounted add-ons. Subscribe 3 months and get a 4th month free.",
   },
   {
     name: "Royal Pup",
-    body: "Monthly Bath + Trim at 10% off, priority booking, discounted add-ons. Subscribe 4 months and get a 5th month free.",
+    body: "Monthly Bath + Trim at 10% off, priority booking, and discounted add-ons. Subscribe 4 months and get a 5th month free.",
   },
   {
     name: "Couture Pup",
-    body: "Monthly Bath + Full Haircut at 10% off, priority booking, discounted add-ons. Subscribe 5 months and get a 6th month free.",
+    body: "Monthly Bath + Full Haircut at 10% off, priority booking, and discounted add-ons. Subscribe 5 months and get a 6th month free.",
   },
 ];
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-6">
+    <div className="h-full rounded-2xl border border-border bg-card p-6">
       {children}
     </div>
   );
@@ -149,7 +150,7 @@ export default function ServicesPage() {
         <h2 className="font-serif text-2xl text-foreground">Dogs</h2>
         <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {dogCore.map((s, i) => (
-            <RevealOnScroll key={s.name} delay={(i % 4) * 80}>
+            <RevealOnScroll key={s.name} delay={(i % 4) * 80} className="h-full">
               <Card>
                 <h3 className="font-serif text-lg text-foreground">{s.name}</h3>
                 <p className="mt-1 text-sm text-muted">{s.blurb}</p>
@@ -164,7 +165,7 @@ export default function ServicesPage() {
         <h2 className="font-serif text-2xl text-foreground">Cats</h2>
         <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {catCore.map((s, i) => (
-            <RevealOnScroll key={s.name} delay={(i % 3) * 80}>
+            <RevealOnScroll key={s.name} delay={(i % 3) * 80} className="h-full">
               <Card>
                 <h3 className="font-serif text-lg text-foreground">{s.name}</h3>
                 <p className="mt-1 text-sm text-muted">{s.blurb}</p>
@@ -235,7 +236,7 @@ export default function ServicesPage() {
         </p>
         <div className="mt-6 grid gap-6 sm:grid-cols-3">
           {packages.map((p, i) => (
-            <RevealOnScroll key={p.name} delay={i * 100}>
+            <RevealOnScroll key={p.name} delay={i * 100} className="h-full">
               <Card>
                 <h3 className="font-serif text-lg text-foreground">
                   {p.name}
@@ -260,12 +261,12 @@ export default function ServicesPage() {
           </div>
           <p className="mt-2 text-sm text-muted">
             Add a splash of color or a full design on top of any full groom.
-            Pet-safe dye, applied with care. Not bookable yet — check back
+            Pet-safe dye, applied with care. Not bookable yet. Check back
             soon!
           </p>
           <div className="mt-6 grid gap-6 sm:grid-cols-3">
             {creativeTiers.map((t, i) => (
-              <RevealOnScroll key={t.name} delay={i * 100}>
+              <RevealOnScroll key={t.name} delay={i * 100} className="h-full">
                 <Card>
                   <h3 className="font-serif text-lg text-foreground">
                     {t.name}
@@ -283,11 +284,11 @@ export default function ServicesPage() {
           Monthly Memberships
         </h2>
         <p className="mt-2 text-sm text-muted">
-          For regulars — lock in priority booking and discounted add-ons.
+          For regulars: lock in priority booking and discounted add-ons.
         </p>
         <div className="mt-6 grid gap-6 sm:grid-cols-3">
           {memberships.map((m, i) => (
-            <RevealOnScroll key={m.name} delay={i * 100}>
+            <RevealOnScroll key={m.name} delay={i * 100} className="h-full">
               <Card>
                 <h3 className="font-serif text-lg text-foreground">{m.name}</h3>
                 <p className="mt-3 text-sm text-muted">{m.body}</p>
@@ -306,53 +307,20 @@ export default function ServicesPage() {
             <p className="font-medium text-foreground">Available for up to 2 animals per trip.</p>
             <ul className="mt-3 list-disc space-y-1 pl-5">
               <li>We give arrival/pickup time windows, not exact times.</li>
-              <li>Pets must be ready to go when we arrive — additional waiting may incur extra fees.</li>
+              <li>Pets must be ready to go when we arrive. Additional waiting may incur extra fees.</li>
               <li>Dogs must be on a leash; cats must be in a carrier.</li>
-              <li>We don&apos;t enter customers&apos; homes.</li>
+              <li>We do not enter customers&apos; homes.</li>
               <li>Photos are taken for documentation before departure.</li>
             </ul>
+            <p className="mt-4">
+              <span className="rounded-full bg-accent-tint px-3 py-1 text-xs font-medium text-foreground/80">
+                ✓ Clean Driving Record
+              </span>
+            </p>
           </RevealOnScroll>
         </div>
       </section>
 
-      <section className="border-t border-border">
-        <div className="mx-auto grid max-w-6xl gap-12 px-6 py-20 lg:grid-cols-2 lg:items-center">
-          <RevealOnScroll>
-            <p className="text-sm font-medium tracking-wide text-accent-dark uppercase">
-              About
-            </p>
-            <h2 className="mt-3 font-serif text-3xl text-foreground">
-              Meet Painted Paws
-            </h2>
-            <p className="mt-4 text-muted">
-              Painted Paws is a private, in-home grooming studio in Austin,
-              TX. Every appointment is one-on-one — your dog is never left in
-              a kennel or crated between steps. It&apos;s a calmer, more
-              personal alternative to a busy commercial salon, whether
-              you&apos;re after a classic breed-standard cut or a bold
-              creative transformation.
-            </p>
-            <p className="mt-4 text-sm text-muted italic">
-              [Add your own story here — how you got started, your
-              experience, and what grooming philosophy means to you.]
-            </p>
-          </RevealOnScroll>
-          <RevealOnScroll delay={150} className="rounded-2xl border border-border bg-accent-tint p-8">
-            <h3 className="font-serif text-lg text-foreground">
-              Curbside Hand-Off Policy
-            </h3>
-            <p className="mt-3 text-sm text-muted">
-              To keep the studio calm and stress-free, our home workspace is
-              a pet-only zone. When you arrive, park in the driveway and send
-              a quick text — we&apos;ll meet you at your car to bring your dog
-              in, and do the same for pickup once the groom is complete.
-            </p>
-            <p className="mt-3 text-sm font-medium text-foreground">
-              No walk-ins — appointments only.
-            </p>
-          </RevealOnScroll>
-        </div>
-      </section>
     </div>
   );
 }

@@ -18,7 +18,7 @@ export default async function AdminBookPage({
         Book for a Customer
       </h1>
       <p className="mt-3 text-sm text-muted">
-        Look up a customer by phone number, then pick which pet — you&apos;ll
+        Look up a customer by phone number, then pick which pet. You&apos;ll
         land on their profile, where you can book, view membership status,
         and see their notes and history.
       </p>

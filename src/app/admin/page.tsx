@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/supabase/admin";
 import { confirmAppointment } from "@/app/book/actions";
+import { markAppointmentComplete } from "@/app/admin/actions";
 import CancelAppointmentButton from "@/components/cancel-appointment-button";
 import QuickMessageButtons from "@/components/quick-message-buttons";
 import { formatHour } from "@/lib/format";
@@ -85,12 +86,6 @@ export default async function AdminDashboardPage({
           >
             Availability
           </Link>
-          <Link
-            href="/admin/book"
-            className="rounded-full bg-accent px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-dark"
-          >
-            Look Up a Customer
-          </Link>
         </div>
       </div>
 
@@ -152,7 +147,7 @@ export default async function AdminDashboardPage({
                       ) : (
                         "Unknown pet"
                       )}{" "}
-                      — {appt.profiles?.full_name ?? "Unknown owner"}
+                      · {appt.profiles?.full_name ?? "Unknown owner"}
                       {appt.profiles?.phone ? ` · ${appt.profiles.phone}` : ""}
                     </p>
                     <p className="mt-1 text-xs text-muted">
@@ -164,6 +159,14 @@ export default async function AdminDashboardPage({
                         ? "Paid online"
                         : "Pay in person"}
                     </p>
+                    {appt.pickup_dropoff && appt.pickup_address && (
+                      <p className="mt-2 rounded-lg bg-accent-tint px-2.5 py-1.5 text-xs text-foreground/90">
+                        <span className="font-medium">
+                          Pickup &amp; drop-off:
+                        </span>{" "}
+                        {appt.pickup_address}
+                      </p>
+                    )}
                     {appt.customer_note && (
                       <p className="mt-2 rounded-lg bg-accent-tint px-2.5 py-1.5 text-xs text-foreground/90">
                         <span className="font-medium">
@@ -180,6 +183,16 @@ export default async function AdminDashboardPage({
                             className="rounded-full bg-accent px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-dark"
                           >
                             Confirm
+                          </button>
+                        </form>
+                      )}
+                      {appt.status !== "completed" && (
+                        <form action={markAppointmentComplete.bind(null, appt.id)}>
+                          <button
+                            type="submit"
+                            className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+                          >
+                            Mark Complete
                           </button>
                         </form>
                       )}

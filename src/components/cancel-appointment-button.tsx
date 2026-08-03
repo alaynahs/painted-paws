@@ -33,7 +33,7 @@ export default function CancelAppointmentButton({
               Cancel this appointment?
             </p>
             <p className="mt-2 text-sm text-muted">
-              This can&apos;t be undone — you&apos;ll need to rebook if you
+              This can&apos;t be undone. You&apos;ll need to rebook if you
               change your mind.
             </p>
             <div className="mt-6 flex justify-end gap-3">

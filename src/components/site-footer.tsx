@@ -1,5 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
+import {
+  BUSINESS_PHONE_DISPLAY,
+  BUSINESS_PHONE_TEL,
+} from "@/lib/notifications/templates";
 
 export default function SiteFooter() {
   return (
@@ -11,7 +15,7 @@ export default function SiteFooter() {
               <Image
                 src="/logo.png"
                 alt="Painted Paws"
-                width={40}
+                width={27}
                 height={36}
                 className="h-9 w-auto"
               />
@@ -49,6 +53,11 @@ export default function SiteFooter() {
                   Book Now
                 </Link>
               </li>
+              <li>
+                <Link href="/faq" className="hover:text-accent-dark">
+                  FAQ
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -57,11 +66,18 @@ export default function SiteFooter() {
               Good to know
             </p>
             <p className="mt-2 text-sm text-muted">
-              By appointment only — no walk-ins. Curbside hand-off: text on
+              By appointment only. No walk-ins. Curbside hand-off: text on
               arrival and we&apos;ll meet you outside.
             </p>
             <p className="mt-4 text-sm text-muted">
-              Questions? Email us at{" "}
+              Questions? Call or text{" "}
+              <a
+                href={`tel:${BUSINESS_PHONE_TEL}`}
+                className="text-accent-dark hover:underline"
+              >
+                {BUSINESS_PHONE_DISPLAY}
+              </a>
+              , or email{" "}
               <a
                 href="mailto:booking@paintedpawsaustin.com"
                 className="text-accent-dark hover:underline"
@@ -69,13 +85,33 @@ export default function SiteFooter() {
                 booking@paintedpawsaustin.com
               </a>
             </p>
-            {/* TODO: replace with the real Instagram handle URL */}
+            <p className="mt-2 text-sm text-muted">
+              <a
+                href="https://www.facebook.com/profile.php?id=61592446209105"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent-dark hover:underline"
+              >
+                Follow us on Facebook
+              </a>
+            </p>
+            <p className="mt-2 text-sm text-muted">
+              <a
+                href="https://www.instagram.com/paintedpawsaustin"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent-dark hover:underline"
+              >
+                Follow us on Instagram
+              </a>
+            </p>
+            {/* TODO: replace with the real YouTube channel URL */}
             <p className="mt-2 text-sm text-muted">
               <a
                 href="#"
                 className="text-accent-dark hover:underline"
               >
-                Follow us on Instagram
+                Subscribe on YouTube
               </a>
             </p>
           </div>

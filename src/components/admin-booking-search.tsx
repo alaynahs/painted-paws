@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { searchCustomersByPhone } from "@/app/book/actions";
+import { searchCustomers } from "@/app/book/actions";
 import type { CoatLength } from "@/lib/pricing/breeds";
 
 interface Pet {
@@ -19,17 +19,18 @@ interface CustomerResult {
   id: string;
   full_name: string | null;
   phone: string | null;
+  email: string | null;
   pets: Pet[];
 }
 
 export default function AdminBookingSearch() {
-  const [phone, setPhone] = useState("");
+  const [query, setQuery] = useState("");
   const [results, setResults] = useState<CustomerResult[] | null>(null);
   const [searching, setSearching] = useState(false);
 
   async function handleSearch() {
     setSearching(true);
-    const found = await searchCustomersByPhone(phone);
+    const found = await searchCustomers(query);
     setResults(found as CustomerResult[]);
     setSearching(false);
   }
@@ -38,17 +39,17 @@ export default function AdminBookingSearch() {
     <div>
       <div className="flex gap-2">
         <input
-          type="tel"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-          placeholder="Search by phone number…"
+          placeholder="Search by phone, email, or pet name…"
           className="flex-1 rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground outline-none focus:border-accent-dark"
         />
         <button
           type="button"
           onClick={handleSearch}
-          disabled={searching || !phone.trim()}
+          disabled={searching || !query.trim()}
           className="shrink-0 rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-dark disabled:cursor-not-allowed disabled:opacity-50"
         >
           {searching ? "Searching…" : "Search"}
@@ -57,7 +58,7 @@ export default function AdminBookingSearch() {
 
       {results && results.length === 0 && (
         <p className="mt-4 text-sm text-muted">
-          No customers found with that phone number.
+          No customers found matching that phone, email, or pet name.
         </p>
       )}
 
@@ -71,7 +72,11 @@ export default function AdminBookingSearch() {
               <p className="font-serif text-base text-foreground">
                 {customer.full_name ?? "Unknown owner"}
               </p>
-              <p className="text-xs text-muted">{customer.phone}</p>
+              <p className="text-xs text-muted">
+                {customer.phone}
+                {customer.phone && customer.email ? " · " : ""}
+                {customer.email}
+              </p>
               {customer.pets.length > 0 ? (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {customer.pets.map((pet) => (
@@ -90,9 +95,17 @@ export default function AdminBookingSearch() {
                   ))}
                 </div>
               ) : (
-                <p className="mt-2 text-xs text-muted">
-                  No pets saved for this customer yet.
-                </p>
+                <div className="mt-2">
+                  <p className="text-xs text-muted">
+                    No pets saved for this customer yet.
+                  </p>
+                  <Link
+                    href={`/admin/pets/new?customerId=${customer.id}`}
+                    className="mt-2 inline-block rounded-full border border-border bg-background px-4 py-2 text-sm text-foreground/90 transition-colors hover:border-accent-dark hover:text-accent-dark"
+                  >
+                    + Add their first pet
+                  </Link>
+                </div>
               )}
             </div>
           ))}
