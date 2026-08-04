@@ -36,13 +36,29 @@ export async function sendEmail(
     return "skipped";
   }
   try {
-    await resend.emails.send({
-      from: process.env.NOTIFICATIONS_FROM_EMAIL || `${BUSINESS_NAME} <onboarding@resend.dev>`,
+    // Resend's SDK doesn't throw for API-level rejections (invalid from
+    // address, unverified domain, etc.) — it returns them in `error`
+    // instead, so a try/catch alone silently treats every rejection as
+    // a success unless this is checked explicitly.
+    //
+    // .trim() guards against a stray trailing space/newline getting pasted
+    // in alongside the address (same class of bug hit with STRIPE_SECRET_KEY
+    // and CRON_SECRET) — untrimmed, that whitespace breaks the "Name <email>"
+    // format Resend validates against, rejecting every single send.
+    const from =
+      process.env.NOTIFICATIONS_FROM_EMAIL?.trim() ||
+      `${BUSINESS_NAME} <onboarding@resend.dev>`;
+    const { error } = await resend.emails.send({
+      from,
       to,
       subject,
       text: markdownLinksToPlainText(body),
       html: renderEmailHtml(subject, body),
     });
+    if (error) {
+      console.error("[notifications] Email send rejected by Resend", error);
+      return "failed";
+    }
     return "sent";
   } catch (err) {
     console.error("[notifications] Email send failed", err);

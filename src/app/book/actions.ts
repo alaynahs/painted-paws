@@ -770,7 +770,7 @@ export async function createAppointment(formData: FormData) {
     subtotal,
     salesTax,
     "/account?booked=1&message=Payment+received.+Thank+you!",
-    `/account?booked=1&error=${encodeURIComponent("Your appointment is booked, but payment wasn't completed. Please pay from your account to confirm your spot.")}`,
+    `/api/book/checkout-cancelled?appointmentId=${appointment.id}`,
   );
 
   if (!checkoutUrl) {
@@ -1101,7 +1101,7 @@ export async function payAppointmentNow(appointmentId: string) {
     appt.price - appt.sales_tax,
     appt.sales_tax,
     "/account?message=Payment+received.+Thank+you!",
-    "/account?message=Payment+cancelled.",
+    `/api/book/checkout-cancelled?appointmentId=${appt.id}`,
   );
 
   if (!checkoutUrl) redirect("/account?error=Could%20not%20start%20checkout");
