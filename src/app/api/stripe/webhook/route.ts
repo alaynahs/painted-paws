@@ -7,7 +7,8 @@ import { createServiceClient } from "@/lib/supabase/service";
 // without paying), so payment_status only flips to "paid" here, once Stripe
 // confirms the checkout session actually completed.
 export async function POST(request: NextRequest) {
-  if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET) {
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
+  if (!stripe || !webhookSecret) {
     return NextResponse.json({ error: "Stripe not configured" }, { status: 500 });
   }
 
@@ -16,11 +17,7 @@ export async function POST(request: NextRequest) {
 
   let event;
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature!,
-      process.env.STRIPE_WEBHOOK_SECRET,
-    );
+    event = stripe.webhooks.constructEvent(body, signature!, webhookSecret);
   } catch (err) {
     console.error("[stripe webhook] signature verification failed", err);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
