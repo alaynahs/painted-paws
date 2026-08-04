@@ -69,9 +69,19 @@ export default function SiteFooter() {
               By appointment only. No walk-ins. Curbside hand-off: text on
               arrival and we&apos;ll meet you outside.
             </p>
-            <p className="mt-2 text-sm font-medium text-accent-dark">
-              Fully insured — up to $2,000,000 in liability coverage.
-            </p>
+            <a
+              href="https://www.petcareins.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-block"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- external trust-seal image from the insurer's own CDN */}
+              <img
+                src="https://app.petcareins.com/media/site_seals/0001/12/b21397ffe2315c13eb6db342e23575f0e4665fd4.png"
+                alt="Pet Care and Pet Sitting Insurance Seal"
+                className="h-16 w-auto"
+              />
+            </a>
             <p className="mt-4 text-sm text-muted">
               Questions? Call or text{" "}
               <a
