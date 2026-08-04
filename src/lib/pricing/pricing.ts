@@ -8,6 +8,15 @@ export function applyDiscount(price: number, discountPercent: number): number {
   return Math.round(price * (1 - discountPercent / 100) * 100) / 100;
 }
 
+// Texas taxes dog/cat grooming as a service (Comptroller Rule 3.292).
+// Fixed rate, not admin-editable — update here if the registered
+// jurisdiction's combined rate ever changes.
+export const SALES_TAX_PERCENT = 8.25;
+
+export function calculateSalesTax(price: number): number {
+  return Math.round(price * (SALES_TAX_PERCENT / 100) * 100) / 100;
+}
+
 export type DogWeightClass = "small" | "medium" | "large" | "xlarge";
 export type CatWeightClass = "under20" | "over20";
 export type DogServiceLevel = "bath" | "trim" | "haircut";

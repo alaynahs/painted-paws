@@ -12,6 +12,8 @@ import {
   calculateCatPrice,
   calculateCreativePrice,
   calculateDogPrice,
+  calculateSalesTax,
+  SALES_TAX_PERCENT,
   catAddOns,
   catWeightClass,
   CREATIVE_TIER_LABELS,
@@ -691,7 +693,7 @@ export async function createAppointment(formData: FormData) {
   const promoDiscountPercent = promoApplies ? activePromotion!.discountPercent : null;
   const promoId = promoApplies ? activePromotion!.id : null;
   const config = await getPricingConfig();
-  const { price, addOns } = computeAppointmentPrice(
+  const { price: subtotal, addOns } = computeAppointmentPrice(
     pet,
     fields.service,
     fields.deshed,
@@ -705,6 +707,8 @@ export async function createAppointment(formData: FormData) {
     promoDiscountPercent,
     config,
   );
+  const salesTax = calculateSalesTax(subtotal);
+  const price = subtotal + salesTax;
 
   const inspoPhotoPath = await uploadInspoPhoto(supabase, user.id, formData);
 
@@ -719,6 +723,7 @@ export async function createAppointment(formData: FormData) {
       appointment_hour: fields.hour,
       payment_method: "online",
       price,
+      sales_tax: salesTax,
       customer_note: fields.customerNote,
       haircut_description: fields.haircutDescription,
       inspo_photo_path: inspoPhotoPath,
@@ -762,7 +767,8 @@ export async function createAppointment(formData: FormData) {
     appointment.id,
     pet.name,
     fields.service,
-    price,
+    subtotal,
+    salesTax,
     "/account?booked=1&message=Payment+received.+Thank+you!",
     `/account?booked=1&error=${encodeURIComponent("Your appointment is booked, but payment wasn't completed. Please pay from your account to confirm your spot.")}`,
   );
@@ -849,7 +855,7 @@ export async function updateAppointment(formData: FormData) {
     ? await findRedeemablePack(supabase, fields.petId, fields.service)
     : null;
   const config = await getPricingConfig();
-  const { price, addOns } = computeAppointmentPrice(
+  const { price: subtotal, addOns } = computeAppointmentPrice(
     pet,
     fields.service,
     fields.deshed,
@@ -863,6 +869,8 @@ export async function updateAppointment(formData: FormData) {
     promoDiscountPercent,
     config,
   );
+  const salesTax = calculateSalesTax(subtotal);
+  const price = subtotal + salesTax;
 
   if (redeemablePack) {
     await redeemPackCredit(supabase, redeemablePack);
@@ -877,6 +885,7 @@ export async function updateAppointment(formData: FormData) {
       appointment_hour: fields.hour,
       payment_method: fields.paymentMethod,
       price,
+      sales_tax: salesTax,
       customer_note: fields.customerNote,
       pickup_dropoff: fields.pickupDropoff,
       pickup_address: fields.pickupAddress,
@@ -1012,7 +1021,8 @@ async function createAppointmentCheckoutSession(
   appointmentId: string,
   petName: string,
   service: string,
-  price: number,
+  subtotal: number,
+  salesTax: number,
   successPath: string,
   cancelPath: string,
 ): Promise<string | null> {
@@ -1031,10 +1041,24 @@ async function createAppointmentCheckoutSession(
             // the site is deployed, not while testing on localhost).
             images: [`${origin}/logo.png`],
           },
-          unit_amount: Math.round(price * 100),
+          unit_amount: Math.round(subtotal * 100),
         },
         quantity: 1,
       },
+      ...(salesTax > 0
+        ? [
+            {
+              price_data: {
+                currency: "usd" as const,
+                product_data: {
+                  name: `Sales Tax (${SALES_TAX_PERCENT}%)`,
+                },
+                unit_amount: Math.round(salesTax * 100),
+              },
+              quantity: 1,
+            },
+          ]
+        : []),
     ],
     metadata: { appointmentId },
     success_url: `${origin}${successPath}`,
@@ -1052,7 +1076,7 @@ export async function payAppointmentNow(appointmentId: string) {
 
   const { data: appt } = await supabase
     .from("appointments")
-    .select("id, price, service, payment_status, pets(name)")
+    .select("id, price, sales_tax, service, payment_status, pets(name)")
     .eq("id", appointmentId)
     .eq("customer_id", user.id)
     .single();
@@ -1074,7 +1098,8 @@ export async function payAppointmentNow(appointmentId: string) {
     appt.id,
     pet?.name ?? "Pet",
     appt.service,
-    appt.price,
+    appt.price - appt.sales_tax,
+    appt.sales_tax,
     "/account?message=Payment+received.+Thank+you!",
     "/account?message=Payment+cancelled.",
   );
@@ -1229,7 +1254,7 @@ export async function adminCreateAppointment(formData: FormData) {
     ? await findRedeemablePack(supabase, fields.petId, fields.service)
     : null;
   const config = await getPricingConfig();
-  const { price, addOns } = computeAppointmentPrice(
+  const { price: subtotal, addOns } = computeAppointmentPrice(
     pet,
     fields.service,
     fields.deshed,
@@ -1243,6 +1268,8 @@ export async function adminCreateAppointment(formData: FormData) {
     null, // admin phone bookings don't draw from the online-booking promo pool
     config,
   );
+  const salesTax = calculateSalesTax(subtotal);
+  const price = subtotal + salesTax;
 
   const inspoPhotoPath = await uploadInspoPhoto(supabase, customerId, formData);
 
@@ -1257,6 +1284,7 @@ export async function adminCreateAppointment(formData: FormData) {
       appointment_hour: fields.hour,
       payment_method: fields.paymentMethod,
       price,
+      sales_tax: salesTax,
       customer_note: fields.customerNote,
       haircut_description: fields.haircutDescription,
       inspo_photo_path: inspoPhotoPath,

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import {
   applyMemberAddonDiscount,
   calculateDogPrice,
+  calculateSalesTax,
+  SALES_TAX_PERCENT,
   dogAddOns,
   GROOM_PACK_SERVICE_LABELS,
   GROOM_PACK_SERVICES,
@@ -106,6 +108,8 @@ export default function GroomPackPicker({
     .filter((a) => addonNames.includes(a.name))
     .reduce((sum, a) => sum + addonPrice(a.price), 0);
   const totalPrice = packPrice + bundlePrice + addonsTotal;
+  const salesTax = calculateSalesTax(totalPrice);
+  const grandTotal = totalPrice + salesTax;
   const perVisitAverage = Math.round((packPrice / totalCredits) * 100) / 100;
 
   return (
@@ -283,12 +287,20 @@ export default function GroomPackPicker({
       </div>
 
       <div className="rounded-2xl bg-accent-tint p-6">
-        <div className="flex items-baseline justify-between">
+        <div className="flex items-baseline justify-between text-sm text-foreground/80">
+          <span>Subtotal</span>
+          <span>${totalPrice}</span>
+        </div>
+        <div className="mt-1 flex items-baseline justify-between text-sm text-foreground/80">
+          <span>Sales tax ({SALES_TAX_PERCENT}%)</span>
+          <span>${salesTax}</span>
+        </div>
+        <div className="mt-2 flex items-baseline justify-between border-t border-border/60 pt-2">
           <span className="font-serif text-lg text-foreground">
             Total due
           </span>
           <span className="font-serif text-3xl text-accent-dark">
-            ${totalPrice}
+            ${grandTotal}
           </span>
         </div>
         <p className="mt-2 text-xs text-muted">

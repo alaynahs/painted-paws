@@ -8,6 +8,8 @@ import { stripe } from "@/lib/stripe/client";
 import {
   applyMemberAddonDiscount,
   calculateDogPrice,
+  calculateSalesTax,
+  SALES_TAX_PERCENT,
   dogAddOns,
   DOG_SERVICE_LABELS,
   GROOM_PACK_TIER_LABELS,
@@ -122,7 +124,9 @@ export async function joinMembership(formData: FormData) {
   }
 
   const config = await getPricingConfig();
-  const monthlyPrice = computeMembershipMonthlyPrice(pet, tier, bundle, addonNames, config);
+  const monthlySubtotal = computeMembershipMonthlyPrice(pet, tier, bundle, addonNames, config);
+  const monthlySalesTax = calculateSalesTax(monthlySubtotal);
+  const monthlyPrice = monthlySubtotal + monthlySalesTax;
 
   const { data: membership, error } = await supabase
     .from("memberships")
@@ -135,6 +139,7 @@ export async function joinMembership(formData: FormData) {
       payment_method: "online",
       status: "pending",
       monthly_price: monthlyPrice,
+      sales_tax: monthlySalesTax,
     })
     .select("id")
     .single();
@@ -156,7 +161,18 @@ export async function joinMembership(formData: FormData) {
           product_data: {
             name: `${pet.name} · ${MEMBERSHIP_TIER_LABELS[tier]} Membership`,
           },
-          unit_amount: Math.round(monthlyPrice * 100),
+          unit_amount: Math.round(monthlySubtotal * 100),
+          recurring: { interval: "month" },
+        },
+        quantity: 1,
+      },
+      {
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: `Sales Tax (${SALES_TAX_PERCENT}%)`,
+          },
+          unit_amount: Math.round(monthlySalesTax * 100),
           recurring: { interval: "month" },
         },
         quantity: 1,
@@ -227,7 +243,9 @@ export async function adminCreateMembership(formData: FormData) {
   if (!pet) redirect("/admin/memberships?error=Pet%20not%20found");
 
   const config = await getPricingConfig();
-  const monthlyPrice = computeMembershipMonthlyPrice(pet, tier, bundle, addonNames, config);
+  const monthlySubtotal = computeMembershipMonthlyPrice(pet, tier, bundle, addonNames, config);
+  const monthlySalesTax = calculateSalesTax(monthlySubtotal);
+  const monthlyPrice = monthlySubtotal + monthlySalesTax;
 
   const { error } = await supabase.from("memberships").insert({
     customer_id: customerId,
@@ -237,6 +255,7 @@ export async function adminCreateMembership(formData: FormData) {
     addon_names: addonNames,
     payment_method: paymentMethod,
     monthly_price: monthlyPrice,
+    sales_tax: monthlySalesTax,
   });
 
   if (error) {
@@ -302,7 +321,9 @@ export async function purchaseGroomPack(formData: FormData) {
       : config.packages[bundle as PackageTier]
     : 0;
   const addonsPrice = addonNamesTotal(addonNames, hasMembership, config);
-  const totalPrice = packPrice + bundlePrice + addonsPrice;
+  const subtotal = packPrice + bundlePrice + addonsPrice;
+  const salesTax = calculateSalesTax(subtotal);
+  const totalPrice = subtotal + salesTax;
 
   const { data: pack, error } = await supabase
     .from("groom_credit_packs")
@@ -314,6 +335,7 @@ export async function purchaseGroomPack(formData: FormData) {
       free_count: freeCount,
       unit_price: unitPrice,
       total_price: totalPrice,
+      sales_tax: salesTax,
       addon_bundle: bundle,
       addon_names: addonNames,
     })
@@ -365,6 +387,16 @@ export async function purchaseGroomPack(formData: FormData) {
           },
         ]
       : []),
+    {
+      price_data: {
+        currency: "usd" as const,
+        product_data: {
+          name: `Sales Tax (${SALES_TAX_PERCENT}%)`,
+        },
+        unit_amount: Math.round(salesTax * 100),
+      },
+      quantity: 1,
+    },
   ];
 
   const origin = (await headers()).get("origin");

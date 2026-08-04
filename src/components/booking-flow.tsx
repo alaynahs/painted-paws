@@ -16,6 +16,8 @@ import {
   PACKAGE_DESCRIPTIONS,
   PACKAGE_LABELS,
   applyDiscount,
+  calculateSalesTax,
+  SALES_TAX_PERCENT,
   monthsSince,
   type CatServiceLevel,
   type CreativeTier,
@@ -448,6 +450,8 @@ export default function BookingFlow({
 
   const total = promoAdjust(groomSubtotal) + pickupDropoffFee;
   const originalTotal = groomSubtotal + pickupDropoffFee;
+  const salesTax = calculateSalesTax(total);
+  const grandTotal = total + salesTax;
 
   function toggleAddOn(name: string) {
     setSelectedAddOns((prev) =>
@@ -961,19 +965,25 @@ export default function BookingFlow({
       )}
 
       <div className="rounded-2xl bg-accent-tint p-6">
-        <div className="flex items-baseline justify-between">
+        <div className="flex items-baseline justify-between text-sm text-foreground/80">
+          <span>Subtotal</span>
+          <span className="flex items-baseline gap-2">
+            {promoActive && originalTotal !== total && (
+              <span className="text-muted line-through">${originalTotal}</span>
+            )}
+            <span>${total}</span>
+          </span>
+        </div>
+        <div className="mt-1 flex items-baseline justify-between text-sm text-foreground/80">
+          <span>Sales tax ({SALES_TAX_PERCENT}%)</span>
+          <span>${salesTax}</span>
+        </div>
+        <div className="mt-2 flex items-baseline justify-between border-t border-border/60 pt-2">
           <span className="font-serif text-lg text-foreground">
             Estimated total
           </span>
-          <span className="flex items-baseline gap-2">
-            {promoActive && originalTotal !== total && (
-              <span className="font-serif text-lg text-muted line-through">
-                ${originalTotal}
-              </span>
-            )}
-            <span className="font-serif text-3xl text-accent-dark">
-              ${total}
-            </span>
+          <span className="font-serif text-3xl text-accent-dark">
+            ${grandTotal}
           </span>
         </div>
         {promoActive && (

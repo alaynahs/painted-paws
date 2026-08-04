@@ -4,6 +4,8 @@ import { useState } from "react";
 import {
   applyMemberAddonDiscount,
   calculateDogPrice,
+  calculateSalesTax,
+  SALES_TAX_PERCENT,
   dogAddOns,
   memberPackagePrices,
   MEMBERSHIP_TIER_LABELS,
@@ -84,6 +86,8 @@ export default function MembershipTierPicker({
     .filter((a) => addonNames.includes(a.name))
     .reduce((sum, a) => sum + applyMemberAddonDiscount(a.price, config), 0);
   const total = tierPrice + bundlePrice + addonNamesTotal;
+  const salesTax = calculateSalesTax(total);
+  const grandTotal = total + salesTax;
 
   return (
     <form action={action} className="space-y-6">
@@ -260,12 +264,20 @@ export default function MembershipTierPicker({
       </div>
 
       <div className="rounded-2xl bg-accent-tint p-6">
-        <div className="flex items-baseline justify-between">
+        <div className="flex items-baseline justify-between text-sm text-foreground/80">
+          <span>Subtotal</span>
+          <span>${total}/mo</span>
+        </div>
+        <div className="mt-1 flex items-baseline justify-between text-sm text-foreground/80">
+          <span>Sales tax ({SALES_TAX_PERCENT}%)</span>
+          <span>${salesTax}/mo</span>
+        </div>
+        <div className="mt-2 flex items-baseline justify-between border-t border-border/60 pt-2">
           <span className="font-serif text-lg text-foreground">
             Due today
           </span>
           <span className="font-serif text-3xl text-accent-dark">
-            ${total}
+            ${grandTotal}
             <span className="text-sm font-normal text-muted">/mo</span>
           </span>
         </div>
@@ -316,9 +328,13 @@ export default function MembershipTierPicker({
                     : "In person (Square)"}
                 </span>
               </div>
+              <div className="flex justify-between text-muted">
+                <span>Sales tax ({SALES_TAX_PERCENT}%)</span>
+                <span>${salesTax}/mo</span>
+              </div>
               <div className="mt-2 flex justify-between border-t border-border pt-2 font-medium">
                 <span>Due today</span>
-                <span>${total}/mo</span>
+                <span>${grandTotal}/mo</span>
               </div>
             </div>
             <div className="mt-6 flex justify-end gap-3">
