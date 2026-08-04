@@ -33,7 +33,7 @@ export default async function AdminPetDetailPage({
 
   const { data: pet } = await supabase
     .from("pets")
-    .select("*, profiles:owner_id(full_name, phone, do_not_book)")
+    .select("*, profiles:owner_id(full_name, phone, email, do_not_book)")
     .eq("id", id)
     .single();
 
@@ -135,6 +135,7 @@ export default async function AdminPetDetailPage({
       <p className="mt-1 text-sm text-muted">
         Owner: {pet.profiles?.full_name ?? "Unknown"}
         {pet.profiles?.phone ? ` · ${pet.profiles.phone}` : ""}
+        {pet.profiles?.email ? ` · ${pet.profiles.email}` : ""}
       </p>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {noShowCount > 0 && (
