@@ -48,6 +48,7 @@ import {
   appointmentConfirmedEmail,
   bookingConfirmationEmail,
   bookingConfirmationSms,
+  checkoutAbandonedEmail,
   firstTimeWelcomeEmail,
   firstTimeWelcomeSms,
   newClientVaccineReminderSms,
@@ -420,6 +421,46 @@ export async function sendBookingNotifications(
       newClientVaccineReminderSms(vars),
     );
   }
+}
+
+// Called wherever an appointment gets auto-cancelled for being abandoned at
+// checkout — both the cancel_url route (explicit back-click) and the
+// webhook's checkout.session.expired handler (silent abandonment). Lets the
+// admin know a slot opened back up and who to maybe follow up with.
+export async function notifyAdminCheckoutAbandoned(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  appointmentId: string,
+) {
+  const { data: appt } = await supabase
+    .from("appointments")
+    .select(
+      "customer_id, service, appointment_date, appointment_hour, price, pets(name)",
+    )
+    .eq("id", appointmentId)
+    .single();
+  if (!appt) return;
+
+  const pet = Array.isArray(appt.pets) ? appt.pets[0] : appt.pets;
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name, phone")
+    .eq("id", appt.customer_id)
+    .single();
+
+  await notifyEmail(
+    supabase,
+    { customerId: appt.customer_id, appointmentId, email: BUSINESS_EMAIL },
+    "admin_checkout_abandoned",
+    checkoutAbandonedEmail({
+      customerName: profile?.full_name || "Unknown",
+      customerPhone: profile?.phone ?? "",
+      petName: pet?.name ?? "Pet",
+      service: appt.service,
+      date: formatDate(appt.appointment_date),
+      time: formatHour(appt.appointment_hour),
+      price: appt.price,
+    }),
+  );
 }
 
 export interface HourAvailability {

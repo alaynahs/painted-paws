@@ -73,7 +73,10 @@ export default async function RootLayout({
             />
           }
           authSlotMobile={
-            <AuthStatus className="rounded-lg px-2 py-3 text-base text-foreground/90 hover:bg-accent-tint" />
+            <AuthStatus
+              mobile
+              className="rounded-lg px-2 py-3 text-base text-foreground/90 hover:bg-accent-tint"
+            />
           }
           adminSlotDesktop={
             <AdminNavLinks

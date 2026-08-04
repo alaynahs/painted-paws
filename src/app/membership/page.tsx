@@ -39,7 +39,7 @@ export default async function MembershipPage({
         <div className="mt-8 flex justify-center gap-4">
           <Link
             href="/login"
-            className="rounded-full border border-blue-600 px-6 py-2.5 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-600 hover:text-white"
+            className="rounded-full bg-blue-600 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
           >
             Log In
           </Link>

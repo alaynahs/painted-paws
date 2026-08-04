@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe/client";
 import { createServiceClient } from "@/lib/supabase/service";
-import { sendBookingNotifications } from "@/app/book/actions";
+import { sendBookingNotifications, notifyAdminCheckoutAbandoned } from "@/app/book/actions";
 
 // Stripe is the source of truth for whether money actually changed hands —
 // the success_url redirect alone can't be trusted (a customer could visit it
@@ -97,11 +97,16 @@ export async function POST(request: NextRequest) {
 
     if (appointmentId) {
       const supabase = createServiceClient();
-      await supabase
+      const { data: cancelled } = await supabase
         .from("appointments")
         .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
         .eq("id", appointmentId)
-        .eq("payment_status", "unpaid");
+        .eq("payment_status", "unpaid")
+        .select("id");
+
+      if (cancelled && cancelled.length > 0) {
+        await notifyAdminCheckoutAbandoned(supabase, appointmentId);
+      }
     }
   }
 

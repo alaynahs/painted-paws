@@ -106,6 +106,58 @@ ${BUSINESS_NAME}`,
   };
 }
 
+// Sent to the admin when a customer reaches Stripe Checkout for a booking
+// but never completes payment — either by explicitly backing out, or by
+// abandoning the tab until the checkout session expires.
+export function checkoutAbandonedEmail(vars: {
+  customerName: string;
+  customerPhone: string;
+  petName: string;
+  service: string;
+  date: string;
+  time: string;
+  price: number;
+}): EmailContent {
+  return {
+    subject: `Abandoned Checkout: ${vars.petName} on ${vars.date} at ${vars.time}`,
+    body: `A customer started booking but didn't complete payment, so the appointment slot was released.
+
+• Customer: ${vars.customerName}${vars.customerPhone ? ` (${vars.customerPhone})` : ""}
+• Pet: ${vars.petName}
+• Service: ${vars.service}
+• Date: ${vars.date}
+• Time: ${vars.time}
+• Price: $${vars.price}
+
+You may want to follow up if this looks like a customer you'd expect to hear from.
+
+${BUSINESS_NAME} site`,
+  };
+}
+
+// Sent to the admin when a customer creates an account but still hasn't
+// booked an appointment after a day — a nudge to reach out, since the
+// account itself generates no other signal that they dropped off.
+export function signupNoBookingEmail(vars: {
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
+  signedUpAt: string;
+}): EmailContent {
+  return {
+    subject: `Signed Up, No Booking Yet: ${vars.customerName}`,
+    body: `${vars.customerName} created an account on ${vars.signedUpAt} but hasn't booked an appointment yet.
+
+• Name: ${vars.customerName}
+• Phone: ${vars.customerPhone || "not provided"}
+• Email: ${vars.customerEmail || "not provided"}
+
+You may want to follow up.
+
+${BUSINESS_NAME} site`,
+  };
+}
+
 export function adminNewBookingEmail(vars: {
   customerName: string;
   customerPhone: string;

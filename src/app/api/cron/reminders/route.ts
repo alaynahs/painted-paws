@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import {
   alreadyNotifiedForAppointment,
+  alreadyNotifiedForCustomer,
   alreadyNotifiedForPetSince,
   notifyEmail,
   notifyText,
 } from "@/lib/notifications/service";
 import { formatHour } from "@/lib/format";
 import {
+  BUSINESS_EMAIL,
   postVisitThankYouSms,
   rebooking16wkSms,
   rebooking8wkEmail,
@@ -15,6 +17,7 @@ import {
   reminder24hSms,
   reviewRequestEmail,
   reviewRequestSms,
+  signupNoBookingEmail,
   vaccinationExpiredSms,
   vaccinationExpiringSms,
 } from "@/lib/notifications/templates";
@@ -76,6 +79,7 @@ export async function GET(request: NextRequest) {
     vaccinationExpired: 0,
     rebooking8wk: 0,
     rebooking16wk: 0,
+    signupNoBooking: 0,
     deletedOldAppointments: 0,
   };
 
@@ -287,7 +291,47 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // 6. Prune appointments older than a year — private groom_notes reference
+  // 6. Signed up but never booked — a one-time admin nudge, 24 hours after
+  // account creation, for customers with zero appointments ever (booked
+  // then abandoned is a separate signal, already covered by the checkout-
+  // abandonment alert, so this only looks at truly zero appointment rows).
+  const oneDayAgoISO = new Date(Date.now() - DAY_MS).toISOString();
+  const { data: candidateProfiles } = await supabase
+    .from("profiles")
+    .select("id, full_name, phone, email, created_at")
+    .eq("role", "customer")
+    .lte("created_at", oneDayAgoISO);
+
+  const { data: everBookedRows } = await supabase
+    .from("appointments")
+    .select("customer_id");
+  const everBookedIds = new Set((everBookedRows ?? []).map((a) => a.customer_id));
+
+  for (const profile of candidateProfiles ?? []) {
+    if (everBookedIds.has(profile.id)) continue;
+    if (await alreadyNotifiedForCustomer(supabase, profile.id, "admin_signup_no_booking")) {
+      continue;
+    }
+
+    await notifyEmail(
+      supabase,
+      { customerId: profile.id, email: BUSINESS_EMAIL },
+      "admin_signup_no_booking",
+      signupNoBookingEmail({
+        customerName: profile.full_name || "Unknown",
+        customerPhone: profile.phone ?? "",
+        customerEmail: profile.email ?? "",
+        signedUpAt: new Date(profile.created_at).toLocaleDateString("en-US", {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+        }),
+      }),
+    );
+    results.signupNoBooking++;
+  }
+
+  // 7. Prune appointments older than a year — private groom_notes reference
   // appointments with "on delete set null", so grooming history per pet is
   // preserved even after the appointment row itself is gone.
   const oneYearAgo = addDays(today, -365);

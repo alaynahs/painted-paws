@@ -8,6 +8,8 @@ export type NotificationType =
   | "booking_confirmation"
   | "admin_new_booking"
   | "payment_link"
+  | "admin_checkout_abandoned"
+  | "admin_signup_no_booking"
   | "appointment_confirmed"
   | "first_time_welcome"
   | "new_client_vaccine_reminder"
@@ -82,6 +84,21 @@ export async function alreadyNotifiedForAppointment(
     .from("notifications_log")
     .select("id")
     .eq("appointment_id", appointmentId)
+    .eq("type", type)
+    .limit(1);
+  return (data?.length ?? 0) > 0;
+}
+
+/** True if this customer already received this type, ever — used for one-time admin nudges (e.g. signed up but never booked) that shouldn't repeat daily. */
+export async function alreadyNotifiedForCustomer(
+  supabase: AnyClient,
+  customerId: string,
+  type: NotificationType,
+) {
+  const { data } = await supabase
+    .from("notifications_log")
+    .select("id")
+    .eq("customer_id", customerId)
     .eq("type", type)
     .limit(1);
   return (data?.length ?? 0) > 0;
