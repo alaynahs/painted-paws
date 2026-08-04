@@ -24,6 +24,7 @@ import {
   createPromotion,
   updatePromotion,
   deletePromotion,
+  resetPromotionRemaining,
 } from "@/app/admin/promotions/actions";
 
 const DOG_WEIGHT_CLASSES: DogWeightClass[] = ["small", "medium", "large", "xlarge"];
@@ -529,6 +530,31 @@ export default async function AdminPricingPage({
                       </button>
                     </div>
                   </form>
+                  {promo.max_uses != null && (
+                    <form
+                      action={resetPromotionRemaining}
+                      className="mt-3 flex items-end gap-2 border-t border-border pt-3"
+                    >
+                      <input type="hidden" name="id" value={promo.id} />
+                      <label className="block">
+                        <span className="text-xs text-muted">
+                          Reset bookings left to
+                        </span>
+                        <input
+                          type="number"
+                          name="remaining"
+                          defaultValue={Math.max(0, promo.max_uses - used)}
+                          className="mt-1 w-24 rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm text-foreground outline-none focus:border-accent-dark"
+                        />
+                      </label>
+                      <button
+                        type="submit"
+                        className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark"
+                      >
+                        Reset
+                      </button>
+                    </form>
+                  )}
                   <form action={deletePromotion} className="mt-2">
                     <input type="hidden" name="id" value={promo.id} />
                     <button

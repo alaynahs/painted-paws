@@ -75,3 +75,25 @@ export async function deletePromotion(formData: FormData) {
   revalidateEverywhere();
   redirect("/admin/pricing?saved=promotion-deleted");
 }
+
+// "Remaining" isn't stored directly — it's max_uses minus real usage, so
+// "resetting" it just raises max_uses by however many bookings have
+// already used this promo, without touching any booking history.
+export async function resetPromotionRemaining(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const id = formData.get("id") as string;
+  const desiredRemaining = Number(formData.get("remaining"));
+
+  const { count } = await supabase
+    .from("appointments")
+    .select("id", { count: "exact", head: true })
+    .eq("promo_id", id);
+
+  await supabase
+    .from("promotions")
+    .update({ max_uses: (count ?? 0) + desiredRemaining })
+    .eq("id", id);
+
+  revalidateEverywhere();
+  redirect("/admin/pricing?saved=promotion-reset");
+}
