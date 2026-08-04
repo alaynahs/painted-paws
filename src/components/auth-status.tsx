@@ -31,15 +31,16 @@ export default async function AuthStatus({
     );
   }
 
-  // Styled as a real button (matching "Book Now") rather than plain nav
-  // text, since this is the site's primary login/signup call to action.
+  // Styled identically to "Book Now" (same classes, same color, same
+  // size) rather than plain nav text, since this is the site's primary
+  // login/signup call to action.
   return (
     <Link
       href="/login"
       className={
         mobile
-          ? "block rounded-full bg-blue-600 px-5 py-3 text-center text-sm font-medium text-white transition-colors hover:bg-blue-700"
-          : "shrink-0 whitespace-nowrap rounded-full bg-blue-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 lg:px-5 lg:py-2 lg:text-base"
+          ? "rounded-full bg-accent px-5 py-3 text-center text-sm font-medium text-white"
+          : "shrink-0 rounded-full bg-accent px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-accent-dark lg:px-5 lg:py-2 lg:text-base"
       }
     >
       Log In / Sign Up

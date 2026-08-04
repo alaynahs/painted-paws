@@ -31,7 +31,7 @@ export default async function BookPage({
         <div className="mt-8 flex justify-center gap-4">
           <Link
             href="/login"
-            className="rounded-full bg-blue-600 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+            className="rounded-full bg-accent px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-dark"
           >
             Log In
           </Link>
