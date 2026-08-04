@@ -159,20 +159,20 @@ export default function PetForm({
         />
       </div>
 
-      {species === "dog" && (
-        <div>
-          <span className="text-sm font-medium text-foreground">
-            Date of birth
-          </span>
-          <BirthdatePicker value={birthDate} onChange={setBirthDate} />
-          <input type="hidden" name="birthDate" value={birthDate} />
+      <div>
+        <span className="text-sm font-medium text-foreground">
+          Date of birth
+        </span>
+        <BirthdatePicker value={birthDate} onChange={setBirthDate} />
+        <input type="hidden" name="birthDate" value={birthDate} />
+        {species === "dog" && (
           <p className="mt-1.5 px-1 text-xs text-muted">
             {isPuppy
               ? "🐶 Under 6 months. This pet will be booked with puppy pricing and the Puppy Intro to Grooming option."
               : "Under 6 months automatically unlocks puppy pricing and the Puppy Intro to Grooming option at booking."}
           </p>
-        </div>
-      )}
+        )}
+      </div>
 
       <div>
         <label className="text-sm font-medium text-foreground" htmlFor="color">
@@ -207,12 +207,10 @@ export default function PetForm({
 
       <button
         type="submit"
-        disabled={species === "dog" && !birthDate}
+        disabled={!birthDate}
         className="rounded-full bg-accent px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-dark disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {species === "dog" && !birthDate
-          ? "Add date of birth to continue"
-          : submitLabel}
+        {!birthDate ? "Add date of birth to continue" : submitLabel}
       </button>
     </form>
   );

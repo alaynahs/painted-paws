@@ -7,10 +7,11 @@ import { monthsSince } from "@/lib/pricing/pricing";
 
 function readPetFields(formData: FormData) {
   const birthDate = (formData.get("birthDate") as string) || null;
+  const species = formData.get("species") as string;
 
   return {
     name: formData.get("name") as string,
-    species: formData.get("species") as string,
+    species,
     breed: formData.get("breed") as string,
     coat: formData.get("coat") as string,
     weight_lb: Number(formData.get("weightLb")),
@@ -18,7 +19,9 @@ function readPetFields(formData: FormData) {
     health_concerns: (formData.get("healthConcerns") as string) || null,
     birth_date: birthDate,
     // Server-derived, never trust a client-submitted puppy flag directly.
-    is_puppy: birthDate !== null && monthsSince(birthDate) < 6,
+    // Puppy pricing only exists for dogs — a cat's birth date shouldn't
+    // ever flip this on.
+    is_puppy: species === "dog" && birthDate !== null && monthsSince(birthDate) < 6,
   };
 }
 
@@ -30,9 +33,9 @@ export async function createPet(formData: FormData) {
   if (!user) redirect("/login");
 
   const fields = readPetFields(formData);
-  if (fields.species === "dog" && !fields.birth_date) {
+  if (!fields.birth_date) {
     redirect(
-      `/account/pets/new?error=${encodeURIComponent("Please enter your dog's date of birth.")}`,
+      `/account/pets/new?error=${encodeURIComponent("Please enter your pet's date of birth.")}`,
     );
   }
 
@@ -57,10 +60,10 @@ export async function adminCreatePet(customerId: string, formData: FormData) {
   const { supabase } = await requireAdmin();
 
   const fields = readPetFields(formData);
-  if (fields.species === "dog" && !fields.birth_date) {
+  if (!fields.birth_date) {
     redirect(
       `/admin/pets/new?customerId=${customerId}&error=${encodeURIComponent(
-        "Please enter the dog's date of birth.",
+        "Please enter the pet's date of birth.",
       )}`,
     );
   }
@@ -91,9 +94,9 @@ export async function updatePet(formData: FormData) {
   const petId = formData.get("petId") as string;
 
   const fields = readPetFields(formData);
-  if (fields.species === "dog" && !fields.birth_date) {
+  if (!fields.birth_date) {
     redirect(
-      `/account/pets/${petId}?error=${encodeURIComponent("Please enter your dog's date of birth.")}`,
+      `/account/pets/${petId}?error=${encodeURIComponent("Please enter your pet's date of birth.")}`,
     );
   }
 

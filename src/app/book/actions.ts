@@ -1176,12 +1176,13 @@ export async function searchCustomers(query: string) {
 
   const digits = trimmed.replace(/\D/g, "");
 
-  const [{ data: byPhone }, { data: byEmail }, { data: petsByName }] =
+  const [{ data: byPhone }, { data: byEmail }, { data: byOwnerName }, { data: petsByName }] =
     await Promise.all([
       digits
         ? supabase.from("profiles").select("id").ilike("phone", `%${digits}%`)
         : Promise.resolve({ data: [] as { id: string }[] }),
       supabase.from("profiles").select("id").ilike("email", `%${trimmed}%`),
+      supabase.from("profiles").select("id").ilike("full_name", `%${trimmed}%`),
       supabase.from("pets").select("owner_id").ilike("name", `%${trimmed}%`),
     ]);
 
@@ -1189,6 +1190,7 @@ export async function searchCustomers(query: string) {
     new Set<string>([
       ...(byPhone ?? []).map((p) => p.id),
       ...(byEmail ?? []).map((p) => p.id),
+      ...(byOwnerName ?? []).map((p) => p.id),
       ...(petsByName ?? []).map((p) => p.owner_id),
     ]),
   );

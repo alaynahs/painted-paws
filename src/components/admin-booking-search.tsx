@@ -43,7 +43,7 @@ export default function AdminBookingSearch() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-          placeholder="Search by phone, email, or pet name…"
+          placeholder="Search by name, phone, email, or pet name…"
           className="flex-1 rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground outline-none focus:border-accent-dark"
         />
         <button
@@ -58,7 +58,7 @@ export default function AdminBookingSearch() {
 
       {results && results.length === 0 && (
         <p className="mt-4 text-sm text-muted">
-          No customers found matching that phone, email, or pet name.
+          No customers found matching that name, phone, email, or pet name.
         </p>
       )}
 
