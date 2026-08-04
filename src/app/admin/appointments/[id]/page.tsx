@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/supabase/admin";
-import { cancelAppointment } from "@/app/book/actions";
+import { cancelAppointment, sendPaymentLinkEmail } from "@/app/book/actions";
 import { markAppointmentComplete } from "@/app/admin/actions";
 import BookingFlow from "@/components/booking-flow";
 import {
@@ -34,6 +34,7 @@ export default async function AdminEditAppointmentPage({
 
   const cancelWithId = cancelAppointment.bind(null, appointment.id);
   const markCompleteWithId = markAppointmentComplete.bind(null, appointment.id);
+  const sendPaymentLinkWithId = sendPaymentLinkEmail.bind(null, appointment.id);
   const config = await getPricingConfig();
 
   let promoDiscountPercent: number | null = null;
@@ -104,6 +105,22 @@ export default async function AdminEditAppointmentPage({
           </form>
         )}
       </div>
+
+      {appointment.payment_status !== "paid" && (
+        <div className="mt-4">
+          <form action={sendPaymentLinkWithId}>
+            <button
+              type="submit"
+              className="rounded-full border border-blue-600 px-6 py-2.5 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-600 hover:text-white"
+            >
+              Email Payment Link (${appointment.price})
+            </button>
+            <p className="mt-1.5 text-xs text-muted">
+              Emails a Stripe payment link straight to the pet parent.
+            </p>
+          </form>
+        </div>
+      )}
 
       <div className="mt-8">
         <BookingFlow

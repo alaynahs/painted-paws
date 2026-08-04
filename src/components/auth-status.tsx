@@ -18,7 +18,14 @@ export default async function AuthStatus({ className }: { className?: string }) 
   }
 
   return (
-    <Link href={signedIn ? "/account" : "/login"} className={className}>
+    <Link
+      href={signedIn ? "/account" : "/login"}
+      className={
+        signedIn
+          ? className
+          : `${className ?? ""} !text-blue-600 hover:!text-blue-700`
+      }
+    >
       {signedIn ? "My Account" : "Log In"}
     </Link>
   );

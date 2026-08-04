@@ -7,6 +7,7 @@ type AnyClient = SupabaseClient;
 export type NotificationType =
   | "booking_confirmation"
   | "admin_new_booking"
+  | "payment_link"
   | "appointment_confirmed"
   | "first_time_welcome"
   | "new_client_vaccine_reminder"

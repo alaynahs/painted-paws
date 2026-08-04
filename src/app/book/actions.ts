@@ -51,6 +51,7 @@ import {
   firstTimeWelcomeEmail,
   firstTimeWelcomeSms,
   newClientVaccineReminderSms,
+  paymentLinkEmail,
 } from "@/lib/notifications/templates";
 
 interface PetRow {
@@ -1017,6 +1018,12 @@ async function createAppointmentCheckoutSession(
   salesTax: number,
   successPath: string,
   cancelPath: string,
+  // Live in-checkout flows (booking, or "Pay Now" from the account page) get
+  // Stripe's 30-minute floor, since that customer is right there and any
+  // longer just holds the slot from everyone else. A mailed payment link is
+  // opened whenever the customer gets to it, so it gets Stripe's 24-hour
+  // ceiling instead — see sendPaymentLinkEmail below.
+  expiresInSeconds: number = 30 * 60,
 ): Promise<string | null> {
   if (!stripe) return null;
   const session = await stripe.checkout.sessions.create({
@@ -1055,13 +1062,12 @@ async function createAppointmentCheckoutSession(
     metadata: { appointmentId },
     success_url: `${origin}${successPath}`,
     cancel_url: `${origin}${cancelPath}`,
-    // Stripe's floor for a custom expiration is 30 minutes. This is what
-    // actually protects the slot from a customer who abandons checkout by
-    // closing the tab or hitting the browser's own back button — neither of
-    // those ever visits cancel_url, so without this the appointment would
-    // stay "booked" and unpaid forever. See the webhook's
+    // This is what actually protects the slot from a customer who abandons
+    // checkout by closing the tab or hitting the browser's own back button —
+    // neither of those ever visits cancel_url, so without this the
+    // appointment would stay "booked" and unpaid forever. See the webhook's
     // checkout.session.expired handler.
-    expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
+    expires_at: Math.floor(Date.now() / 1000) + expiresInSeconds,
   });
   return session.url;
 }
@@ -1105,6 +1111,85 @@ export async function payAppointmentNow(appointmentId: string) {
 
   if (!checkoutUrl) redirect("/account?error=Could%20not%20start%20checkout");
   redirect(checkoutUrl);
+}
+
+// Lets an admin email a Stripe payment link straight to a customer for an
+// appointment booked on their behalf (e.g. a phone booking) instead of
+// requiring them to log in and click "Pay Now" themselves.
+export async function sendPaymentLinkEmail(appointmentId: string) {
+  const { supabase } = await requireAdmin();
+  const editPath = `/admin/appointments/${appointmentId}`;
+
+  const { data: appt } = await supabase
+    .from("appointments")
+    .select(
+      "id, customer_id, price, sales_tax, service, appointment_date, appointment_hour, payment_status, pets(name)",
+    )
+    .eq("id", appointmentId)
+    .single();
+
+  if (!appt) redirect(`${editPath}?error=Appointment%20not%20found`);
+  if (appt.payment_status === "paid") {
+    redirect(`${editPath}?message=${encodeURIComponent("This appointment is already paid.")}`);
+  }
+  if (!stripe) {
+    redirect(
+      `${editPath}?error=${encodeURIComponent("Online payment isn't set up yet.")}`,
+    );
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name, email")
+    .eq("id", appt.customer_id)
+    .single();
+
+  if (!profile?.email) {
+    redirect(
+      `${editPath}?error=${encodeURIComponent("This customer doesn't have an email on file.")}`,
+    );
+  }
+
+  const pet = Array.isArray(appt.pets) ? appt.pets[0] : appt.pets;
+  const origin = (await headers()).get("origin");
+
+  const checkoutUrl = await createAppointmentCheckoutSession(
+    origin,
+    appt.id,
+    pet?.name ?? "Pet",
+    appt.service,
+    appt.price - appt.sales_tax,
+    appt.sales_tax,
+    "/account?message=Payment+received.+Thank+you!",
+    `/api/book/checkout-cancelled?appointmentId=${appt.id}`,
+    24 * 60 * 60,
+  );
+
+  if (!checkoutUrl) {
+    redirect(`${editPath}?error=${encodeURIComponent("Could not create a payment link.")}`);
+  }
+
+  const status = await notifyEmail(
+    supabase,
+    { customerId: appt.customer_id, appointmentId: appt.id, email: profile.email },
+    "payment_link",
+    paymentLinkEmail({
+      firstName: (profile.full_name || "there").split(" ")[0],
+      petName: pet?.name ?? "your pet",
+      date: formatDate(appt.appointment_date),
+      time: formatHour(appt.appointment_hour),
+      price: appt.price,
+      payUrl: checkoutUrl,
+    }),
+  );
+
+  if (status !== "sent") {
+    redirect(
+      `${editPath}?error=${encodeURIComponent("Couldn't send the payment link email. Please try again.")}`,
+    );
+  }
+
+  redirect(`${editPath}?message=${encodeURIComponent(`Payment link emailed to ${profile.email}.`)}`);
 }
 
 const MAX_TIP_CENTS = 50000; // $500 sanity cap

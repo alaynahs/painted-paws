@@ -52,9 +52,9 @@ export async function signup(formData: FormData) {
       .eq("id", data.user.id);
   }
 
-  // If email confirmation is required, signUp succeeds but there's no
-  // session yet — send them to log in once they've clicked the email link,
-  // rather than bouncing them straight to /account with no explanation.
+  // Requires "Confirm email" to be turned off in Supabase (Authentication >
+  // Providers > Email) — otherwise signUp() has no session yet and this
+  // falls back to sending them to log in once they've clicked the email link.
   if (!data.session) {
     redirect(
       `/login?message=${encodeURIComponent(
@@ -63,7 +63,7 @@ export async function signup(formData: FormData) {
     );
   }
 
-  redirect("/account");
+  redirect("/account/pets/new");
 }
 
 export async function signInWithGoogle() {

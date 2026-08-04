@@ -76,6 +76,36 @@ ${BUSINESS_NAME}`,
   };
 }
 
+// Sent when an admin books an appointment on a customer's behalf (e.g. a
+// phone booking) and wants to collect payment online instead of in person.
+export function paymentLinkEmail(vars: {
+  firstName: string;
+  petName: string;
+  date: string;
+  time: string;
+  price: number;
+  payUrl: string;
+}): EmailContent {
+  return {
+    subject: `Complete Payment for ${vars.petName}'s Appointment`,
+    body: `Hi ${vars.firstName},
+
+Here's your payment link for ${vars.petName}'s upcoming appointment.
+
+Appointment Details
+• Pet: ${vars.petName}
+• Date: ${vars.date}
+• Time: ${vars.time}
+• Total: $${vars.price}
+
+[Pay now](${vars.payUrl})
+
+If you have any questions, just reply to this email.
+
+${BUSINESS_NAME}`,
+  };
+}
+
 export function adminNewBookingEmail(vars: {
   customerName: string;
   customerPhone: string;
