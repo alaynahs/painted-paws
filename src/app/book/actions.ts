@@ -317,7 +317,7 @@ async function insertWaiverSigning(
   });
 }
 
-async function sendBookingNotifications(
+export async function sendBookingNotifications(
   supabase: Awaited<ReturnType<typeof createClient>>,
   {
     customerId,
@@ -749,18 +749,10 @@ export async function createAppointment(formData: FormData) {
     waiver,
   });
 
-  await sendBookingNotifications(supabase, {
-    customerId: user.id,
-    petId: fields.petId,
-    petName: pet.name,
-    appointmentId: appointment.id,
-    date: fields.date,
-    hour: fields.hour,
-    rabiesVaccinePath: pet.rabies_vaccine_path,
-    service: fields.service,
-    price,
-  });
-
+  // Booking confirmations (and the admin new-booking alert) fire only once
+  // Stripe confirms payment actually went through — see the webhook's
+  // checkout.session.completed handler. Sending them here would tell a
+  // customer they're booked before they've paid a cent.
   const origin = (await headers()).get("origin");
   const checkoutUrl = await createAppointmentCheckoutSession(
     origin,
@@ -1063,6 +1055,13 @@ async function createAppointmentCheckoutSession(
     metadata: { appointmentId },
     success_url: `${origin}${successPath}`,
     cancel_url: `${origin}${cancelPath}`,
+    // Stripe's floor for a custom expiration is 30 minutes. This is what
+    // actually protects the slot from a customer who abandons checkout by
+    // closing the tab or hitting the browser's own back button — neither of
+    // those ever visits cancel_url, so without this the appointment would
+    // stay "booked" and unpaid forever. See the webhook's
+    // checkout.session.expired handler.
+    expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
   });
   return session.url;
 }
