@@ -52,8 +52,8 @@ export default async function Home() {
         <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="max-w-2xl">
             <p className="text-xs font-semibold tracking-widest text-accent-dark uppercase">
-              Located in Pflugerville, Austin, TX &middot; By appointment
-              only
+              Located in Village at Northtown, Pflugerville, TX &middot; By
+              appointment only
             </p>
             <h1 className="mt-5 font-serif text-5xl leading-[1.05] tracking-tight text-foreground sm:text-7xl">
               One-on-one{" "}
