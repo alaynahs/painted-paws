@@ -50,6 +50,7 @@ interface AppointmentWithContact {
   customer_id: string;
   appointment_date: string;
   appointment_hour: number;
+  appointment_minute: number;
   pets: { id: string; name: string } | { id: string; name: string }[] | null;
   profiles:
     | { full_name: string | null; phone: string | null; email: string | null }
@@ -91,7 +92,7 @@ export async function GET(request: NextRequest) {
   // 1. 24-hour reminder
   const { data: tomorrowAppts } = await supabase
     .from("appointments")
-    .select("id, customer_id, appointment_date, appointment_hour, pets(id, name), profiles:customer_id(full_name, phone, email)")
+    .select("id, customer_id, appointment_date, appointment_hour, appointment_minute, pets(id, name), profiles:customer_id(full_name, phone, email)")
     .eq("appointment_date", tomorrow)
     .neq("status", "cancelled");
 
@@ -110,7 +111,7 @@ export async function GET(request: NextRequest) {
     const vars = {
       firstName: (profile?.full_name || "there").split(" ")[0],
       petName: pet.name,
-      time: formatHour(appt.appointment_hour),
+      time: formatHour(appt.appointment_hour, appt.appointment_minute),
     };
     await notifyText(supabase, target, "reminder_24h", reminder24hSms(vars));
     results.reminder24h++;

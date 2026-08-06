@@ -1,7 +1,7 @@
-export function formatHour(hour: number) {
+export function formatHour(hour: number, minute: number = 0) {
   const period = hour >= 12 ? "PM" : "AM";
-  const display = hour > 12 ? hour - 12 : hour;
-  return `${display}:00 ${period}`;
+  const display = hour % 12 === 0 ? 12 : hour % 12;
+  return `${display}:${String(minute).padStart(2, "0")} ${period}`;
 }
 
 export function formatDate(dateStr: string) {
@@ -92,9 +92,13 @@ function centralOffsetMs(instant: Date): number {
 // timezone (UTC on Vercel), silently treating a 2pm Central slot as 2pm
 // UTC — 5 hours off, which can make a genuinely upcoming same-day slot
 // look like it's already passed.
-export function centralWallClockToInstant(date: string, hour: number): Date {
+export function centralWallClockToInstant(
+  date: string,
+  hour: number,
+  minute: number = 0,
+): Date {
   const [year, month, day] = date.split("-").map(Number);
-  const naiveUtcMs = Date.UTC(year, month - 1, day, hour, 0, 0);
+  const naiveUtcMs = Date.UTC(year, month - 1, day, hour, minute, 0);
   const offset = centralOffsetMs(new Date(naiveUtcMs));
   return new Date(naiveUtcMs + offset);
 }

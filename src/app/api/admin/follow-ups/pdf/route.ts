@@ -29,6 +29,7 @@ interface NotificationRow {
 interface CancellationRow {
   appointment_date: string;
   appointment_hour: number;
+  appointment_minute: number;
   cancelled_at: string | null;
   no_show: boolean;
   profiles: { full_name: string | null; phone: string | null } | null;
@@ -234,7 +235,7 @@ export async function GET(request: NextRequest) {
     const { data } = await supabase
       .from("appointments")
       .select(
-        "appointment_date, appointment_hour, cancelled_at, no_show, profiles:customer_id(full_name, phone), pets(name)",
+        "appointment_date, appointment_hour, appointment_minute, cancelled_at, no_show, profiles:customer_id(full_name, phone), pets(name)",
       )
       .eq("status", "cancelled")
       .gte("cancelled_at", rangeStartInstant)
@@ -250,7 +251,7 @@ export async function GET(request: NextRequest) {
         : "";
       return {
         heading: `${profile?.full_name ?? "Unknown"}${pet?.name ? " · " + pet.name : ""}${r.no_show ? " (No-show)" : ""}`,
-        subheading: `${profile?.phone ?? "No phone on file"} · Was booked for ${formatDate(r.appointment_date)} at ${formatHour(r.appointment_hour)}${cancelledPart}`,
+        subheading: `${profile?.phone ?? "No phone on file"} · Was booked for ${formatDate(r.appointment_date)} at ${formatHour(r.appointment_hour, r.appointment_minute)}${cancelledPart}`,
       };
     });
   } else {

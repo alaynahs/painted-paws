@@ -53,7 +53,8 @@ export default async function AdminDashboardPage({
     .neq("status", "cancelled")
     .gte("appointment_date", start)
     .lte("appointment_date", end)
-    .order("appointment_hour", { ascending: true });
+    .order("appointment_hour", { ascending: true })
+    .order("appointment_minute", { ascending: true });
 
   const byDay: Record<string, NonNullable<typeof appointments>> = {};
   for (const day of days) byDay[day] = [];
@@ -152,7 +153,7 @@ export default async function AdminDashboardPage({
                   >
                     <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                       <p className="flex items-center gap-2 text-sm font-medium text-foreground">
-                        {formatHour(appt.appointment_hour)}
+                        {formatHour(appt.appointment_hour, appt.appointment_minute)}
                         {appt.status === "requested" && (
                           <span className="rounded-full bg-accent-tint px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-accent-dark">
                             Requested

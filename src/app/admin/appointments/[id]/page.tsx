@@ -136,6 +136,7 @@ export default async function AdminEditAppointmentPage({
             standalone: appointment.service === "standalone",
             date: appointment.appointment_date,
             hour: appointment.appointment_hour,
+            minute: appointment.appointment_minute,
             paymentMethod: appointment.payment_method,
             customerNote: appointment.customer_note ?? "",
             pickupDropoff: appointment.pickup_dropoff ?? false,

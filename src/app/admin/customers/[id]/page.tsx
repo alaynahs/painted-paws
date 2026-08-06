@@ -82,7 +82,7 @@ export default async function AdminCustomerPage({
   const { data: waivers } = await supabase
     .from("waiver_signings")
     .select(
-      "id, signed_name, signed_date, vaccinated_last_24h, behavioral_concerns, behavioral_note, senior_or_special_needs, senior_note, severely_matted, matted_note, photo_release_consent, liability_accepted, pets(name), appointments(appointment_date, appointment_hour)",
+      "id, signed_name, signed_date, vaccinated_last_24h, behavioral_concerns, behavioral_note, senior_or_special_needs, senior_note, severely_matted, matted_note, photo_release_consent, liability_accepted, pets(name), appointments(appointment_date, appointment_hour, appointment_minute)",
     )
     .eq("customer_id", id)
     .order("signed_date", { ascending: false });
@@ -257,7 +257,7 @@ export default async function AdminCustomerPage({
                     <p className="font-serif text-base text-foreground">
                       {pet?.name ?? "Pet"}
                       {appt
-                        ? ` · ${formatDate(appt.appointment_date)} at ${formatHour(appt.appointment_hour)}`
+                        ? ` · ${formatDate(appt.appointment_date)} at ${formatHour(appt.appointment_hour, appt.appointment_minute)}`
                         : ""}
                     </p>
                     <p className="text-xs text-muted">

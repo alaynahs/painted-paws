@@ -72,6 +72,7 @@ export interface BookingInitialValues {
   packageTier?: PackageTier | "none";
   date: string;
   hour: number;
+  minute?: number;
   paymentMethod: "online" | "in_person";
   customerNote?: string;
   standalone?: boolean;
@@ -215,6 +216,7 @@ export default function BookingFlow({
 
   const [date, setDate] = useState(initial?.date ?? todayISO());
   const [hour, setHour] = useState<number | null>(initial?.hour ?? null);
+  const [minute, setMinute] = useState(initial?.minute ?? 0);
   const [bookedHours, setBookedHours] = useState<number[]>([]);
   const [dayBlocked, setDayBlocked] = useState(false);
   const [dayFull, setDayFull] = useState(false);
@@ -387,6 +389,7 @@ export default function BookingFlow({
     if (!isAdmin && hour !== null && isPastOrTooSoon(date, hour, pickupDropoff)) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- clears a now-invalid hour when toggling pickup on requires more lead time than the current selection has
       setHour(null);
+      setMinute(0);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pickupDropoff]);
@@ -411,6 +414,7 @@ export default function BookingFlow({
       // only reset it once the user actually changes the date afterward.
       if (!isFirstLoad.current) {
         setHour(null);
+        setMinute(0);
       }
       isFirstLoad.current = false;
       setLoadingHours(false);
@@ -576,6 +580,7 @@ export default function BookingFlow({
       <input type="hidden" name="standalone" value={String(standalone)} />
       <input type="hidden" name="date" value={date} />
       <input type="hidden" name="hour" value={hour ?? ""} />
+      <input type="hidden" name="minute" value={minute} />
       <input type="hidden" name="paymentMethod" value={paymentMethod} />
       <input type="hidden" name="customerNote" value={customerNote} />
       <input type="hidden" name="pickupDropoff" value={String(pickupDropoff)} />
@@ -876,7 +881,7 @@ export default function BookingFlow({
         )}
         <div className="mt-3 grid grid-cols-3 gap-2.5 sm:grid-cols-4">
           {HOURS.map((h) => {
-            const isSelected = hour === h;
+            const isSelected = hour === h && minute === 0;
             const isDisabled =
               bookedHours.includes(h) ||
               (!isAdmin && isPastOrTooSoon(date, h, pickupDropoff));
@@ -885,7 +890,10 @@ export default function BookingFlow({
                 key={h}
                 type="button"
                 disabled={isDisabled}
-                onClick={() => setHour(h)}
+                onClick={() => {
+                  setHour(h);
+                  setMinute(0);
+                }}
                 className={`flex items-center justify-center gap-1.5 rounded-2xl border px-3 py-3 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
                   isSelected
                     ? "border-accent bg-accent text-white"
@@ -898,6 +906,38 @@ export default function BookingFlow({
             );
           })}
         </div>
+        {isAdmin && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-accent-dark/40 bg-card px-3.5 py-2.5">
+            <label
+              className="text-sm font-medium text-foreground/90"
+              htmlFor="customTime"
+            >
+              Or type an exact time
+            </label>
+            <input
+              id="customTime"
+              type="time"
+              step={60}
+              value={
+                hour !== null
+                  ? `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`
+                  : ""
+              }
+              onChange={(e) => {
+                const [h, m] = e.target.value.split(":").map(Number);
+                if (Number.isNaN(h) || Number.isNaN(m)) return;
+                setHour(h);
+                setMinute(m);
+              }}
+              className="rounded-xl border border-border bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:border-accent-dark"
+            />
+            {hour !== null && minute !== 0 && (
+              <span className="text-xs text-muted">
+                {formatHour(hour, minute)}
+              </span>
+            )}
+          </div>
+        )}
         <p className="mt-2 text-xs text-muted">
           Appointments run 8 AM – 4 PM, one pet at a time.
           {pickupDropoff &&

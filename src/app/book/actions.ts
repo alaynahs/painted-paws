@@ -234,6 +234,7 @@ function readBookingFields(formData: FormData) {
     standalone: formData.get("standalone") === "true",
     date: formData.get("date") as string,
     hour: Number(formData.get("hour")),
+    minute: Number(formData.get("minute")) || 0,
     paymentMethod: formData.get("paymentMethod") as string,
     customerNote: (formData.get("customerNote") as string) || null,
     haircutDescription: (formData.get("haircutDescription") as string) || null,
@@ -335,6 +336,7 @@ export async function sendBookingNotifications(
     appointmentId,
     date,
     hour,
+    minute = 0,
     rabiesVaccinePath,
     service,
     price,
@@ -345,6 +347,7 @@ export async function sendBookingNotifications(
     appointmentId: string;
     date: string;
     hour: number;
+    minute?: number;
     rabiesVaccinePath: string | null;
     service: string;
     price: number;
@@ -368,7 +371,7 @@ export async function sendBookingNotifications(
     firstName: (profile?.full_name || "there").split(" ")[0],
     petName,
     date: formatDate(date),
-    time: formatHour(hour),
+    time: formatHour(hour, minute),
   };
 
   await notifyText(
@@ -441,7 +444,7 @@ export async function notifyAdminCheckoutAbandoned(
   const { data: appt } = await supabase
     .from("appointments")
     .select(
-      "customer_id, service, appointment_date, appointment_hour, price, pets(name)",
+      "customer_id, service, appointment_date, appointment_hour, appointment_minute, price, pets(name)",
     )
     .eq("id", appointmentId)
     .single();
@@ -464,7 +467,7 @@ export async function notifyAdminCheckoutAbandoned(
       petName: pet?.name ?? "Pet",
       service: appt.service,
       date: formatDate(appt.appointment_date),
-      time: formatHour(appt.appointment_hour),
+      time: formatHour(appt.appointment_hour, appt.appointment_minute),
       price: appt.price,
     }),
   );
@@ -637,6 +640,20 @@ function bookingTimeError(
   return null;
 }
 
+// Admin bookings skip bookingTimeError entirely (they can book in the past
+// or on short notice on purpose), but a typed custom time still needs to
+// land somewhere the database will actually accept — this just turns a raw
+// constraint violation into a readable message.
+function adminTimeRangeError(hour: number, minute: number): string | null {
+  if (!Number.isInteger(hour) || hour < 6 || hour > 20) {
+    return "Please choose an hour between 6 AM and 8 PM.";
+  }
+  if (!Number.isInteger(minute) || minute < 0 || minute > 59) {
+    return "Please enter a valid number of minutes (0–59).";
+  }
+  return null;
+}
+
 async function pickupAddressError(
   pickupDropoff: boolean,
   pickupAddress: string | null,
@@ -785,6 +802,7 @@ export async function createAppointment(formData: FormData) {
       add_ons: addOns,
       appointment_date: fields.date,
       appointment_hour: fields.hour,
+      appointment_minute: fields.minute,
       payment_method: "online",
       price,
       sales_tax: salesTax,
@@ -877,6 +895,11 @@ export async function updateAppointment(formData: FormData) {
     if (pickupIssue) {
       redirect(`${editPath}?error=${encodeURIComponent(pickupIssue)}`);
     }
+  } else {
+    const rangeIssue = adminTimeRangeError(fields.hour, fields.minute);
+    if (rangeIssue) {
+      redirect(`${editPath}?error=${encodeURIComponent(rangeIssue)}`);
+    }
   }
 
   const { data: pet } = await supabase
@@ -940,6 +963,7 @@ export async function updateAppointment(formData: FormData) {
       add_ons: addOns,
       appointment_date: fields.date,
       appointment_hour: fields.hour,
+      appointment_minute: fields.minute,
       payment_method: fields.paymentMethod,
       price,
       sales_tax: salesTax,
@@ -962,8 +986,8 @@ export async function updateAppointment(formData: FormData) {
   redirect(admin ? "/admin?saved=1" : "/account?saved=1");
 }
 
-function appointmentDateTime(date: string, hour: number): Date {
-  return centralWallClockToInstant(date, hour);
+function appointmentDateTime(date: string, hour: number, minute: number = 0): Date {
+  return centralWallClockToInstant(date, hour, minute);
 }
 
 export async function cancelAppointment(appointmentId: string) {
@@ -977,7 +1001,7 @@ export async function cancelAppointment(appointmentId: string) {
 
   const { data: appt } = await supabase
     .from("appointments")
-    .select("appointment_date, appointment_hour")
+    .select("appointment_date, appointment_hour, appointment_minute")
     .eq("id", appointmentId)
     .single();
 
@@ -986,6 +1010,7 @@ export async function cancelAppointment(appointmentId: string) {
     const scheduled = appointmentDateTime(
       appt.appointment_date,
       appt.appointment_hour,
+      appt.appointment_minute,
     );
     const deadline = admin
       ? new Date(scheduled.getTime() + NO_SHOW_GRACE_MINUTES * 60 * 1000)
@@ -1034,7 +1059,9 @@ export async function confirmAppointment(appointmentId: string) {
   }
 
   const { data: appt } = await query
-    .select("customer_id, appointment_date, appointment_hour, pets(name)")
+    .select(
+      "customer_id, appointment_date, appointment_hour, appointment_minute, pets(name)",
+    )
     .single();
 
   if (appt) {
@@ -1058,7 +1085,7 @@ export async function confirmAppointment(appointmentId: string) {
         firstName: (profile?.full_name || "there").split(" ")[0],
         petName: pet?.name ?? "Pet",
         date: formatDate(appt.appointment_date),
-        time: formatHour(appt.appointment_hour),
+        time: formatHour(appt.appointment_hour, appt.appointment_minute),
       }),
     );
   }
@@ -1187,7 +1214,7 @@ export async function sendPaymentLinkEmail(appointmentId: string) {
   const { data: appt } = await supabase
     .from("appointments")
     .select(
-      "id, customer_id, price, sales_tax, service, appointment_date, appointment_hour, payment_status, pets(name)",
+      "id, customer_id, price, sales_tax, service, appointment_date, appointment_hour, appointment_minute, payment_status, pets(name)",
     )
     .eq("id", appointmentId)
     .single();
@@ -1241,7 +1268,7 @@ export async function sendPaymentLinkEmail(appointmentId: string) {
       firstName: (profile.full_name || "there").split(" ")[0],
       petName: pet?.name ?? "your pet",
       date: formatDate(appt.appointment_date),
-      time: formatHour(appt.appointment_hour),
+      time: formatHour(appt.appointment_hour, appt.appointment_minute),
       price: appt.price,
       payUrl: checkoutUrl,
     }),
@@ -1391,6 +1418,11 @@ export async function adminCreateAppointment(formData: FormData) {
     redirect(`/admin/book?error=${encodeURIComponent(waiverIssue)}`);
   }
 
+  const rangeIssue = adminTimeRangeError(fields.hour, fields.minute);
+  if (rangeIssue) {
+    redirect(`/admin/book?error=${encodeURIComponent(rangeIssue)}`);
+  }
+
   const { data: pet } = await supabase
     .from("pets")
     .select("*")
@@ -1443,6 +1475,7 @@ export async function adminCreateAppointment(formData: FormData) {
       add_ons: addOns,
       appointment_date: fields.date,
       appointment_hour: fields.hour,
+      appointment_minute: fields.minute,
       payment_method: fields.paymentMethod,
       price,
       sales_tax: salesTax,
@@ -1479,6 +1512,7 @@ export async function adminCreateAppointment(formData: FormData) {
     appointmentId: appointment.id,
     date: fields.date,
     hour: fields.hour,
+    minute: fields.minute,
     rabiesVaccinePath: pet.rabies_vaccine_path,
     service: fields.service,
     price,

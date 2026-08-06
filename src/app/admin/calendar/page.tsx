@@ -59,15 +59,16 @@ export default async function AdminCalendarPage({
 
   const { data: appointments } = await supabase
     .from("appointments")
-    .select("id, appointment_date, appointment_hour, pets(name)")
+    .select("id, appointment_date, appointment_hour, appointment_minute, pets(name)")
     .neq("status", "cancelled")
     .gte("appointment_date", gridStart)
     .lte("appointment_date", gridEnd)
-    .order("appointment_hour", { ascending: true });
+    .order("appointment_hour", { ascending: true })
+    .order("appointment_minute", { ascending: true });
 
   const appointmentsByDay: Record<
     string,
-    { id: string; hour: number; petName: string }[]
+    { id: string; hour: number; minute: number; petName: string }[]
   > = {};
   for (const appt of appointments ?? []) {
     const list = appointmentsByDay[appt.appointment_date] ?? [];
@@ -75,6 +76,7 @@ export default async function AdminCalendarPage({
     list.push({
       id: appt.id,
       hour: appt.appointment_hour,
+      minute: appt.appointment_minute,
       petName: pet?.name ?? "Unknown pet",
     });
     appointmentsByDay[appt.appointment_date] = list;

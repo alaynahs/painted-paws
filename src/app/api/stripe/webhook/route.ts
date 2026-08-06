@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       const { data: appt } = await supabase
         .from("appointments")
         .select(
-          "customer_id, pet_id, appointment_date, appointment_hour, service, price, coupon_id, pets(name, rabies_vaccine_path)",
+          "customer_id, pet_id, appointment_date, appointment_hour, appointment_minute, service, price, coupon_id, pets(name, rabies_vaccine_path)",
         )
         .eq("id", appointmentId)
         .single();
@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
           appointmentId,
           date: appt.appointment_date,
           hour: appt.appointment_hour,
+          minute: appt.appointment_minute,
           rabiesVaccinePath: pet?.rabies_vaccine_path ?? null,
           service: appt.service,
           price: appt.price,

@@ -58,7 +58,8 @@ export default async function AdminPetDetailPage({
     .select("*")
     .eq("pet_id", id)
     .order("appointment_date", { ascending: false })
-    .order("appointment_hour", { ascending: false });
+    .order("appointment_hour", { ascending: false })
+    .order("appointment_minute", { ascending: false });
 
   const { data: notes } = await supabase
     .from("groom_notes")
@@ -131,7 +132,9 @@ export default async function AdminPetDetailPage({
     .filter((a) => a.appointment_date >= todayStr && a.status !== "cancelled")
     .sort((a, b) =>
       a.appointment_date === b.appointment_date
-        ? a.appointment_hour - b.appointment_hour
+        ? a.appointment_hour * 60 +
+          a.appointment_minute -
+          (b.appointment_hour * 60 + b.appointment_minute)
         : a.appointment_date.localeCompare(b.appointment_date),
     );
   const pastAppointments = (appointments ?? []).filter(
@@ -533,6 +536,7 @@ interface AppointmentRow {
   id: string;
   appointment_date: string;
   appointment_hour: number;
+  appointment_minute: number;
   status: string;
   service: string;
   add_ons: string[];
@@ -561,7 +565,9 @@ function AppointmentCard({
           {appt.status}
         </span>
       </div>
-      <p className="text-xs text-muted">{formatHour(appt.appointment_hour)}</p>
+      <p className="text-xs text-muted">
+        {formatHour(appt.appointment_hour, appt.appointment_minute)}
+      </p>
       <p className="mt-1 text-xs text-foreground/90">
         {formatServiceLabel(appt.service)}
         {appt.add_ons?.length > 0 && ` · ${appt.add_ons.join(", ")}`}

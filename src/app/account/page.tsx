@@ -51,14 +51,17 @@ export default async function AccountPage({
     .select("*, pets(name)")
     .eq("customer_id", user.id)
     .order("appointment_date", { ascending: false })
-    .order("appointment_hour", { ascending: false });
+    .order("appointment_hour", { ascending: false })
+    .order("appointment_minute", { ascending: false });
 
   const todayStr = todayInCentral();
   const upcomingAppointments = (appointments ?? [])
     .filter((a) => a.appointment_date >= todayStr && a.status !== "cancelled")
     .sort((a, b) =>
       a.appointment_date === b.appointment_date
-        ? a.appointment_hour - b.appointment_hour
+        ? a.appointment_hour * 60 +
+          a.appointment_minute -
+          (b.appointment_hour * 60 + b.appointment_minute)
         : a.appointment_date.localeCompare(b.appointment_date),
     );
   const CANCELLED_VISIBLE_MS = 48 * 60 * 60 * 1000;
@@ -150,7 +153,7 @@ export default async function AccountPage({
                 <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                   <p className="font-serif text-base text-foreground">
                     {appt.pets?.name} · {formatDate(appt.appointment_date)} at{" "}
-                    {formatHour(appt.appointment_hour)}
+                    {formatHour(appt.appointment_hour, appt.appointment_minute)}
                   </p>
                   <p className="text-sm font-medium text-accent-dark">
                     ${appt.price}

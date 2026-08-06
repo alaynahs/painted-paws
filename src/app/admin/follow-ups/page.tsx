@@ -29,6 +29,7 @@ interface CancellationRow {
   id: string;
   appointment_date: string;
   appointment_hour: number;
+  appointment_minute: number;
   cancelled_at: string | null;
   no_show: boolean;
   customer_id: string;
@@ -97,7 +98,7 @@ export default async function AdminFollowUpsPage({
     supabase
       .from("appointments")
       .select(
-        "id, appointment_date, appointment_hour, cancelled_at, no_show, customer_id, profiles:customer_id(full_name, phone), pets(name)",
+        "id, appointment_date, appointment_hour, appointment_minute, cancelled_at, no_show, customer_id, profiles:customer_id(full_name, phone), pets(name)",
       )
       .eq("status", "cancelled")
       .gte("cancelled_at", rangeStartInstant)
@@ -355,7 +356,7 @@ export default async function AdminFollowUpsPage({
                       <p className="mt-1 text-xs text-muted">
                         {profile?.phone ?? "No phone on file"} · Was booked for{" "}
                         {formatDate(row.appointment_date)} at{" "}
-                        {formatHour(row.appointment_hour)}
+                        {formatHour(row.appointment_hour, row.appointment_minute)}
                         {row.cancelled_at &&
                           ` · Cancelled ${formatDate(centralDateOnly(row.cancelled_at))}`}
                       </p>

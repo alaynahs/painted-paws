@@ -18,7 +18,7 @@ export default function CalendarDayCell({
   day: number;
   inMonth: boolean;
   isToday: boolean;
-  appointments: { id: string; hour: number; petName: string }[];
+  appointments: { id: string; hour: number; minute: number; petName: string }[];
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -92,7 +92,7 @@ export default function CalendarDayCell({
                   className="hover:underline"
                 >
                   <span className="font-medium text-accent-dark">
-                    {formatHour(a.hour)}
+                    {formatHour(a.hour, a.minute)}
                   </span>{" "}
                   · {a.petName}
                 </Link>

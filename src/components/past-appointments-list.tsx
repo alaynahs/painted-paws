@@ -12,6 +12,7 @@ interface PastAppointment {
   status: string;
   appointment_date: string;
   appointment_hour: number;
+  appointment_minute: number;
   pets?: { name: string } | null;
 }
 
@@ -39,7 +40,7 @@ export default function PastAppointmentsList({
                 <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                   <p className="font-serif text-base text-foreground">
                     {appt.pets?.name} · {formatDate(appt.appointment_date)} at{" "}
-                    {formatHour(appt.appointment_hour)}
+                    {formatHour(appt.appointment_hour, appt.appointment_minute)}
                   </p>
                   <p className="text-sm font-medium text-accent-dark">
                     ${appt.price}
