@@ -117,6 +117,18 @@ export async function updateFlatFees(formData: FormData) {
   redirect("/admin/pricing?saved=fees");
 }
 
+export async function updateDoodleMixPricing(formData: FormData) {
+  await saveConfigPatch((c) => ({
+    ...c,
+    doodleMix: {
+      bath45Plus: num(formData, "doodleMix-bath45Plus"),
+      trim45Plus: num(formData, "doodleMix-trim45Plus"),
+      haircut45Plus: num(formData, "doodleMix-haircut45Plus"),
+    },
+  }));
+  redirect("/admin/pricing?saved=doodleMix");
+}
+
 export async function updateDogAddOns(formData: FormData) {
   const prices = DOG_ADD_ON_NAMES.map((_, i) => num(formData, `addon-dog-${i}`));
   await saveConfigPatch((c) => ({ ...c, addOns: { ...c.addOns, dog: prices } }));

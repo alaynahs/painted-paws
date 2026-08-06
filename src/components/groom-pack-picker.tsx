@@ -19,11 +19,12 @@ import {
   type PricingConfig,
 } from "@/lib/pricing/pricing";
 import { getPetMembershipStatus } from "@/app/book/actions";
-import type { CoatLength } from "@/lib/pricing/breeds";
+import { isDoodleMixBreed, type CoatLength } from "@/lib/pricing/breeds";
 
 interface Pet {
   id: string;
   name: string;
+  breed: string;
   weight_lb: number;
   coat: CoatLength;
   is_puppy?: boolean;
@@ -90,6 +91,7 @@ export default function GroomPackPicker({
       service,
       isPuppy: pet.is_puppy ?? false,
       deshed: false,
+      isDoodleMix: isDoodleMixBreed(pet.breed),
     },
     config,
   ).total;

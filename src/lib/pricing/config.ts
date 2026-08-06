@@ -25,6 +25,7 @@ function mergeWithDefaults(
       fantasy: { ...d.creative.fantasy, ...partial.creative?.fantasy },
     },
     groomPacks: { ...d.groomPacks, ...partial.groomPacks },
+    doodleMix: { ...d.doodleMix, ...partial.doodleMix },
   };
 }
 

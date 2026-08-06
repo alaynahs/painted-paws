@@ -79,6 +79,7 @@ export interface DogPriceInput {
   service: DogBookingService;
   isPuppy: boolean;
   deshed: boolean;
+  isDoodleMix: boolean;
 }
 
 export interface PriceBreakdownLine {
@@ -120,6 +121,16 @@ export function calculateDogPrice(
     lines.push({
       label: `Puppy ${DOG_SERVICE_LABELS[service]} (${PUPPY_WEIGHT_LABELS[band]})`,
       amount: base,
+    });
+  } else if (input.isDoodleMix && input.weightLb >= 45) {
+    const doodleRates: Record<DogServiceLevel, number> = {
+      bath: config.doodleMix.bath45Plus,
+      trim: config.doodleMix.trim45Plus,
+      haircut: config.doodleMix.haircut45Plus,
+    };
+    lines.push({
+      label: `Standard Doodle Mix ${DOG_SERVICE_LABELS[service]} (45+ lb)`,
+      amount: doodleRates[service],
     });
   } else {
     const weightClass = dogWeightClass(input.weightLb);
@@ -402,6 +413,15 @@ export interface PricingConfig {
     fantasy: { upTo15: number; upTo40: number; over40: number };
   };
   groomPacks: Record<GroomPackTier, { paidCount: number; freeCount: number }>;
+  // Flat rates, not a full weight/coat matrix — standard-sized doodle
+  // crosses (Goldendoodle, Labradoodle, etc., 45+ lb) get one price per
+  // service regardless of coat length; smaller doodles stay on the
+  // regular dog matrix.
+  doodleMix: {
+    bath45Plus: number;
+    trim45Plus: number;
+    haircut45Plus: number;
+  };
 }
 
 const byCoat = (short: number, long: number): WeightCoatPrice => ({ short, long });
@@ -455,4 +475,5 @@ export const DEFAULT_PRICING_CONFIG: PricingConfig = {
     five: { paidCount: 5, freeCount: 1 },
     nine: { paidCount: 9, freeCount: 3 },
   },
+  doodleMix: { bath45Plus: 70, trim45Plus: 85, haircut45Plus: 105 },
 };

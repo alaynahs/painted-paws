@@ -14,6 +14,7 @@ import {
   updatePuppyPricing,
   updateCatMatrix,
   updateFlatFees,
+  updateDoodleMixPricing,
   updateDogAddOns,
   updateCatAddOns,
   updatePackagesAndMemberDiscount,
@@ -279,6 +280,36 @@ export default async function AdminPricingPage({
                 name="flatFee-pickupDropoff"
                 label="Pickup & Drop-Off"
                 defaultValue={config.flatFees.pickupDropoff}
+              />
+            </div>
+            <SaveButton />
+          </form>
+        </Section>
+
+        <Section title="Doodle Mix Pricing (45+ lb)">
+          <p className="mt-1 text-sm text-muted">
+            Flat rates for standard-sized doodle crosses (Goldendoodle,
+            Labradoodle, Aussiedoodle, Bernedoodle, Cavapoo, Cockapoo) at 45
+            lb or more — same price regardless of coat length. Smaller
+            doodles, and doodle bookings under this weight, still use the
+            regular Dog Pricing matrix above.
+          </p>
+          <form action={updateDoodleMixPricing}>
+            <div className="mt-4 grid max-w-md grid-cols-3 gap-3">
+              <NumberField
+                name="doodleMix-bath45Plus"
+                label="Bath"
+                defaultValue={config.doodleMix.bath45Plus}
+              />
+              <NumberField
+                name="doodleMix-trim45Plus"
+                label="Trim"
+                defaultValue={config.doodleMix.trim45Plus}
+              />
+              <NumberField
+                name="doodleMix-haircut45Plus"
+                label="Haircut"
+                defaultValue={config.doodleMix.haircut45Plus}
               />
             </div>
             <SaveButton />

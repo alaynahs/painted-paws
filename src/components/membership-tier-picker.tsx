@@ -16,7 +16,7 @@ import {
   type PackageTier,
   type PricingConfig,
 } from "@/lib/pricing/pricing";
-import type { CoatLength } from "@/lib/pricing/breeds";
+import { isDoodleMixBreed, type CoatLength } from "@/lib/pricing/breeds";
 
 interface Pet {
   id: string;
@@ -68,6 +68,7 @@ export default function MembershipTierPicker({
         service: MEMBERSHIP_TIER_SERVICE[t],
         isPuppy: false,
         deshed: false,
+        isDoodleMix: isDoodleMixBreed(pet.breed),
       },
       config,
     ).total;

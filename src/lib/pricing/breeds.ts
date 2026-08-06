@@ -25,11 +25,28 @@ const SHORT_LARGE_GIANT = [
   "Xoloitzcuintli",
 ];
 
-const LONG_DOODLES_POODLES = [
+// Doodle *crosses* specifically — excludes purebred Poodles and the water
+// dog breeds, which sit in the same coat/grooming-style group but aren't a
+// "mix" and don't get the standard-doodle pricing rule below.
+const DOODLE_MIX_BREED_NAMES = [
   "Aussiedoodle", "Bernedoodle", "Cavapoo", "Cockapoo", "Goldendoodle",
-  "Labradoodle", "Poodle (Toy)", "Poodle (Miniature)", "Poodle (Standard)",
+  "Labradoodle",
+];
+
+const LONG_DOODLES_POODLES = [
+  ...DOODLE_MIX_BREED_NAMES,
+  "Poodle (Toy)", "Poodle (Miniature)", "Poodle (Standard)",
   "Portuguese Water Dog", "Spanish Water Dog",
 ];
+
+// Matches "Goldendoodle" or "Goldendoodle Mix" (the latter from the
+// pet-form's mixed-breed checkbox) — either way it's the same cross.
+export function isDoodleMixBreed(breed: string): boolean {
+  const trimmed = breed.trim();
+  return DOODLE_MIX_BREED_NAMES.some(
+    (name) => trimmed === name || trimmed === `${name} Mix`,
+  );
+}
 
 const LONG_SILKY_DROP = [
   "Afghan Hound", "Cavalier King Charles Spaniel", "Cavachon",

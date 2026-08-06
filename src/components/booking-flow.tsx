@@ -42,7 +42,7 @@ import {
   PICKUP_MIN_LEAD_HOURS,
 } from "@/lib/booking-hours";
 import { centralWallClockToInstant, formatHour } from "@/lib/format";
-import type { CoatLength } from "@/lib/pricing/breeds";
+import { isDoodleMixBreed, type CoatLength } from "@/lib/pricing/breeds";
 import DatePickerCalendar from "@/components/date-picker-calendar";
 import PawIcon from "@/components/paw-icon";
 import WaiverSection, {
@@ -438,6 +438,7 @@ export default function BookingFlow({
           service: dogService,
           isPuppy: pet.is_puppy ?? false,
           deshed,
+          isDoodleMix: isDoodleMixBreed(pet.breed),
         },
         config,
       );
