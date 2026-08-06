@@ -7,6 +7,7 @@ import AuthStatus from "@/components/auth-status";
 import AdminNavLinks from "@/components/admin-nav-links";
 import DecorativeBackground from "@/components/decorative-background";
 import PromoBanner from "@/components/promo-banner";
+import CouponAnnouncement from "@/components/coupon-announcement";
 import { isCurrentUserAdmin } from "@/lib/supabase/is-admin";
 
 const heading = Fraunces({
@@ -63,6 +64,7 @@ export default async function RootLayout({
         />
         <DecorativeBackground />
         <PromoBanner />
+        <CouponAnnouncement />
         <SiteHeader
           isAdmin={isAdmin}
           authSlotDesktop={
