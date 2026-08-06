@@ -93,7 +93,7 @@ export default async function AccountPage({
 
   const { data: coupons } = await supabase
     .from("coupons")
-    .select("id, discount_percent, note, used_at")
+    .select("id, discount_percent, discount_amount, note, used_at")
     .eq("customer_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -329,7 +329,9 @@ export default async function AccountPage({
               >
                 <div className="flex items-center justify-between">
                   <p className="font-serif text-base text-foreground">
-                    {c.discount_percent}% off
+                    {c.discount_percent != null
+                      ? `${c.discount_percent}% off`
+                      : `$${c.discount_amount} off`}
                   </p>
                   <span
                     className={`rounded-full px-3 py-1 text-xs font-medium ${

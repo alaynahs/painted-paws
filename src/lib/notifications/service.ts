@@ -10,6 +10,7 @@ export type NotificationType =
   | "payment_link"
   | "admin_checkout_abandoned"
   | "admin_signup_no_booking"
+  | "coupon_granted"
   | "appointment_confirmed"
   | "first_time_welcome"
   | "new_client_vaccine_reminder"

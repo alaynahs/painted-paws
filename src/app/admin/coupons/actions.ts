@@ -2,23 +2,58 @@
 
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/supabase/admin";
+import { notifyEmail } from "@/lib/notifications/service";
+import { couponGrantedEmail } from "@/lib/notifications/templates";
+
+// A coupon is either a percentage off or a flat dollar amount off, never
+// both — discountType picks which one discountValue means.
+function readDiscountFields(formData: FormData) {
+  const discountType = formData.get("discountType") as string;
+  const discountValue = Number(formData.get("discountValue"));
+  return {
+    valid: discountValue > 0,
+    discount_percent: discountType === "percent" ? discountValue : null,
+    discount_amount: discountType === "amount" ? discountValue : null,
+  };
+}
+
+function discountLabel(discountPercent: number | null, discountAmount: number | null) {
+  return discountPercent != null ? `${discountPercent}% off` : `$${discountAmount} off`;
+}
 
 export async function createCoupon(customerId: string, formData: FormData) {
   const { supabase } = await requireAdmin();
-  const discountPercent = Number(formData.get("discountPercent"));
+  const discount = readDiscountFields(formData);
   const note = (formData.get("note") as string) || null;
 
-  if (!discountPercent || discountPercent <= 0) {
+  if (!discount.valid) {
     redirect(
-      `/admin/coupons?error=${encodeURIComponent("Enter a discount percentage greater than 0.")}`,
+      `/admin/coupons?error=${encodeURIComponent("Enter a discount amount greater than 0.")}`,
     );
   }
 
   await supabase.from("coupons").insert({
     customer_id: customerId,
-    discount_percent: discountPercent,
+    discount_percent: discount.discount_percent,
+    discount_amount: discount.discount_amount,
     note,
   });
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name, email")
+    .eq("id", customerId)
+    .single();
+
+  await notifyEmail(
+    supabase,
+    { customerId, email: profile?.email ?? null },
+    "coupon_granted",
+    couponGrantedEmail({
+      firstName: (profile?.full_name || "there").split(" ")[0],
+      discountLabel: discountLabel(discount.discount_percent, discount.discount_amount),
+    }),
+  );
 
   redirect(`/admin/coupons?message=${encodeURIComponent("Coupon added.")}`);
 }
@@ -103,12 +138,12 @@ export async function getCustomersByGroup(
 export async function createCouponsForGroup(formData: FormData) {
   const { supabase } = await requireAdmin();
   const group = formData.get("group") as CustomerGroup;
-  const discountPercent = Number(formData.get("discountPercent"));
+  const discount = readDiscountFields(formData);
   const note = (formData.get("note") as string) || null;
 
-  if (!discountPercent || discountPercent <= 0) {
+  if (!discount.valid) {
     redirect(
-      `/admin/coupons?error=${encodeURIComponent("Enter a discount percentage greater than 0.")}`,
+      `/admin/coupons?error=${encodeURIComponent("Enter a discount amount greater than 0.")}`,
     );
   }
 
@@ -122,9 +157,25 @@ export async function createCouponsForGroup(formData: FormData) {
   await supabase.from("coupons").insert(
     members.map((m) => ({
       customer_id: m.id,
-      discount_percent: discountPercent,
+      discount_percent: discount.discount_percent,
+      discount_amount: discount.discount_amount,
       note,
     })),
+  );
+
+  const label = discountLabel(discount.discount_percent, discount.discount_amount);
+  await Promise.all(
+    members.map((m) =>
+      notifyEmail(
+        supabase,
+        { customerId: m.id, email: m.email },
+        "coupon_granted",
+        couponGrantedEmail({
+          firstName: (m.full_name || "there").split(" ")[0],
+          discountLabel: label,
+        }),
+      ),
+    ),
   );
 
   redirect(

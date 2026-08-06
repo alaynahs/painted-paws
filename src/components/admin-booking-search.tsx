@@ -69,9 +69,12 @@ export default function AdminBookingSearch() {
               key={customer.id}
               className="rounded-2xl border border-border bg-card p-4"
             >
-              <p className="font-serif text-base text-foreground">
+              <Link
+                href={`/admin/customers/${customer.id}`}
+                className="font-serif text-base text-foreground hover:text-accent-dark hover:underline"
+              >
                 {customer.full_name ?? "Unknown owner"}
-              </p>
+              </Link>
               <p className="text-xs text-muted">
                 {customer.phone}
                 {customer.phone && customer.email ? " · " : ""}

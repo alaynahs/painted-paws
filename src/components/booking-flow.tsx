@@ -249,16 +249,20 @@ export default function BookingFlow({
         ? activePromotion.discountPercent
         : null;
   const promoActive = promoDiscountPercent != null;
-  // A personal coupon (admin-assigned) stacks on top of the sitewide promo,
-  // if any — matches createAppointment's server-side calculation. Edits
-  // never pick up a coupon (it's locked in at original booking time only).
+  // A personal coupon (admin-assigned) is opt-in, never automatic — the
+  // customer chooses to redeem it, same as redeeming a groom pack credit
+  // below. When redeemed, it stacks on top of the sitewide promo, if any,
+  // matching createAppointment's server-side calculation. Edits never pick
+  // up a coupon (it's locked in at original booking time only).
   const [customerCoupon, setCustomerCoupon] = useState<{
-    discountPercent: number;
+    discountPercent: number | null;
+    discountAmount: number | null;
   } | null>(null);
-  const couponActive = mode === "create" && customerCoupon != null;
-  const effectiveDiscountPercent =
-    (promoDiscountPercent ?? 0) + (couponActive ? customerCoupon!.discountPercent : 0) ||
-    null;
+  const [applyCoupon, setApplyCoupon] = useState(false);
+  const couponActive = mode === "create" && customerCoupon != null && applyCoupon;
+  const couponPercent = couponActive ? (customerCoupon!.discountPercent ?? 0) : 0;
+  const couponAmount = couponActive ? (customerCoupon!.discountAmount ?? 0) : 0;
+  const effectiveDiscountPercent = (promoDiscountPercent ?? 0) + couponPercent || null;
   const [availableCredits, setAvailableCredits] = useState(0);
   const [redeemCredit, setRedeemCredit] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -288,6 +292,13 @@ export default function BookingFlow({
       cancelled = true;
     };
   }, [isAdmin, mode, customerId]);
+
+  useEffect(() => {
+    if (!customerCoupon && applyCoupon) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- un-toggles redemption if the coupon became unavailable out from under an active selection
+      setApplyCoupon(false);
+    }
+  }, [customerCoupon, applyCoupon]);
 
   useEffect(() => {
     if (tooYoungToBook) {
@@ -472,16 +483,23 @@ export default function BookingFlow({
     ? addOnsTotal
     : baseServicePrice + creativeAddOnPrice + addOnsTotal + packagePrice;
 
-  const total = promoAdjust(groomSubtotal) + pickupDropoffFee;
+  const totalBeforeCouponAmount = promoAdjust(groomSubtotal) + pickupDropoffFee;
+  const total = Math.max(
+    0,
+    Math.round((totalBeforeCouponAmount - couponAmount) * 100) / 100,
+  );
   const originalTotal = groomSubtotal + pickupDropoffFee;
   const salesTax = calculateSalesTax(total);
   const grandTotal = total + salesTax;
-  // The combined discount is one additive rate applied once (see
-  // createAppointment), so the coupon's own share of it is just its
+  // The combined percent discount is one additive rate applied once (see
+  // createAppointment), so a percent coupon's own share of it is just its
   // percentage of the pre-discount subtotal — independent of whether a
-  // promo is also stacked on top.
+  // promo is also stacked on top. A flat-dollar coupon's savings is just
+  // that flat amount.
   const couponSavings = couponActive
-    ? Math.round(groomSubtotal * (customerCoupon!.discountPercent / 100) * 100) / 100
+    ? couponPercent > 0
+      ? Math.round(groomSubtotal * (couponPercent / 100) * 100) / 100
+      : couponAmount
     : 0;
 
   function toggleAddOn(name: string) {
@@ -523,6 +541,7 @@ export default function BookingFlow({
       <input type="hidden" name="pickupDropoff" value={String(pickupDropoff)} />
       <input type="hidden" name="pickupAddress" value={pickupAddress} />
       <input type="hidden" name="redeemCredit" value={String(redeemCredit)} />
+      <input type="hidden" name="applyCoupon" value={String(applyCoupon)} />
 
       <p className="rounded-xl border border-border bg-accent-tint px-4 py-2.5 text-xs text-foreground/90">
         Bringing more than one pet? Please contact us directly so we can
@@ -996,12 +1015,32 @@ export default function BookingFlow({
       )}
 
       <div className="rounded-2xl bg-accent-tint p-6">
+        {mode === "create" && customerCoupon != null && (
+          <label className="mb-4 flex items-center justify-between gap-2 rounded-xl border border-accent-dark/40 bg-card px-3.5 py-2.5 text-sm text-foreground/90">
+            <span className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={applyCoupon}
+                onChange={(e) => setApplyCoupon(e.target.checked)}
+                className="h-4 w-4 rounded border-border accent-accent"
+              />
+              Use my available coupon
+            </span>
+            <span className="shrink-0 text-xs font-medium text-accent-dark">
+              {customerCoupon.discountPercent != null
+                ? `${customerCoupon.discountPercent}% off`
+                : `$${customerCoupon.discountAmount} off`}
+            </span>
+          </label>
+        )}
+
         <div className="flex items-baseline justify-between text-sm text-foreground/80">
           <span>Subtotal</span>
           <span className="flex items-baseline gap-2">
-            {effectiveDiscountPercent != null && originalTotal !== total && (
-              <span className="text-muted line-through">${originalTotal}</span>
-            )}
+            {(effectiveDiscountPercent != null || couponAmount > 0) &&
+              originalTotal !== total && (
+                <span className="text-muted line-through">${originalTotal}</span>
+              )}
             <span>${total}</span>
           </span>
         </div>
@@ -1024,8 +1063,11 @@ export default function BookingFlow({
         )}
         {couponActive && (
           <div className="mt-3 rounded-xl bg-accent px-4 py-2.5 text-center text-sm font-medium text-white">
-            🎁 Redeeming your {customerCoupon!.discountPercent}% off coupon
-            — you&apos;re saving ${couponSavings.toFixed(2)}
+            🎁 Redeeming your{" "}
+            {customerCoupon!.discountPercent != null
+              ? `${customerCoupon!.discountPercent}% off`
+              : `$${customerCoupon!.discountAmount} off`}{" "}
+            coupon — you&apos;re saving ${couponSavings.toFixed(2)}
           </div>
         )}
       </div>

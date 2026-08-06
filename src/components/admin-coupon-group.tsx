@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   getCustomersByGroup,
   createCouponsForGroup,
   type CustomerGroup,
   type GroupMember,
 } from "@/app/admin/coupons/actions";
+import CouponDiscountInputs from "@/components/coupon-discount-inputs";
 
 const GROUP_OPTIONS: { value: CustomerGroup; label: string }[] = [
   { value: "never_booked", label: "Signed up, never booked" },
@@ -60,7 +62,14 @@ export default function AdminCouponGroup() {
             <>
               <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto text-sm text-foreground/80">
                 {members.map((m) => (
-                  <li key={m.id}>{m.full_name ?? m.email ?? "Unknown"}</li>
+                  <li key={m.id}>
+                    <Link
+                      href={`/admin/customers/${m.id}`}
+                      className="hover:text-accent-dark hover:underline"
+                    >
+                      {m.full_name ?? m.email ?? "Unknown"}
+                    </Link>
+                  </li>
                 ))}
               </ul>
 
@@ -69,22 +78,7 @@ export default function AdminCouponGroup() {
                 className="mt-4 flex flex-wrap items-center gap-2"
               >
                 <input type="hidden" name="group" value={group} />
-                <input
-                  type="number"
-                  name="discountPercent"
-                  min={1}
-                  max={100}
-                  step={1}
-                  required
-                  placeholder="% off"
-                  className="w-24 rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-accent-dark"
-                />
-                <input
-                  type="text"
-                  name="note"
-                  placeholder="Note (optional)"
-                  className="min-w-[140px] flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-accent-dark"
-                />
+                <CouponDiscountInputs />
                 <button
                   type="submit"
                   className="shrink-0 rounded-full bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-dark"

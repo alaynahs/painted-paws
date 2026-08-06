@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { isCurrentUserAdmin } from "@/lib/supabase/is-admin";
 
+// Pricing, Manage Photos, and Coupons live as cards on the dashboard
+// itself (/admin) instead of cluttering this header/hamburger nav.
 const ADMIN_LINKS = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/book", label: "Look Up a Customer" },
-  { href: "/admin/photos", label: "Manage Photos" },
-  { href: "/admin/pricing", label: "Pricing" },
-  { href: "/admin/coupons", label: "Coupons" },
 ];
 
 export default async function AdminNavLinks({

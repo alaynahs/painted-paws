@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { searchCustomers } from "@/app/book/actions";
 import { createCoupon } from "@/app/admin/coupons/actions";
+import CouponDiscountInputs from "@/components/coupon-discount-inputs";
 
 interface CustomerResult {
   id: string;
@@ -57,9 +59,12 @@ export default function AdminCouponSearch() {
               key={customer.id}
               className="rounded-2xl border border-border bg-card p-4"
             >
-              <p className="font-serif text-base text-foreground">
+              <Link
+                href={`/admin/customers/${customer.id}`}
+                className="font-serif text-base text-foreground hover:text-accent-dark hover:underline"
+              >
                 {customer.full_name ?? "Unknown owner"}
-              </p>
+              </Link>
               <p className="text-xs text-muted">
                 {customer.phone}
                 {customer.phone && customer.email ? " · " : ""}
@@ -69,22 +74,7 @@ export default function AdminCouponSearch() {
                 action={createCoupon.bind(null, customer.id)}
                 className="mt-3 flex flex-wrap items-center gap-2"
               >
-                <input
-                  type="number"
-                  name="discountPercent"
-                  min={1}
-                  max={100}
-                  step={1}
-                  required
-                  placeholder="% off"
-                  className="w-24 rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-accent-dark"
-                />
-                <input
-                  type="text"
-                  name="note"
-                  placeholder="Note (optional)"
-                  className="min-w-[140px] flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-accent-dark"
-                />
+                <CouponDiscountInputs />
                 <button
                   type="submit"
                   className="shrink-0 rounded-full bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-dark"

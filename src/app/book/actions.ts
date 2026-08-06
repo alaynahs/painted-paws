@@ -237,6 +237,7 @@ function readBookingFields(formData: FormData) {
     pickupDropoff: formData.get("pickupDropoff") === "true",
     pickupAddress: (formData.get("pickupAddress") as string) || null,
     redeemCredit: formData.get("redeemCredit") === "true",
+    applyCoupon: formData.get("applyCoupon") === "true",
   };
 }
 
@@ -735,14 +736,19 @@ export async function createAppointment(formData: FormData) {
     promotionAppliesToDate(activePromotion.maxAppointmentLeadDays, fields.date);
   const promoDiscountPercent = promoApplies ? activePromotion!.discountPercent : null;
   const promoId = promoApplies ? activePromotion!.id : null;
-  // A personal coupon (admin-assigned, e.g. an apology discount) stacks on
-  // top of whatever sitewide promo is running, then gets marked used once
-  // this booking actually goes through — see the redemption below.
+  // A personal coupon (admin-assigned, e.g. an apology discount) is opt-in,
+  // never automatic — the customer explicitly chooses to redeem it (see
+  // the "applyCoupon" checkbox in booking-flow.tsx), same as redeeming a
+  // groom pack credit above. It stacks on top of whatever sitewide promo
+  // is running, then gets marked used once this booking actually goes
+  // through — see the redemption in the Stripe webhook.
   const coupon = await getCustomerCoupon(user.id);
-  const totalDiscountPercent =
-    (promoDiscountPercent ?? 0) + (coupon?.discountPercent ?? 0) || null;
+  const couponApplied = fields.applyCoupon && !!coupon;
+  const couponPercent = couponApplied ? (coupon!.discountPercent ?? 0) : 0;
+  const couponAmount = couponApplied ? (coupon!.discountAmount ?? 0) : 0;
+  const totalDiscountPercent = (promoDiscountPercent ?? 0) + couponPercent || null;
   const config = await getPricingConfig();
-  const { price: subtotal, addOns } = computeAppointmentPrice(
+  const { price: priceBeforeCouponAmount, addOns } = computeAppointmentPrice(
     pet,
     fields.service,
     fields.deshed,
@@ -755,6 +761,10 @@ export async function createAppointment(formData: FormData) {
     !!redeemablePack,
     totalDiscountPercent,
     config,
+  );
+  const subtotal = Math.max(
+    0,
+    Math.round((priceBeforeCouponAmount - couponAmount) * 100) / 100,
   );
   const salesTax = calculateSalesTax(subtotal);
   const price = subtotal + salesTax;
@@ -779,7 +789,7 @@ export async function createAppointment(formData: FormData) {
       pickup_dropoff: fields.pickupDropoff,
       pickup_address: fields.pickupAddress,
       promo_id: promoId,
-      coupon_id: coupon?.id ?? null,
+      coupon_id: couponApplied ? coupon!.id : null,
     })
     .select("id")
     .single();

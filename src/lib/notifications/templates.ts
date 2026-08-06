@@ -11,6 +11,23 @@ export interface EmailContent {
   body: string;
 }
 
+export function couponGrantedEmail(vars: {
+  firstName: string;
+  discountLabel: string;
+}): EmailContent {
+  return {
+    subject: "You've got a coupon! 🎉",
+    body: `Hi ${vars.firstName},
+
+You got a coupon! Enjoy ${vars.discountLabel} at your next visit with ${BUSINESS_NAME}.
+
+Just select "Use my available coupon" when you book — no code needed.
+
+We can't wait to see you!
+${BUSINESS_NAME}`,
+  };
+}
+
 export function appointmentConfirmedEmail(vars: {
   firstName: string;
   petName: string;

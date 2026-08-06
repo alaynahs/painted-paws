@@ -4,7 +4,8 @@ import { createServiceClient } from "@/lib/supabase/service";
 
 export interface CustomerCoupon {
   id: string;
-  discountPercent: number;
+  discountPercent: number | null;
+  discountAmount: number | null;
   note: string | null;
 }
 
@@ -19,7 +20,7 @@ export async function getCustomerCoupon(
   const supabase = createServiceClient();
   const { data } = await supabase
     .from("coupons")
-    .select("id, discount_percent, note")
+    .select("id, discount_percent, discount_amount, note")
     .eq("customer_id", customerId)
     .is("used_at", null)
     .order("created_at", { ascending: true })
@@ -27,5 +28,10 @@ export async function getCustomerCoupon(
     .maybeSingle();
 
   if (!data) return null;
-  return { id: data.id, discountPercent: data.discount_percent, note: data.note };
+  return {
+    id: data.id,
+    discountPercent: data.discount_percent,
+    discountAmount: data.discount_amount,
+    note: data.note,
+  };
 }

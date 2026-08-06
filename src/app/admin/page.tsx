@@ -89,6 +89,33 @@ export default async function AdminDashboardPage({
         </div>
       </div>
 
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Link
+          href="/admin/pricing"
+          className="rounded-xl border border-border bg-card p-4 text-center text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+        >
+          Pricing
+        </Link>
+        <Link
+          href="/admin/photos"
+          className="rounded-xl border border-border bg-card p-4 text-center text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+        >
+          Manage Photos
+        </Link>
+        <Link
+          href="/admin/coupons"
+          className="rounded-xl border border-border bg-card p-4 text-center text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+        >
+          Coupons
+        </Link>
+        <Link
+          href="/admin/follow-ups"
+          className="rounded-xl border border-border bg-card p-4 text-center text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+        >
+          Follow-Up Log
+        </Link>
+      </div>
+
       <div className="mt-6 flex items-center justify-between gap-4">
         <Link
           href={`/admin?start=${prevStart}`}
