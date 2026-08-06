@@ -37,7 +37,12 @@ export default function PetForm({
   const [species, setSpecies] = useState<Species>(
     defaultValues?.species ?? "dog",
   );
-  const [breed, setBreed] = useState(defaultValues?.breed ?? "");
+  const [breed, setBreed] = useState(
+    (defaultValues?.breed ?? "").replace(/ Mix$/, ""),
+  );
+  const [isMixed, setIsMixed] = useState(
+    (defaultValues?.breed ?? "").endsWith(" Mix"),
+  );
   const [manualCoat, setManualCoat] = useState<CoatLength>(
     defaultValues?.coat ?? "short",
   );
@@ -48,10 +53,12 @@ export default function PetForm({
 
   const matchedBreed = useMemo(
     () =>
-      species === "dog"
-        ? findBreed(breed.trim())
-        : findCatBreed(breed.trim()),
-    [species, breed],
+      isMixed
+        ? undefined
+        : species === "dog"
+          ? findBreed(breed.trim())
+          : findCatBreed(breed.trim()),
+    [species, breed, isMixed],
   );
   const coat = matchedBreed?.coat ?? manualCoat;
 
@@ -103,7 +110,6 @@ export default function PetForm({
         </label>
         <input
           id="breed"
-          name="breed"
           type="text"
           list="breed-options"
           required
@@ -112,16 +118,31 @@ export default function PetForm({
           placeholder="Start typing a breed…"
           className="mt-2 w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground outline-none focus:border-accent-dark"
         />
+        <input
+          type="hidden"
+          name="breed"
+          value={isMixed && breed.trim() ? `${breed.trim()} Mix` : breed.trim()}
+        />
         <datalist id="breed-options">
           {breedOptions.map((b) => (
             <option key={b.name} value={b.name} />
           ))}
         </datalist>
+        <label className="mt-2 flex items-center gap-2 text-sm text-foreground/90">
+          <input
+            type="checkbox"
+            checked={isMixed}
+            onChange={(e) => setIsMixed(e.target.checked)}
+            className="h-4 w-4 rounded border-border accent-accent"
+          />
+          This is a mixed breed
+        </label>
         {breed.trim() && !matchedBreed && (
           <div className="mt-3">
             <p className="text-xs text-muted">
-              We don&apos;t recognize that breed. Pick the closest coat
-              type:
+              {isMixed
+                ? "Pick the closest coat type for this mix:"
+                : "We don't recognize that breed. Pick the closest coat type:"}
             </p>
             <div className="mt-2 flex gap-2">
               {(["short", "long"] as CoatLength[]).map((c) => (
@@ -176,7 +197,7 @@ export default function PetForm({
 
       <div>
         <label className="text-sm font-medium text-foreground" htmlFor="color">
-          Color
+          Color <span className="font-normal text-muted">(optional)</span>
         </label>
         <input
           id="color"

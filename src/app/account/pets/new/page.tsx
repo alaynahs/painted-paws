@@ -2,6 +2,11 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createPet } from "@/app/account/pets/actions";
 import PetForm from "@/components/pet-form";
+import {
+  BUSINESS_EMAIL,
+  BUSINESS_PHONE_DISPLAY,
+  BUSINESS_PHONE_TEL,
+} from "@/lib/notifications/templates";
 
 export default async function NewPetPage({
   searchParams,
@@ -26,6 +31,17 @@ export default async function NewPetPage({
       <p className="mt-3 text-sm text-muted">
         Save your pet&apos;s info once. You&apos;ll just pick them by name
         every time you book.
+      </p>
+      <p className="mt-2 text-sm text-muted">
+        Questions or concerns? Call/text{" "}
+        <a href={`tel:${BUSINESS_PHONE_TEL}`} className="text-accent-dark hover:underline">
+          {BUSINESS_PHONE_DISPLAY}
+        </a>{" "}
+        or email{" "}
+        <a href={`mailto:${BUSINESS_EMAIL}`} className="text-accent-dark hover:underline">
+          {BUSINESS_EMAIL}
+        </a>
+        .
       </p>
 
       {error && (

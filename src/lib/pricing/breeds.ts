@@ -16,7 +16,7 @@ const SHORT_SMALL_MEDIUM = [
 
 const SHORT_LARGE_GIANT = [
   "American Staffordshire Terrier", "American Pit Bull Terrier",
-  "Pit Bull", "Anatolian Shepherd",
+  "Anatolian Shepherd",
   "Black Russian Terrier", "Bloodhound", "Boerboel", "Bullmastiff",
   "Cane Corso", "Catahoula Leopard Dog", "Doberman Pinscher",
   "Dogue de Bordeaux", "Fila Brasileiro", "Great Dane", "Greyhound",
