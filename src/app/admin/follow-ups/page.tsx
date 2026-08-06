@@ -140,9 +140,6 @@ export default async function AdminFollowUpsPage({
             </Link>
           </div>
         </div>
-        <p className="mt-3 text-xs text-muted">
-          Pick a day below to jump to that day&apos;s 7-day window.
-        </p>
         <FollowUpWeekPicker start={weekStart} />
         {cancellations && cancellations.length > 0 ? (
           <div className="mt-4 space-y-3">
