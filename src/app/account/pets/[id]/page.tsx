@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { updatePet, uploadRabiesVaccine } from "@/app/account/pets/actions";
 import { deletePet } from "@/app/account/actions";
 import PetForm from "@/components/pet-form";
-import { formatDate } from "@/lib/format";
+import { formatDate, todayInCentral } from "@/lib/format";
 import { monthsSince } from "@/lib/pricing/pricing";
 
 export default async function EditPetPage({
@@ -31,7 +31,7 @@ export default async function EditPetPage({
 
   const deletePetWithId = deletePet.bind(null, pet.id);
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = todayInCentral();
   const isPuppyExempt =
     pet.species === "dog" &&
     !!pet.birth_date &&

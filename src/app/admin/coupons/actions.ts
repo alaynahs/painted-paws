@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/supabase/admin";
 import { notifyEmail } from "@/lib/notifications/service";
 import { couponGrantedEmail } from "@/lib/notifications/templates";
+import { centralDateOnly } from "@/lib/format";
 
 // A coupon is either a percentage off or a flat dollar amount off, never
 // both — discountType picks which one discountValue means.
@@ -105,7 +106,11 @@ export async function getCustomersByGroup(
     byCustomer.set(a.customer_id, list);
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  // "Today" needs to be Central time, not the server's own timezone
+  // (Vercel functions default to UTC) — otherwise this miscounts who has an
+  // upcoming appointment for the several hours each evening where UTC has
+  // already rolled to the next calendar day.
+  const today = centralDateOnly(new Date().toISOString());
   const weeks = GROUP_WEEKS[group];
 
   const matches: GroupMember[] = [];

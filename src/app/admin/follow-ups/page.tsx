@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/supabase/admin";
-import { formatDate, formatHour } from "@/lib/format";
+import { centralDateOnly, formatDate, formatHour } from "@/lib/format";
 
 interface NotificationRow {
   id: string;
@@ -74,14 +74,14 @@ export default async function AdminFollowUpsPage() {
         title="8-Week Lapse"
         rows={(lapse8 ?? []) as unknown as NotificationRow[]}
         emptyText="No one has hit the 8-week lapse mark yet."
-        renderDate={(r) => formatDate(r.sent_at.slice(0, 10))}
+        renderDate={(r) => formatDate(centralDateOnly(r.sent_at))}
       />
 
       <LogSection
         title="16-Week Lapse"
         rows={(lapse16 ?? []) as unknown as NotificationRow[]}
         emptyText="No one has hit the 16-week lapse mark yet."
-        renderDate={(r) => formatDate(r.sent_at.slice(0, 10))}
+        renderDate={(r) => formatDate(centralDateOnly(r.sent_at))}
       />
 
       <section className="mt-8 rounded-2xl border border-border bg-card p-6">
@@ -113,7 +113,7 @@ export default async function AdminFollowUpsPage() {
                     {formatDate(row.appointment_date)} at{" "}
                     {formatHour(row.appointment_hour)}
                     {row.cancelled_at &&
-                      ` · Cancelled ${formatDate(row.cancelled_at.slice(0, 10))}`}
+                      ` · Cancelled ${formatDate(centralDateOnly(row.cancelled_at))}`}
                   </p>
                 </Link>
               );

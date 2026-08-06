@@ -2,14 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/supabase/admin";
 import { createServiceClient } from "@/lib/supabase/service";
-
-function formatDateTime(iso: string | null | undefined) {
-  if (!iso) return null;
-  return new Date(iso).toLocaleString("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
-}
+import { formatDateTime } from "@/lib/format";
 
 export default async function AdminCustomerPage({
   params,

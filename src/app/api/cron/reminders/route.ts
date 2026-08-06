@@ -7,7 +7,7 @@ import {
   notifyEmail,
   notifyText,
 } from "@/lib/notifications/service";
-import { formatHour } from "@/lib/format";
+import { formatHour, todayInCentral } from "@/lib/format";
 import {
   BUSINESS_EMAIL,
   postVisitThankYouSms,
@@ -31,7 +31,12 @@ function addDays(dateStr: string, n: number) {
 }
 
 function todayISO() {
-  return new Date().toISOString().slice(0, 10);
+  // The cron itself runs at a fixed 8am Central (13:00 UTC per
+  // vercel.json), so this never actually manifested under the current
+  // schedule — but pinning it explicitly protects against a schedule
+  // change or a manual trigger later in the day, when UTC's date would
+  // otherwise have already rolled past Central's.
+  return todayInCentral();
 }
 
 function daysAgo(dateStr: string) {
@@ -325,6 +330,7 @@ export async function GET(request: NextRequest) {
           weekday: "long",
           month: "long",
           day: "numeric",
+          timeZone: "America/Chicago",
         }),
       }),
     );

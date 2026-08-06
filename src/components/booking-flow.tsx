@@ -41,7 +41,7 @@ import {
   BOOKING_HOURS as HOURS,
   PICKUP_MIN_LEAD_HOURS,
 } from "@/lib/booking-hours";
-import { formatHour } from "@/lib/format";
+import { centralWallClockToInstant, formatHour } from "@/lib/format";
 import type { CoatLength } from "@/lib/pricing/breeds";
 import DatePickerCalendar from "@/components/date-picker-calendar";
 import PawIcon from "@/components/paw-icon";
@@ -90,7 +90,11 @@ function isPastOrTooSoon(
   hour: number,
   pickupDropoff: boolean,
 ): boolean {
-  const apptTime = new Date(`${date}T${String(hour).padStart(2, "0")}:00:00`);
+  // Appointment hours are always Central wall-clock time (the business's
+  // own timezone) — building this without pinning a timezone would parse
+  // it using the *visitor's own* local clock, wrongly disabling valid
+  // buttons for anyone browsing from outside Central time.
+  const apptTime = centralWallClockToInstant(date, hour);
   const now = new Date();
   if (apptTime.getTime() <= now.getTime()) return true;
   if (pickupDropoff) {

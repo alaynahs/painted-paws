@@ -15,7 +15,7 @@ import PetForm from "@/components/pet-form";
 import MembershipCard from "@/components/membership-card";
 import CancelAppointmentButton from "@/components/cancel-appointment-button";
 import ShowMoreList from "@/components/show-more-list";
-import { formatDate, formatHour } from "@/lib/format";
+import { centralDateOnly, formatDate, formatHour, todayInCentral } from "@/lib/format";
 import {
   formatServiceLabel,
   GROOM_PACK_SERVICE_LABELS,
@@ -104,7 +104,7 @@ export default async function AdminPetDetailPage({
   const groomingNotes = (notes ?? []).filter((n) => n.note_type === "grooming");
   const behaviorNotes = (notes ?? []).filter((n) => n.note_type === "behavior");
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = todayInCentral();
   const isVaccineExpired =
     !!pet.rabies_expires_at && pet.rabies_expires_at < todayStr;
   const upcomingAppointments = (appointments ?? [])
@@ -244,7 +244,7 @@ export default async function AdminPetDetailPage({
                     >
                       <p>{n.note}</p>
                       <p className="mt-1 text-xs text-muted">
-                        {formatDate(n.created_at.slice(0, 10))}
+                        {formatDate(centralDateOnly(n.created_at))}
                       </p>
                     </div>
                   ))
@@ -274,7 +274,7 @@ export default async function AdminPetDetailPage({
                     >
                       <p>{n.note}</p>
                       <p className="mt-1 text-xs text-muted">
-                        {formatDate(n.created_at.slice(0, 10))}
+                        {formatDate(centralDateOnly(n.created_at))}
                       </p>
                     </div>
                   ))
@@ -306,7 +306,7 @@ export default async function AdminPetDetailPage({
                   >
                     View uploaded PDF
                     {pet.rabies_uploaded_at &&
-                      ` (${formatDate(pet.rabies_uploaded_at.slice(0, 10))})`}
+                      ` (${formatDate(centralDateOnly(pet.rabies_uploaded_at))})`}
                   </a>
                 )}
                 {pet.rabies_expires_at && (
@@ -378,7 +378,7 @@ export default async function AdminPetDetailPage({
                           : "Awaiting payment confirmation"}
                       </p>
                       <p className="mt-1 text-xs text-muted">
-                        Bought {formatDate(pack.created_at.slice(0, 10))} · $
+                        Bought {formatDate(centralDateOnly(pack.created_at))} · $
                         {pack.total_price}
                       </p>
                     </div>

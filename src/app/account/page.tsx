@@ -10,7 +10,7 @@ import { confirmAppointment, payAppointmentNow } from "@/app/book/actions";
 import { updatePasswordFromAccount } from "@/app/auth/actions";
 import MembershipCard from "@/components/membership-card";
 import PastAppointmentsList from "@/components/past-appointments-list";
-import { formatDate, formatHour } from "@/lib/format";
+import { formatDate, formatHour, todayInCentral } from "@/lib/format";
 import {
   formatServiceLabel,
   GROOM_PACK_SERVICE_LABELS,
@@ -53,7 +53,7 @@ export default async function AccountPage({
     .order("appointment_date", { ascending: false })
     .order("appointment_hour", { ascending: false });
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = todayInCentral();
   const upcomingAppointments = (appointments ?? [])
     .filter((a) => a.appointment_date >= todayStr && a.status !== "cancelled")
     .sort((a, b) =>

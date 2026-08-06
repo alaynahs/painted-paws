@@ -40,7 +40,7 @@ import {
   NO_SHOW_GRACE_MINUTES,
   PICKUP_MIN_LEAD_HOURS,
 } from "@/lib/booking-hours";
-import { formatDate, formatHour } from "@/lib/format";
+import { centralWallClockToInstant, formatDate, formatHour } from "@/lib/format";
 import { checkPickupEligibility } from "@/lib/geocoding";
 import { notifyEmail, notifyText } from "@/lib/notifications/service";
 import {
@@ -958,7 +958,7 @@ export async function updateAppointment(formData: FormData) {
 }
 
 function appointmentDateTime(date: string, hour: number): Date {
-  return new Date(`${date}T${String(hour).padStart(2, "0")}:00:00`);
+  return centralWallClockToInstant(date, hour);
 }
 
 export async function cancelAppointment(appointmentId: string) {
