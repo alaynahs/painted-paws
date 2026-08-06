@@ -74,7 +74,7 @@ const faqGroups = [
       },
       {
         q: "Why do Doodles and Poodle mixes need grooming more often?",
-        a: "Their curly, non-shedding coat is prone to matting close to the skin, which can become painful and require a full shave-down if it goes too long between visits. Sticking to a 4–6 week schedule is the best way to avoid that. This is also why standard-sized Doodle mixes (45+ lb) have their own pricing tier, since they typically take extra time and product on our end too.",
+        a: "Their curly, non-shedding coat is prone to matting close to the skin, which can become painful and require a full shave-down if it goes too long between visits. Sticking to a 4–6 week schedule is the best way to avoid that.",
       },
       {
         q: "How often do nails need to be trimmed?",
