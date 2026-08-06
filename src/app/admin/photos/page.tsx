@@ -16,8 +16,13 @@ interface SitePhoto {
   sort_order: number;
 }
 
-export default async function AdminPhotosPage() {
+export default async function AdminPhotosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const { supabase } = await requireAdmin();
+  const { error } = await searchParams;
 
   const { data: photos } = await supabase
     .from("site_photos")
@@ -45,6 +50,12 @@ export default async function AdminPhotosPage() {
         Upload, edit, reorder, or remove photos shown on the Portfolio page
         and the homepage gallery.
       </p>
+
+      {error && (
+        <p className="mt-6 rounded-xl border border-border bg-accent-tint px-4 py-3 text-sm text-foreground">
+          {error}
+        </p>
+      )}
 
       <PhotoSection
         title="Homepage Gallery"

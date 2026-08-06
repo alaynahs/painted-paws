@@ -2,6 +2,7 @@
 
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/supabase/admin";
 
 export type PhotoLocation = "portfolio" | "hero";
@@ -18,9 +19,11 @@ export async function uploadSitePhoto(formData: FormData) {
   const tag = ((formData.get("tag") as string) || "").trim() || null;
   const file = formData.get("file") as File;
 
-  if (!file || file.size === 0 || !caption) {
-    revalidatePath("/admin/photos");
-    return;
+  if (!file || file.size === 0) {
+    redirect(`/admin/photos?error=${encodeURIComponent("Choose a photo to upload.")}`);
+  }
+  if (!caption) {
+    redirect(`/admin/photos?error=${encodeURIComponent("Add a caption before uploading.")}`);
   }
 
   const storagePath = `${location}/${randomUUID()}-${sanitizeFileName(file.name)}`;
@@ -29,8 +32,7 @@ export async function uploadSitePhoto(formData: FormData) {
     .upload(storagePath, file, { contentType: file.type });
 
   if (uploadError) {
-    revalidatePath("/admin/photos");
-    return;
+    redirect(`/admin/photos?error=${encodeURIComponent(uploadError.message)}`);
   }
 
   const { count } = await supabase
