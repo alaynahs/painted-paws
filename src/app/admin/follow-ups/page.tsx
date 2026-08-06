@@ -107,16 +107,21 @@ export default async function AdminFollowUpsPage({
       .limit(100),
     supabase
       .from("booking_funnel_events")
-      .select("customer_id")
+      .select("customer_id, visitor_id")
       .eq("step", "landed_home"),
-    supabase.from("booking_funnel_events").select("customer_id").eq("step", "landed"),
     supabase
       .from("booking_funnel_events")
-      .select("customer_id")
+      .select("customer_id, visitor_id")
+      .eq("step", "landed"),
+    supabase
+      .from("booking_funnel_events")
+      .select("customer_id, visitor_id")
       .eq("step", "picked_time"),
     supabase.from("appointments").select("customer_id"),
     supabase.from("appointments").select("customer_id").eq("payment_status", "paid"),
-    supabase.from("site_session_durations").select("customer_id, duration_seconds"),
+    supabase
+      .from("site_session_durations")
+      .select("customer_id, visitor_id, duration_seconds"),
     supabase
       .from("profiles")
       .select("id")
@@ -125,6 +130,9 @@ export default async function AdminFollowUpsPage({
 
   // The owner's own accounts (testing/demoing) shouldn't skew "real
   // customer" analytics — excluded from every count and average below.
+  // Anonymous (logged-out) rows can never be tied to a real person, so
+  // they can't be name-matched and excluded the same way — they're always
+  // counted as real visitors.
   const excludedIds = new Set((excludedProfiles ?? []).map((p) => p.id));
 
   const distinctCustomers = (rows: { customer_id: string }[] | null) =>
@@ -134,17 +142,34 @@ export default async function AdminFollowUpsPage({
         .filter((id) => !excludedIds.has(id)),
     ).size;
 
+  // Same idea, but for tables that also accept anonymous visitor_id rows —
+  // dedupes on customer_id when logged in, visitor_id otherwise.
+  const distinctVisitors = (
+    rows: { customer_id: string | null; visitor_id: string | null }[] | null,
+  ) => {
+    const seen = new Set<string>();
+    for (const r of rows ?? []) {
+      if (r.customer_id) {
+        if (excludedIds.has(r.customer_id)) continue;
+        seen.add(`c:${r.customer_id}`);
+      } else if (r.visitor_id) {
+        seen.add(`v:${r.visitor_id}`);
+      }
+    }
+    return seen.size;
+  };
+
   const funnel = [
-    { label: "Landed on homepage", count: distinctCustomers(landedHomeRows) },
-    { label: "Landed on booking page", count: distinctCustomers(landedRows) },
-    { label: "Picked a time slot", count: distinctCustomers(pickedTimeRows) },
+    { label: "Landed on homepage", count: distinctVisitors(landedHomeRows) },
+    { label: "Landed on booking page", count: distinctVisitors(landedRows) },
+    { label: "Picked a time slot", count: distinctVisitors(pickedTimeRows) },
     { label: "Completed a booking", count: distinctCustomers(bookedRows) },
     { label: "Paid", count: distinctCustomers(paidRows) },
   ];
   const funnelMax = Math.max(1, ...funnel.map((f) => f.count));
 
   const realSessionDurations = (sessionDurationRows ?? []).filter(
-    (r) => !excludedIds.has(r.customer_id),
+    (r) => !(r.customer_id && excludedIds.has(r.customer_id)),
   );
   const averageSessionSeconds =
     realSessionDurations.length > 0
@@ -171,7 +196,8 @@ export default async function AdminFollowUpsPage({
           Where people drop off, all-time. &quot;Landed on homepage,&quot;
           &quot;Landed on booking page,&quot; and &quot;Picked a time&quot;
           only just started being tracked, so those numbers will look thin
-          until more visits build up. Excludes your own accounts.
+          until more visits build up. Excludes your own accounts (logged-out
+          visits can&apos;t be matched by name, so those are always counted).
         </p>
         <div className="mt-4 space-y-3">
           {funnel.map((step) => (

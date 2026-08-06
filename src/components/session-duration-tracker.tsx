@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { getOrCreateVisitorId } from "@/lib/analytics/visitor-id";
 
 // Best-effort "how long was this visit" tracker, site-wide. Fires once per
 // tab session, via sendBeacon so it still goes out during page unload
@@ -19,7 +20,10 @@ export default function SessionDurationTracker() {
       sent.current = true;
       navigator.sendBeacon(
         "/api/analytics/session-duration",
-        new Blob([JSON.stringify({ seconds })], { type: "application/json" }),
+        new Blob(
+          [JSON.stringify({ seconds, visitorId: getOrCreateVisitorId() })],
+          { type: "application/json" },
+        ),
       );
     }
 

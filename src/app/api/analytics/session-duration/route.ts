@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   const seconds = Number(body?.seconds);
+  const visitorId =
+    typeof body?.visitorId === "string" && body.visitorId ? body.visitorId : undefined;
 
   if (!Number.isFinite(seconds) || seconds < 1 || seconds > 24 * 60 * 60) {
     return NextResponse.json({ ok: true });
@@ -15,12 +17,13 @@ export async function POST(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ ok: true });
+  if (!user && !visitorId) return NextResponse.json({ ok: true });
 
-  await supabase.from("site_session_durations").insert({
-    customer_id: user.id,
-    duration_seconds: Math.round(seconds),
-  });
+  await supabase.from("site_session_durations").insert(
+    user
+      ? { customer_id: user.id, duration_seconds: Math.round(seconds) }
+      : { visitor_id: visitorId, duration_seconds: Math.round(seconds) },
+  );
 
   return NextResponse.json({ ok: true });
 }
