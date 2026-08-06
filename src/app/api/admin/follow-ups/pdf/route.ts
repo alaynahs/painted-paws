@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import PDFDocument from "pdfkit";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { requireAdmin } from "@/lib/supabase/admin";
 import {
   centralDateOnly,
@@ -35,31 +35,50 @@ interface CancellationRow {
   pets: { name: string } | null;
 }
 
-function renderPdf(
+// pdf-lib's standard 14 fonts (Helvetica) have their character-width
+// metrics compiled directly into the library, not read from an external
+// font file at runtime — pdfkit's approach does the latter, which is why
+// the first version of this route produced blank pages: Vercel's
+// serverless bundler didn't include pdfkit's font asset files, so no text
+// ever actually rendered even though a structurally valid PDF came back.
+async function renderPdf(
   title: string,
   rows: { heading: string; subheading: string }[],
-): Promise<Buffer> {
-  const doc = new PDFDocument({ margin: 50 });
-  const chunks: Buffer[] = [];
-  doc.on("data", (chunk) => chunks.push(chunk));
-  const done = new Promise<Buffer>((resolve) => {
-    doc.on("end", () => resolve(Buffer.concat(chunks)));
-  });
+): Promise<Uint8Array> {
+  const pdfDoc = await PDFDocument.create();
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-  doc.fontSize(18).fillColor("#000").text(title, { underline: true });
-  doc.moveDown();
+  const pageWidth = 612;
+  const pageHeight = 792;
+  const margin = 50;
+  const lineHeight = 16;
+
+  let page = pdfDoc.addPage([pageWidth, pageHeight]);
+  let y = pageHeight - margin;
+
+  function drawLine(text: string, size: number, useFont = font, gray = 0) {
+    if (y < margin) {
+      page = pdfDoc.addPage([pageWidth, pageHeight]);
+      y = pageHeight - margin;
+    }
+    page.drawText(text, { x: margin, y, size, font: useFont, color: rgb(gray, gray, gray) });
+    y -= lineHeight;
+  }
+
+  drawLine(title, 18, fontBold);
+  y -= 10;
 
   if (rows.length === 0) {
-    doc.fontSize(11).text("Nothing to show.");
+    drawLine("Nothing to show.", 11);
   }
   for (const row of rows) {
-    doc.fontSize(11).fillColor("#000").text(row.heading);
-    doc.fontSize(9).fillColor("#666").text(row.subheading);
-    doc.moveDown(0.6);
+    drawLine(row.heading, 11, font, 0);
+    drawLine(row.subheading, 9, font, 0.4);
+    y -= 8;
   }
 
-  doc.end();
-  return done;
+  return pdfDoc.save();
 }
 
 // Full lists behind the "download PDF" link once a Follow-Up Log section
@@ -130,9 +149,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unknown type" }, { status: 400 });
   }
 
-  const pdfBuffer = await renderPdf(title, rows);
+  const pdfBytes = await renderPdf(title, rows);
 
-  return new NextResponse(new Uint8Array(pdfBuffer), {
+  return new NextResponse(Buffer.from(pdfBytes), {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="${filename}"`,
