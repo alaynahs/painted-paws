@@ -977,13 +977,13 @@ export default function BookingFlow({
           <span className="font-normal text-muted">(optional)</span>
         </label>
         <p className="mt-1 text-xs text-muted">
-          Have a style in mind? Upload a photo and/or describe what
+          Have a style in mind? Upload a photo or PDF and/or describe what
           you&apos;re picturing.
         </p>
         <input
           type="file"
           name="inspoPhoto"
-          accept="image/*"
+          accept="image/*,application/pdf"
           className="mt-2 w-full text-sm text-foreground/80"
         />
         <textarea

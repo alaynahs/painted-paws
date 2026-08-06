@@ -497,7 +497,7 @@ function AppointmentCard({
           rel="noopener noreferrer"
           className="mt-2 inline-block text-xs text-accent-dark hover:underline"
         >
-          View inspiration photo →
+          View inspiration photo/PDF →
         </a>
       )}
       {showActions && (

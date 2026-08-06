@@ -3,6 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 import BookingFlow from "@/components/booking-flow";
 import { isBlockedFromOnlineBooking } from "@/app/book/actions";
 import { getPricingConfig } from "@/lib/pricing/config";
+import {
+  BUSINESS_EMAIL,
+  BUSINESS_PHONE_DISPLAY,
+  BUSINESS_PHONE_TEL,
+} from "@/lib/notifications/templates";
 
 export default async function BookPage({
   searchParams,
@@ -110,6 +115,17 @@ export default async function BookPage({
       <h1 className="mt-3 font-serif text-3xl text-foreground">
         Reserve a Spot
       </h1>
+      <p className="mt-2 text-sm text-muted">
+        Questions or concerns? Call/text{" "}
+        <a href={`tel:${BUSINESS_PHONE_TEL}`} className="text-accent-dark hover:underline">
+          {BUSINESS_PHONE_DISPLAY}
+        </a>{" "}
+        or email{" "}
+        <a href={`mailto:${BUSINESS_EMAIL}`} className="text-accent-dark hover:underline">
+          {BUSINESS_EMAIL}
+        </a>
+        .
+      </p>
 
       {error && (
         <p className="mt-6 rounded-xl border border-border bg-accent-tint px-4 py-3 text-sm text-foreground">
