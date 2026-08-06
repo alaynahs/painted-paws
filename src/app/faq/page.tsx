@@ -66,6 +66,27 @@ const faqGroups = [
     ],
   },
   {
+    group: "Grooming Frequency & Coat Care",
+    items: [
+      {
+        q: "How often should my dog be groomed?",
+        a: "It depends mostly on coat type, not size or age. Short, smooth coats (Labs, Beagles, Boxers) generally do well every 8–12 weeks. Heavy double coats that shed (Golden Retrievers, Huskies, German Shepherds) do best every 6–8 weeks to manage shedding and keep the undercoat healthy. Curly or non-shedding coats (Poodles, Doodles, Bichons, Shih Tzus) need the most frequent care, every 4–6 weeks, since that coat type doesn't shed out on its own and mats quickly without regular maintenance.",
+      },
+      {
+        q: "Why do Doodles and Poodle mixes need grooming more often?",
+        a: "Their curly, non-shedding coat is prone to matting close to the skin, which can become painful and require a full shave-down if it goes too long between visits. Sticking to a 4–6 week schedule is the best way to avoid that. This is also why standard-sized Doodle mixes (45+ lb) have their own pricing tier, since they typically take extra time and product on our end too.",
+      },
+      {
+        q: "How often do nails need to be trimmed?",
+        a: "Nails grow on their own schedule, separate from coat and shedding, so we recommend a trim every 3–4 weeks regardless of how often your dog gets a full groom. Overgrown nails can affect your dog's posture and cause real discomfort. You don't need to book a full groom for this, use the \"Standalone\" option to book just a nail trim (or nail trim plus ear cleaning, etc.) on its own.",
+      },
+      {
+        q: "What happens if I wait too long between grooms?",
+        a: "The coat has more time to tangle and mat, which can mean a longer, less comfortable appointment and sometimes a shave-down for your pet's safety and comfort (see our matting policy above). Keeping to a regular schedule for your dog's coat type is the easiest way to avoid this altogether.",
+      },
+    ],
+  },
+  {
     group: "Cancellations & No-Shows",
     items: [
       {
