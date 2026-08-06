@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/supabase/admin";
 import { createServiceClient } from "@/lib/supabase/service";
-import { formatDateTime } from "@/lib/format";
+import { formatDate, formatDateTime, formatHour } from "@/lib/format";
 
 export default async function AdminCustomerPage({
   params,
@@ -38,6 +38,14 @@ export default async function AdminCustomerPage({
     .select("id, discount_percent, discount_amount, note, used_at")
     .eq("customer_id", id)
     .order("created_at", { ascending: false });
+
+  const { data: waivers } = await supabase
+    .from("waiver_signings")
+    .select(
+      "id, signed_name, signed_date, vaccinated_last_24h, behavioral_concerns, behavioral_note, senior_or_special_needs, senior_note, severely_matted, matted_note, photo_release_consent, liability_accepted, pets(name), appointments(appointment_date, appointment_hour)",
+    )
+    .eq("customer_id", id)
+    .order("signed_date", { ascending: false });
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-16">
@@ -129,6 +137,103 @@ export default async function AdminCustomerPage({
         ) : (
           <p className="mt-4 text-sm text-muted">
             No coupons on this account.
+          </p>
+        )}
+      </section>
+
+      <section className="mt-8 rounded-2xl border border-border bg-card p-6">
+        <h2 className="font-serif text-lg text-foreground">
+          Signed Waivers
+        </h2>
+        {waivers && waivers.length > 0 ? (
+          <div className="mt-4 space-y-3">
+            {waivers.map((w) => {
+              const pet = Array.isArray(w.pets) ? w.pets[0] : w.pets;
+              const appt = Array.isArray(w.appointments)
+                ? w.appointments[0]
+                : w.appointments;
+              return (
+                <div
+                  key={w.id}
+                  className="rounded-xl border border-border bg-background p-4"
+                >
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                    <p className="font-serif text-base text-foreground">
+                      {pet?.name ?? "Pet"}
+                      {appt
+                        ? ` · ${formatDate(appt.appointment_date)} at ${formatHour(appt.appointment_hour)}`
+                        : ""}
+                    </p>
+                    <p className="text-xs text-muted">
+                      Signed {formatDate(w.signed_date)}
+                    </p>
+                  </div>
+                  <p className="mt-1 text-xs text-muted">
+                    Signed by: {w.signed_name}
+                  </p>
+                  <div className="mt-3 grid gap-1.5 text-xs text-foreground/90 sm:grid-cols-2">
+                    <p>
+                      Vaccinated in last 24h:{" "}
+                      <span className="font-medium">
+                        {w.vaccinated_last_24h ? "Yes" : "No"}
+                      </span>
+                    </p>
+                    <p>
+                      Liability accepted:{" "}
+                      <span className="font-medium">
+                        {w.liability_accepted ? "Yes" : "No"}
+                      </span>
+                    </p>
+                    <p>
+                      Photo/media consent:{" "}
+                      <span className="font-medium">
+                        {w.photo_release_consent ? "Yes" : "No"}
+                      </span>
+                    </p>
+                    <p>
+                      Behavioral concerns:{" "}
+                      <span className="font-medium">
+                        {w.behavioral_concerns ? "Yes" : "No"}
+                      </span>
+                    </p>
+                    <p>
+                      Senior / special needs:{" "}
+                      <span className="font-medium">
+                        {w.senior_or_special_needs ? "Yes" : "No"}
+                      </span>
+                    </p>
+                    <p>
+                      Severely matted:{" "}
+                      <span className="font-medium">
+                        {w.severely_matted ? "Yes" : "No"}
+                      </span>
+                    </p>
+                  </div>
+                  {w.behavioral_note && (
+                    <p className="mt-2 rounded-lg bg-accent-tint px-2.5 py-1.5 text-xs text-foreground/90">
+                      <span className="font-medium">Behavioral note:</span>{" "}
+                      {w.behavioral_note}
+                    </p>
+                  )}
+                  {w.senior_note && (
+                    <p className="mt-2 rounded-lg bg-accent-tint px-2.5 py-1.5 text-xs text-foreground/90">
+                      <span className="font-medium">Senior/health note:</span>{" "}
+                      {w.senior_note}
+                    </p>
+                  )}
+                  {w.matted_note && (
+                    <p className="mt-2 rounded-lg bg-accent-tint px-2.5 py-1.5 text-xs text-foreground/90">
+                      <span className="font-medium">Matting note:</span>{" "}
+                      {w.matted_note}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="mt-4 text-sm text-muted">
+            No waivers signed by this customer yet.
           </p>
         )}
       </section>

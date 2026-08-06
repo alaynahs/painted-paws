@@ -26,10 +26,10 @@ export const WAIVER_DEFAULTS: WaiverState = {
   seniorNote: "",
   severelyMatted: null,
   mattedNote: "",
-  // No longer a separate checkbox — emergency care terms are covered by the
-  // single liability acceptance below, so this is implicitly agreed to.
+  // Neither is a separate checkbox — both are covered by the single
+  // liability acceptance below, so they're implicitly agreed to.
   emergencyConsent: true,
-  photoConsent: false,
+  photoConsent: true,
   liabilityAccepted: false,
   signedName: "",
 };
@@ -251,8 +251,8 @@ export default function WaiverSection({
             <strong className="text-foreground/90">
               Photo &amp; Media Release.
             </strong>{" "}
-            You may grant permission for photos or video of your pet to be
-            used for marketing, website design, and social media.
+            You grant permission for photos or video of your pet to be used
+            for marketing, website design, and social media.
           </p>
           <p className="font-semibold text-foreground/90 uppercase">
             Release of Liability. To the fullest extent permitted by law, you
@@ -369,16 +369,6 @@ export default function WaiverSection({
       </div>
 
       <div className="mt-4 space-y-2 border-t border-border pt-4">
-        <label className="flex items-start gap-2 text-sm text-foreground/90">
-          <input
-            type="checkbox"
-            checked={value.photoConsent}
-            onChange={(e) => onChange({ photoConsent: e.target.checked })}
-            className="mt-0.5 h-4 w-4 rounded border-border accent-accent"
-          />
-          I consent to photos/video of my pet for marketing and social media{" "}
-          <span className="text-muted">(optional)</span>.
-        </label>
         <label className="flex items-start gap-2 text-sm text-foreground/90">
           <input
             type="checkbox"
