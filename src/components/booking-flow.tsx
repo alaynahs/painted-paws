@@ -37,6 +37,7 @@ import {
 import { getActivePromotion, type ActivePromotion } from "@/lib/promotions/actions";
 import { promotionAppliesToDate } from "@/lib/promotions/helpers";
 import { getCustomerCoupon } from "@/lib/coupons/actions";
+import { logBookingStep } from "@/lib/analytics/booking-funnel";
 import {
   BOOKING_HOURS as HOURS,
   PICKUP_MIN_LEAD_HOURS,
@@ -307,6 +308,25 @@ export default function BookingFlow({
       cancelled = true;
     };
   }, [isAdmin, mode, customerId]);
+
+  // Only the two checkpoints that aren't already knowable from the
+  // appointments table itself — landing on the form, and picking a time —
+  // to see where in the flow people actually drop off, without building a
+  // full page-view analytics system for a two-step form.
+  useEffect(() => {
+    if (isAdmin || mode !== "create") return;
+    logBookingStep("landed");
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fire once per mount only, not on every isAdmin/mode change
+  }, []);
+
+  const trackedPickedTime = useRef(false);
+  useEffect(() => {
+    if (isAdmin || mode !== "create" || hour === null || trackedPickedTime.current) {
+      return;
+    }
+    trackedPickedTime.current = true;
+    logBookingStep("picked_time");
+  }, [isAdmin, mode, hour]);
 
   useEffect(() => {
     if (!customerCoupon && applyCoupon) {

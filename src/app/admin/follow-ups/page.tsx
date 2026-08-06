@@ -66,35 +66,60 @@ export default async function AdminFollowUpsPage({
   const prevWeekStart = addDays(weekStart, -7);
   const nextWeekStart = addDays(weekStart, 7);
 
-  const [{ data: lapse8 }, { data: lapse16 }, { data: cancellations }] =
-    await Promise.all([
-      supabase
-        .from("notifications_log")
-        .select(
-          "id, sent_at, customer_id, profiles:customer_id(full_name, phone), pets:pet_id(name)",
-        )
-        .eq("type", "rebooking_8wk")
-        .order("sent_at", { ascending: false })
-        .limit(100),
-      supabase
-        .from("notifications_log")
-        .select(
-          "id, sent_at, customer_id, profiles:customer_id(full_name, phone), pets:pet_id(name)",
-        )
-        .eq("type", "rebooking_16wk")
-        .order("sent_at", { ascending: false })
-        .limit(100),
-      supabase
-        .from("appointments")
-        .select(
-          "id, appointment_date, appointment_hour, cancelled_at, no_show, customer_id, profiles:customer_id(full_name, phone), pets(name)",
-        )
-        .eq("status", "cancelled")
-        .gte("cancelled_at", rangeStartInstant)
-        .lt("cancelled_at", rangeEndInstant)
-        .order("cancelled_at", { ascending: false })
-        .limit(100),
-    ]);
+  const [
+    { data: lapse8 },
+    { data: lapse16 },
+    { data: cancellations },
+    { data: landedRows },
+    { data: pickedTimeRows },
+    { data: bookedRows },
+    { data: paidRows },
+  ] = await Promise.all([
+    supabase
+      .from("notifications_log")
+      .select(
+        "id, sent_at, customer_id, profiles:customer_id(full_name, phone), pets:pet_id(name)",
+      )
+      .eq("type", "rebooking_8wk")
+      .order("sent_at", { ascending: false })
+      .limit(100),
+    supabase
+      .from("notifications_log")
+      .select(
+        "id, sent_at, customer_id, profiles:customer_id(full_name, phone), pets:pet_id(name)",
+      )
+      .eq("type", "rebooking_16wk")
+      .order("sent_at", { ascending: false })
+      .limit(100),
+    supabase
+      .from("appointments")
+      .select(
+        "id, appointment_date, appointment_hour, cancelled_at, no_show, customer_id, profiles:customer_id(full_name, phone), pets(name)",
+      )
+      .eq("status", "cancelled")
+      .gte("cancelled_at", rangeStartInstant)
+      .lt("cancelled_at", rangeEndInstant)
+      .order("cancelled_at", { ascending: false })
+      .limit(100),
+    supabase.from("booking_funnel_events").select("customer_id").eq("step", "landed"),
+    supabase
+      .from("booking_funnel_events")
+      .select("customer_id")
+      .eq("step", "picked_time"),
+    supabase.from("appointments").select("customer_id"),
+    supabase.from("appointments").select("customer_id").eq("payment_status", "paid"),
+  ]);
+
+  const distinctCustomers = (rows: { customer_id: string }[] | null) =>
+    new Set((rows ?? []).map((r) => r.customer_id)).size;
+
+  const funnel = [
+    { label: "Landed on booking page", count: distinctCustomers(landedRows) },
+    { label: "Picked a time slot", count: distinctCustomers(pickedTimeRows) },
+    { label: "Completed a booking", count: distinctCustomers(bookedRows) },
+    { label: "Paid", count: distinctCustomers(paidRows) },
+  ];
+  const funnelMax = Math.max(1, ...funnel.map((f) => f.count));
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
@@ -108,6 +133,33 @@ export default async function AdminFollowUpsPage({
         Customers worth a personal call — lapsed at 8 or 16 weeks, or who
         cancelled a booking.
       </p>
+
+      <section className="mt-8 rounded-2xl border border-border bg-card p-6">
+        <h2 className="font-serif text-lg text-foreground">Booking Funnel</h2>
+        <p className="mt-1 text-sm text-muted">
+          Where people drop off, all-time. &quot;Landed&quot; and &quot;Picked
+          a time&quot; only just started being tracked, so those numbers will
+          look thin until more visits build up.
+        </p>
+        <div className="mt-4 space-y-3">
+          {funnel.map((step) => (
+            <div key={step.label}>
+              <div className="flex items-baseline justify-between text-sm">
+                <span className="text-foreground/90">{step.label}</span>
+                <span className="font-medium text-accent-dark">
+                  {step.count}
+                </span>
+              </div>
+              <div className="mt-1 h-2 overflow-hidden rounded-full bg-background">
+                <div
+                  className="h-full rounded-full bg-accent"
+                  style={{ width: `${(step.count / funnelMax) * 100}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <LogSection
         title="8-Week Lapse"
