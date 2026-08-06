@@ -1,5 +1,6 @@
 import { requireAdmin } from "@/lib/supabase/admin";
 import AdminCouponSearch from "@/components/admin-coupon-search";
+import AdminCouponGroup from "@/components/admin-coupon-group";
 
 export default async function AdminCouponsPage({
   searchParams,
@@ -34,6 +35,18 @@ export default async function AdminCouponsPage({
 
       <div className="mt-8">
         <AdminCouponSearch />
+      </div>
+
+      <div className="mt-12 border-t border-border pt-8">
+        <h2 className="font-serif text-lg text-foreground">Give to a Group</h2>
+        <p className="mt-1 text-sm text-muted">
+          Pick a segment (e.g. signed up but never booked, or haven&apos;t
+          booked in a while) and give everyone in it the same coupon at
+          once.
+        </p>
+        <div className="mt-4">
+          <AdminCouponGroup />
+        </div>
       </div>
     </div>
   );
