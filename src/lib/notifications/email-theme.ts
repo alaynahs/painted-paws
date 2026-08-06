@@ -14,17 +14,20 @@ function escapeHtml(text: string) {
 
 // Turns "[label](url)" or a bare URL in already-escaped text into a
 // clickable link — markdown-style links get the custom label, bare URLs
-// just link to themselves.
+// just link to themselves. Must be a single pass: running the "bare URL"
+// replacement as a second, separate .replace() re-matches the URL that's
+// now sitting inside the href="..." attribute just written by the first
+// pass, producing a broken nested <a href="<a href="..."> tag that email
+// clients render as plain, non-clickable text instead of a link.
 function linkify(escapedText: string) {
-  return escapedText
-    .replace(
-      /\[([^\]]+)\]\((https?:\/\/[^\s<)]+)\)/g,
-      (_match, label, url) => `<a href="${url}" style="color:#3a6d8a;">${label}</a>`,
-    )
-    .replace(
-      /(https?:\/\/[^\s<]+)/g,
-      (url) => `<a href="${url}" style="color:#3a6d8a;">${url}</a>`,
-    );
+  return escapedText.replace(
+    /\[([^\]]+)\]\((https?:\/\/[^\s<)]+)\)|(https?:\/\/[^\s<]+)/g,
+    (_match, label, markdownUrl, bareUrl) => {
+      const url = markdownUrl ?? bareUrl;
+      const text = markdownUrl ? label : bareUrl;
+      return `<a href="${url}" style="color:#3a6d8a;">${text}</a>`;
+    },
+  );
 }
 
 function paragraphsToHtml(body: string) {
