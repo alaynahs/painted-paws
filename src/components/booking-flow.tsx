@@ -266,7 +266,18 @@ export default function BookingFlow({
   const couponActive = mode === "create" && customerCoupon != null && applyCoupon;
   const couponPercent = couponActive ? (customerCoupon!.discountPercent ?? 0) : 0;
   const couponAmount = couponActive ? (customerCoupon!.discountAmount ?? 0) : 0;
-  const effectiveDiscountPercent = (promoDiscountPercent ?? 0) + couponPercent || null;
+  // Admin bookings don't draw from the sitewide promo or a customer's saved
+  // coupon — instead the admin can just type in whatever one-off discount
+  // they want for this booking, e.g. to match a phone-quoted price.
+  const [adminDiscountType, setAdminDiscountType] = useState<"none" | "percent" | "amount">("none");
+  const [adminDiscountValue, setAdminDiscountValue] = useState("");
+  const adminDiscountPercent =
+    isAdmin && adminDiscountType === "percent" ? Number(adminDiscountValue) || 0 : 0;
+  const adminDiscountAmount =
+    isAdmin && adminDiscountType === "amount" ? Number(adminDiscountValue) || 0 : 0;
+  const flatDiscountAmount = couponAmount + adminDiscountAmount;
+  const effectiveDiscountPercent =
+    (promoDiscountPercent ?? 0) + couponPercent + adminDiscountPercent || null;
   const [availableCredits, setAvailableCredits] = useState(0);
   const [redeemCredit, setRedeemCredit] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -490,7 +501,7 @@ export default function BookingFlow({
   const totalBeforeCouponAmount = promoAdjust(groomSubtotal) + pickupDropoffFee;
   const total = Math.max(
     0,
-    Math.round((totalBeforeCouponAmount - couponAmount) * 100) / 100,
+    Math.round((totalBeforeCouponAmount - flatDiscountAmount) * 100) / 100,
   );
   const originalTotal = groomSubtotal + pickupDropoffFee;
   const salesTax = calculateSalesTax(total);
@@ -505,6 +516,10 @@ export default function BookingFlow({
       ? Math.round(groomSubtotal * (couponPercent / 100) * 100) / 100
       : couponAmount
     : 0;
+  const adminDiscountSavings =
+    adminDiscountType === "percent"
+      ? Math.round(groomSubtotal * (adminDiscountPercent / 100) * 100) / 100
+      : adminDiscountAmount;
 
   function toggleAddOn(name: string) {
     setSelectedAddOns((prev) =>
@@ -546,6 +561,8 @@ export default function BookingFlow({
       <input type="hidden" name="pickupAddress" value={pickupAddress} />
       <input type="hidden" name="redeemCredit" value={String(redeemCredit)} />
       <input type="hidden" name="applyCoupon" value={String(applyCoupon)} />
+      <input type="hidden" name="adminDiscountType" value={adminDiscountType} />
+      <input type="hidden" name="adminDiscountValue" value={adminDiscountValue} />
 
       <p className="rounded-xl border border-border bg-accent-tint px-4 py-2.5 text-xs text-foreground/90">
         Bringing more than one pet? Please contact us directly so we can
@@ -1019,6 +1036,38 @@ export default function BookingFlow({
       )}
 
       <div className="rounded-2xl bg-accent-tint p-6">
+        {isAdmin && mode === "create" && (
+          <div className="mb-4 rounded-xl border border-accent-dark/40 bg-card px-3.5 py-2.5">
+            <p className="text-sm font-medium text-foreground/90">
+              Discount for this booking (optional)
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <select
+                value={adminDiscountType}
+                onChange={(e) =>
+                  setAdminDiscountType(e.target.value as "none" | "percent" | "amount")
+                }
+                className="rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-accent-dark"
+              >
+                <option value="none">No discount</option>
+                <option value="percent">% off</option>
+                <option value="amount">$ off</option>
+              </select>
+              {adminDiscountType !== "none" && (
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={adminDiscountValue}
+                  onChange={(e) => setAdminDiscountValue(e.target.value)}
+                  placeholder="Amount"
+                  className="w-28 rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-accent-dark"
+                />
+              )}
+            </div>
+          </div>
+        )}
+
         {mode === "create" && customerCoupon != null && (
           <label className="mb-4 flex items-center justify-between gap-2 rounded-xl border border-accent-dark/40 bg-card px-3.5 py-2.5 text-sm text-foreground/90">
             <span className="flex items-center gap-2">
@@ -1041,7 +1090,7 @@ export default function BookingFlow({
         <div className="flex items-baseline justify-between text-sm text-foreground/80">
           <span>Subtotal</span>
           <span className="flex items-baseline gap-2">
-            {(effectiveDiscountPercent != null || couponAmount > 0) &&
+            {(effectiveDiscountPercent != null || flatDiscountAmount > 0) &&
               originalTotal !== total && (
                 <span className="text-muted line-through">${originalTotal}</span>
               )}
@@ -1072,6 +1121,15 @@ export default function BookingFlow({
               ? `${customerCoupon!.discountPercent}% off`
               : `$${customerCoupon!.discountAmount} off`}{" "}
             coupon — you&apos;re saving ${couponSavings.toFixed(2)}
+          </div>
+        )}
+        {adminDiscountType !== "none" && adminDiscountSavings > 0 && (
+          <div className="mt-3 rounded-xl bg-accent px-4 py-2.5 text-center text-sm font-medium text-white">
+            Applying a{" "}
+            {adminDiscountType === "percent"
+              ? `${adminDiscountPercent}% off`
+              : `$${adminDiscountAmount} off`}{" "}
+            discount — saving ${adminDiscountSavings.toFixed(2)}
           </div>
         )}
       </div>

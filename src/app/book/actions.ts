@@ -238,6 +238,8 @@ function readBookingFields(formData: FormData) {
     pickupAddress: (formData.get("pickupAddress") as string) || null,
     redeemCredit: formData.get("redeemCredit") === "true",
     applyCoupon: formData.get("applyCoupon") === "true",
+    adminDiscountType: (formData.get("adminDiscountType") as string) || "none",
+    adminDiscountValue: Number(formData.get("adminDiscountValue")) || 0,
   };
 }
 
@@ -1398,8 +1400,15 @@ export async function adminCreateAppointment(formData: FormData) {
   const redeemablePack = fields.redeemCredit
     ? await findRedeemablePack(supabase, fields.petId, fields.service)
     : null;
+  // Admin phone bookings don't draw from the sitewide promo pool or a
+  // customer's saved coupon — instead the admin can type in whatever
+  // one-off discount they want for this specific booking.
+  const adminDiscountPercent =
+    fields.adminDiscountType === "percent" ? fields.adminDiscountValue : 0;
+  const adminDiscountAmount =
+    fields.adminDiscountType === "amount" ? fields.adminDiscountValue : 0;
   const config = await getPricingConfig();
-  const { price: subtotal, addOns } = computeAppointmentPrice(
+  const { price: priceBeforeDiscountAmount, addOns } = computeAppointmentPrice(
     pet,
     fields.service,
     fields.deshed,
@@ -1410,8 +1419,12 @@ export async function adminCreateAppointment(formData: FormData) {
     fields.pickupDropoff,
     hasMembership,
     !!redeemablePack,
-    null, // admin phone bookings don't draw from the online-booking promo pool
+    adminDiscountPercent || null,
     config,
+  );
+  const subtotal = Math.max(
+    0,
+    Math.round((priceBeforeDiscountAmount - adminDiscountAmount) * 100) / 100,
   );
   const salesTax = calculateSalesTax(subtotal);
   const price = subtotal + salesTax;

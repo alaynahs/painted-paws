@@ -2,13 +2,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/supabase/admin";
 import { formatDate, formatDateTime, formatHour } from "@/lib/format";
+import { adminUpdateCustomerContact } from "../actions";
 
 export default async function AdminCustomerPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string; message?: string }>;
 }) {
   const { id } = await params;
+  const { error, message } = await searchParams;
   const { supabase } = await requireAdmin();
 
   const { data: profile } = await supabase
@@ -79,11 +83,6 @@ export default async function AdminCustomerPage({
       <h1 className="mt-3 font-serif text-3xl text-foreground">
         {profile.full_name ?? "Unknown"}
       </h1>
-      <p className="mt-1 text-sm text-muted">
-        {profile.phone}
-        {profile.phone && profile.email ? " · " : ""}
-        {profile.email}
-      </p>
       <p className="mt-1 text-xs text-muted">
         {accountCreatedAt && `Account created ${accountCreatedAt}`}
         {accountCreatedAt && lastActiveAt ? " · " : ""}
@@ -94,6 +93,58 @@ export default async function AdminCustomerPage({
           Blocked from booking
         </p>
       )}
+
+      {error && (
+        <p className="mt-6 rounded-xl border border-border bg-accent-tint px-4 py-3 text-sm text-foreground">
+          {error}
+        </p>
+      )}
+      {message && (
+        <p className="mt-6 rounded-xl border border-accent/40 bg-accent-tint px-4 py-3 text-sm text-foreground">
+          {message}
+        </p>
+      )}
+
+      <section className="mt-6 rounded-2xl border border-border bg-card p-6">
+        <h2 className="font-serif text-lg text-foreground">Contact Info</h2>
+        <form
+          action={adminUpdateCustomerContact.bind(null, profile.id)}
+          className="mt-4 grid gap-3 sm:grid-cols-2"
+        >
+          <div>
+            <label className="text-sm font-medium text-foreground" htmlFor="email">
+              Email
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              defaultValue={profile.email ?? ""}
+              className="mt-2 w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground outline-none focus:border-accent-dark"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-foreground" htmlFor="phone">
+              Phone
+            </label>
+            <input
+              id="phone"
+              name="phone"
+              type="tel"
+              required
+              defaultValue={profile.phone ?? ""}
+              className="mt-2 w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground outline-none focus:border-accent-dark"
+            />
+          </div>
+          <button
+            type="submit"
+            className="sm:col-span-2 rounded-full bg-accent px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-dark"
+          >
+            Save Contact Info
+          </button>
+        </form>
+      </section>
 
       <section className="mt-8 rounded-2xl border border-border bg-card p-6">
         <div className="flex items-center justify-between">
