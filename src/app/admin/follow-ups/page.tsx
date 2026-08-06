@@ -202,6 +202,46 @@ export default async function AdminFollowUpsPage({
           </p>
         )}
       </section>
+
+      <section className="mt-8 rounded-2xl border border-border bg-card p-6">
+        <h2 className="font-serif text-lg text-foreground">Dogs by Breed</h2>
+        <p className="mt-1 text-sm text-muted">
+          One searchable PDF listing every dog on file, grouped under its
+          breed — e.g. Poodle: Tom Petty, Goldendoodle: Millie.
+        </p>
+        <a
+          href="/api/admin/follow-ups/pdf?type=all_breeds"
+          className="mt-3 inline-block rounded-full bg-accent px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-dark"
+        >
+          📄 Download Full Breed List (PDF)
+        </a>
+
+        <div className="mt-6 border-t border-border pt-4">
+          <p className="text-sm font-medium text-foreground/90">
+            Or download just one breed
+          </p>
+          <form
+            method="get"
+            action="/api/admin/follow-ups/pdf"
+            className="mt-2 flex flex-wrap gap-2"
+          >
+            <input type="hidden" name="type" value="breed_search" />
+            <input
+              type="text"
+              name="breed"
+              required
+              placeholder="e.g. Poodle, Goldendoodle…"
+              className="min-w-[160px] flex-1 rounded-xl border border-border bg-background px-4 py-2 text-sm text-foreground outline-none focus:border-accent-dark"
+            />
+            <button
+              type="submit"
+              className="shrink-0 rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+            >
+              Download PDF
+            </button>
+          </form>
+        </div>
+      </section>
     </div>
   );
 }

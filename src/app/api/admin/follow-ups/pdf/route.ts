@@ -81,12 +81,120 @@ async function renderPdf(
   return pdfDoc.save();
 }
 
+// Same page-break-aware renderer as renderPdf, but with a bold breed
+// heading over each group of dogs instead of a flat list.
+async function renderGroupedPdf(
+  title: string,
+  groups: { heading: string; items: string[] }[],
+): Promise<Uint8Array> {
+  const pdfDoc = await PDFDocument.create();
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  const pageWidth = 612;
+  const pageHeight = 792;
+  const margin = 50;
+  const lineHeight = 16;
+
+  let page = pdfDoc.addPage([pageWidth, pageHeight]);
+  let y = pageHeight - margin;
+
+  function drawLine(text: string, size: number, useFont = font, gray = 0, indent = 0) {
+    if (y < margin) {
+      page = pdfDoc.addPage([pageWidth, pageHeight]);
+      y = pageHeight - margin;
+    }
+    page.drawText(text, {
+      x: margin + indent,
+      y,
+      size,
+      font: useFont,
+      color: rgb(gray, gray, gray),
+    });
+    y -= lineHeight;
+  }
+
+  drawLine(title, 18, fontBold);
+  y -= 10;
+
+  if (groups.length === 0) {
+    drawLine("No matching dogs found.", 11);
+  }
+  for (const group of groups) {
+    drawLine(`${group.heading} (${group.items.length})`, 13, fontBold);
+    for (const item of group.items) {
+      drawLine(item, 10, font, 0.2, 14);
+    }
+    y -= 10;
+  }
+
+  return pdfDoc.save();
+}
+
+interface DogRow {
+  name: string;
+  breed: string;
+  profiles: { full_name: string | null; phone: string | null } | { full_name: string | null; phone: string | null }[] | null;
+}
+
+function groupDogsByBreed(dogs: DogRow[]) {
+  const byBreed = new Map<string, string[]>();
+  for (const p of dogs) {
+    const profile = one(p.profiles);
+    const list = byBreed.get(p.breed) ?? [];
+    list.push(
+      `${p.name} — ${profile?.full_name ?? "Unknown owner"}${profile?.phone ? `, ${profile.phone}` : ""}`,
+    );
+    byBreed.set(p.breed, list);
+  }
+  return Array.from(byBreed.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([breed, items]) => ({ heading: breed, items }));
+}
+
 // Full lists behind the "download PDF" link once a Follow-Up Log section
 // passes 5 entries on-screen — pdfkit renders server-side without a
 // headless browser, so it works in Vercel's serverless functions.
 export async function GET(request: NextRequest) {
   const { supabase } = await requireAdmin();
   const type = request.nextUrl.searchParams.get("type");
+
+  if (type === "all_breeds" || type === "breed_search") {
+    const breedQuery = request.nextUrl.searchParams.get("breed")?.trim() ?? "";
+    if (type === "breed_search" && !breedQuery) {
+      return NextResponse.json({ error: "Missing breed" }, { status: 400 });
+    }
+
+    let petsQuery = supabase
+      .from("pets")
+      .select("name, breed, profiles:owner_id(full_name, phone)")
+      .eq("species", "dog")
+      .order("breed", { ascending: true })
+      .order("name", { ascending: true })
+      .limit(2000);
+
+    if (type === "breed_search") {
+      petsQuery = petsQuery.ilike("breed", `%${breedQuery}%`);
+    }
+
+    const { data } = await petsQuery;
+    const groups = groupDogsByBreed((data ?? []) as unknown as DogRow[]);
+
+    const title =
+      type === "all_breeds" ? "Dogs by Breed" : `Breed Search: "${breedQuery}"`;
+    const filename =
+      type === "all_breeds"
+        ? "dogs-by-breed.pdf"
+        : `breed-search-${breedQuery.toLowerCase().replace(/\s+/g, "-")}.pdf`;
+
+    const pdfBytes = await renderGroupedPdf(title, groups);
+    return new NextResponse(Buffer.from(pdfBytes), {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${filename}"`,
+      },
+    });
+  }
 
   let title: string;
   let filename: string;
