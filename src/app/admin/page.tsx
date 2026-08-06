@@ -174,7 +174,13 @@ export default async function AdminDashboardPage({
                       ) : (
                         "Unknown pet"
                       )}{" "}
-                      · {appt.profiles?.full_name ?? "Unknown owner"}
+                      ·{" "}
+                      <Link
+                        href={`/admin/customers/${appt.customer_id}`}
+                        className="font-medium hover:text-accent-dark hover:underline"
+                      >
+                        {appt.profiles?.full_name ?? "Unknown owner"}
+                      </Link>
                       {appt.profiles?.phone ? ` · ${appt.profiles.phone}` : ""}
                     </p>
                     <p className="mt-1 text-xs text-muted">
