@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/supabase/admin";
-import { createServiceClient } from "@/lib/supabase/service";
 import { formatDate, formatDateTime, formatHour } from "@/lib/format";
 
 export default async function AdminCustomerPage({
@@ -14,17 +13,42 @@ export default async function AdminCustomerPage({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, full_name, phone, email, do_not_book, created_at")
+    .select("id, full_name, phone, email, do_not_book, created_at, updated_at")
     .eq("id", id)
     .single();
 
   if (!profile) notFound();
 
-  // Account creation / last login live on Supabase's own auth.users record,
-  // not our profiles table — only fetchable with the service role, since
-  // it's a privileged admin API call, not a regular table read.
-  const { data: authUser } = await createServiceClient().auth.admin.getUserById(id);
-  const lastLoginAt = formatDateTime(authUser?.user?.last_sign_in_at);
+  // "Last active" is built from real actions, not login state — logins
+  // persist for 400 days now, so a customer can keep using the site
+  // indefinitely off one silently-refreshed session without ever hitting
+  // Supabase's actual sign-in again, which left auth.users.last_sign_in_at
+  // frozen at their very first login. Editing their profile, adding/
+  // updating a pet (including uploading a vaccine record), booking or
+  // editing an appointment, and signing a waiver are all genuine,
+  // database-enforced timestamps instead.
+  const [{ data: petActivity }, { data: apptActivity }, { data: waiverActivity }] =
+    await Promise.all([
+      supabase.from("pets").select("updated_at").eq("owner_id", id),
+      supabase.from("appointments").select("updated_at").eq("customer_id", id),
+      supabase.from("waiver_signings").select("created_at").eq("customer_id", id),
+    ]);
+
+  const activityTimestamps = [
+    profile.updated_at,
+    ...(petActivity ?? []).map((p) => p.updated_at),
+    ...(apptActivity ?? []).map((a) => a.updated_at),
+    ...(waiverActivity ?? []).map((w) => w.created_at),
+  ].filter((t): t is string => !!t);
+
+  const lastActiveAt =
+    activityTimestamps.length > 0
+      ? formatDateTime(
+          activityTimestamps.reduce((max, t) =>
+            new Date(t).getTime() > new Date(max).getTime() ? t : max,
+          ),
+        )
+      : null;
   const accountCreatedAt = formatDateTime(profile.created_at);
 
   const { data: pets } = await supabase
@@ -62,8 +86,8 @@ export default async function AdminCustomerPage({
       </p>
       <p className="mt-1 text-xs text-muted">
         {accountCreatedAt && `Account created ${accountCreatedAt}`}
-        {accountCreatedAt && lastLoginAt ? " · " : ""}
-        {lastLoginAt && `Last logged in ${lastLoginAt}`}
+        {accountCreatedAt && lastActiveAt ? " · " : ""}
+        {lastActiveAt && `Last active ${lastActiveAt}`}
       </p>
       {profile.do_not_book && (
         <p className="mt-2 inline-block rounded-full bg-accent px-3 py-1 text-xs font-medium text-white">
