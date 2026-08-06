@@ -1,6 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/supabase/admin";
+import { createServiceClient } from "@/lib/supabase/service";
+
+function formatDateTime(iso: string | null | undefined) {
+  if (!iso) return null;
+  return new Date(iso).toLocaleString("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
 
 export default async function AdminCustomerPage({
   params,
@@ -12,11 +21,18 @@ export default async function AdminCustomerPage({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, full_name, phone, email, do_not_book")
+    .select("id, full_name, phone, email, do_not_book, created_at")
     .eq("id", id)
     .single();
 
   if (!profile) notFound();
+
+  // Account creation / last login live on Supabase's own auth.users record,
+  // not our profiles table — only fetchable with the service role, since
+  // it's a privileged admin API call, not a regular table read.
+  const { data: authUser } = await createServiceClient().auth.admin.getUserById(id);
+  const lastLoginAt = formatDateTime(authUser?.user?.last_sign_in_at);
+  const accountCreatedAt = formatDateTime(profile.created_at);
 
   const { data: pets } = await supabase
     .from("pets")
@@ -42,6 +58,11 @@ export default async function AdminCustomerPage({
         {profile.phone}
         {profile.phone && profile.email ? " · " : ""}
         {profile.email}
+      </p>
+      <p className="mt-1 text-xs text-muted">
+        {accountCreatedAt && `Account created ${accountCreatedAt}`}
+        {accountCreatedAt && lastLoginAt ? " · " : ""}
+        {lastLoginAt && `Last logged in ${lastLoginAt}`}
       </p>
       {profile.do_not_book && (
         <p className="mt-2 inline-block rounded-full bg-accent px-3 py-1 text-xs font-medium text-white">
