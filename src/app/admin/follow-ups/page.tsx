@@ -74,8 +74,7 @@ export default async function AdminFollowUpsPage({
     { data: landedHomeRows },
     { data: landedRows },
     { data: pickedTimeRows },
-    { data: bookedRows },
-    { data: paidRows },
+    { data: allAppointments },
     { data: sessionDurationRows },
     { data: excludedProfiles },
   ] = await Promise.all([
@@ -117,8 +116,9 @@ export default async function AdminFollowUpsPage({
       .from("booking_funnel_events")
       .select("customer_id, visitor_id")
       .eq("step", "picked_time"),
-    supabase.from("appointments").select("customer_id"),
-    supabase.from("appointments").select("customer_id").eq("payment_status", "paid"),
+    supabase
+      .from("appointments")
+      .select("customer_id, status, add_ons, price, payment_status"),
     supabase
       .from("site_session_durations")
       .select("customer_id, visitor_id, duration_seconds"),
@@ -134,13 +134,6 @@ export default async function AdminFollowUpsPage({
   // they can't be name-matched and excluded the same way — they're always
   // counted as real visitors.
   const excludedIds = new Set((excludedProfiles ?? []).map((p) => p.id));
-
-  const distinctCustomers = (rows: { customer_id: string }[] | null) =>
-    new Set(
-      (rows ?? [])
-        .map((r) => r.customer_id)
-        .filter((id) => !excludedIds.has(id)),
-    ).size;
 
   // Same idea, but for tables that also accept anonymous visitor_id rows —
   // dedupes on customer_id when logged in, visitor_id otherwise.
@@ -159,14 +152,51 @@ export default async function AdminFollowUpsPage({
     return seen.size;
   };
 
+  const realAppointments = (allAppointments ?? []).filter(
+    (a) => !excludedIds.has(a.customer_id),
+  );
+
   const funnel = [
     { label: "Landed on homepage", count: distinctVisitors(landedHomeRows) },
     { label: "Landed on booking page", count: distinctVisitors(landedRows) },
     { label: "Picked a time slot", count: distinctVisitors(pickedTimeRows) },
-    { label: "Completed a booking", count: distinctCustomers(bookedRows) },
-    { label: "Paid", count: distinctCustomers(paidRows) },
+    {
+      label: "Completed a booking",
+      count: new Set(realAppointments.map((a) => a.customer_id)).size,
+    },
+    {
+      label: "Paid",
+      count: new Set(
+        realAppointments
+          .filter((a) => a.payment_status === "paid")
+          .map((a) => a.customer_id),
+      ).size,
+    },
   ];
   const funnelMax = Math.max(1, ...funnel.map((f) => f.count));
+
+  const cancellationRate =
+    realAppointments.length > 0
+      ? (realAppointments.filter((a) => a.status === "cancelled").length /
+          realAppointments.length) *
+        100
+      : null;
+
+  const addOnRate =
+    realAppointments.length > 0
+      ? (realAppointments.filter((a) => a.add_ons.length > 0).length /
+          realAppointments.length) *
+        100
+      : null;
+
+  const paidAppointments = realAppointments.filter(
+    (a) => a.payment_status === "paid" && a.price !== null,
+  );
+  const averageAppointmentCost =
+    paidAppointments.length > 0
+      ? paidAppointments.reduce((sum, a) => sum + Number(a.price), 0) /
+        paidAppointments.length
+      : null;
 
   const realSessionDurations = (sessionDurationRows ?? []).filter(
     (r) => !(r.customer_id && excludedIds.has(r.customer_id)),
@@ -217,13 +247,43 @@ export default async function AdminFollowUpsPage({
             </div>
           ))}
         </div>
-        <div className="mt-6 flex items-baseline justify-between border-t border-border pt-4 text-sm">
-          <span className="text-foreground/90">Average time on site</span>
-          <span className="font-medium text-accent-dark">
-            {averageSessionSeconds !== null
-              ? formatDuration(averageSessionSeconds)
-              : "Not enough data yet"}
-          </span>
+        <div className="mt-6 space-y-2 border-t border-border pt-4 text-sm">
+          <div className="flex items-baseline justify-between">
+            <span className="text-foreground/90">Average time on site</span>
+            <span className="font-medium text-accent-dark">
+              {averageSessionSeconds !== null
+                ? formatDuration(averageSessionSeconds)
+                : "Not enough data yet"}
+            </span>
+          </div>
+          <div className="flex items-baseline justify-between">
+            <span className="text-foreground/90">Cancellation rate</span>
+            <span className="font-medium text-accent-dark">
+              {cancellationRate !== null
+                ? `${cancellationRate.toFixed(1)}%`
+                : "Not enough data yet"}
+            </span>
+          </div>
+          <div className="flex items-baseline justify-between">
+            <span className="text-foreground/90">
+              Bookings with an add-on
+            </span>
+            <span className="font-medium text-accent-dark">
+              {addOnRate !== null
+                ? `${addOnRate.toFixed(1)}%`
+                : "Not enough data yet"}
+            </span>
+          </div>
+          <div className="flex items-baseline justify-between">
+            <span className="text-foreground/90">
+              Average appointment cost (paid)
+            </span>
+            <span className="font-medium text-accent-dark">
+              {averageAppointmentCost !== null
+                ? `$${averageAppointmentCost.toFixed(2)}`
+                : "Not enough data yet"}
+            </span>
+          </div>
         </div>
       </section>
 
