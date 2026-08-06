@@ -30,6 +30,7 @@ import {
   type PricingConfig,
 } from "@/lib/pricing/pricing";
 import { getPricingConfig } from "@/lib/pricing/config";
+import { getCustomerCoupon } from "@/lib/coupons/actions";
 import { getActivePromotion } from "@/lib/promotions/actions";
 import { promotionAppliesToDate } from "@/lib/promotions/helpers";
 import {
@@ -734,6 +735,12 @@ export async function createAppointment(formData: FormData) {
     promotionAppliesToDate(activePromotion.maxAppointmentLeadDays, fields.date);
   const promoDiscountPercent = promoApplies ? activePromotion!.discountPercent : null;
   const promoId = promoApplies ? activePromotion!.id : null;
+  // A personal coupon (admin-assigned, e.g. an apology discount) stacks on
+  // top of whatever sitewide promo is running, then gets marked used once
+  // this booking actually goes through — see the redemption below.
+  const coupon = await getCustomerCoupon(user.id);
+  const totalDiscountPercent =
+    (promoDiscountPercent ?? 0) + (coupon?.discountPercent ?? 0) || null;
   const config = await getPricingConfig();
   const { price: subtotal, addOns } = computeAppointmentPrice(
     pet,
@@ -746,7 +753,7 @@ export async function createAppointment(formData: FormData) {
     fields.pickupDropoff,
     hasMembership,
     !!redeemablePack,
-    promoDiscountPercent,
+    totalDiscountPercent,
     config,
   );
   const salesTax = calculateSalesTax(subtotal);
@@ -772,6 +779,7 @@ export async function createAppointment(formData: FormData) {
       pickup_dropoff: fields.pickupDropoff,
       pickup_address: fields.pickupAddress,
       promo_id: promoId,
+      coupon_id: coupon?.id ?? null,
     })
     .select("id")
     .single();

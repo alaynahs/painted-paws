@@ -36,6 +36,7 @@ import {
 } from "@/app/book/actions";
 import { getActivePromotion, type ActivePromotion } from "@/lib/promotions/actions";
 import { promotionAppliesToDate } from "@/lib/promotions/helpers";
+import { getCustomerCoupon } from "@/lib/coupons/actions";
 import {
   BOOKING_HOURS as HOURS,
   PICKUP_MIN_LEAD_HOURS,
@@ -148,6 +149,7 @@ export default function BookingFlow({
   allowOnlinePayment = true,
   isAdmin = false,
   config,
+  customerId,
 }: {
   pets: Pet[];
   mode?: "create" | "edit";
@@ -158,6 +160,7 @@ export default function BookingFlow({
   allowOnlinePayment?: boolean;
   isAdmin?: boolean;
   config: PricingConfig;
+  customerId?: string;
 }) {
   const [petId, setPetId] = useState(pets[0]?.id ?? "");
   const pet = pets.find((p) => p.id === petId) ?? pets[0];
@@ -238,14 +241,24 @@ export default function BookingFlow({
   );
   // Re-evaluated every render against the currently selected date, since a
   // promotion's "book within N days" rule depends on which date is picked.
-  const effectiveDiscountPercent =
+  const promoDiscountPercent =
     mode === "edit"
       ? (initial?.promoDiscountPercent ?? null)
       : activePromotion &&
           promotionAppliesToDate(activePromotion.maxAppointmentLeadDays, date)
         ? activePromotion.discountPercent
         : null;
-  const promoActive = effectiveDiscountPercent != null;
+  const promoActive = promoDiscountPercent != null;
+  // A personal coupon (admin-assigned) stacks on top of the sitewide promo,
+  // if any — matches createAppointment's server-side calculation. Edits
+  // never pick up a coupon (it's locked in at original booking time only).
+  const [customerCoupon, setCustomerCoupon] = useState<{
+    discountPercent: number;
+  } | null>(null);
+  const couponActive = mode === "create" && customerCoupon != null;
+  const effectiveDiscountPercent =
+    (promoDiscountPercent ?? 0) + (couponActive ? customerCoupon!.discountPercent : 0) ||
+    null;
   const [availableCredits, setAvailableCredits] = useState(0);
   const [redeemCredit, setRedeemCredit] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -264,6 +277,17 @@ export default function BookingFlow({
       cancelled = true;
     };
   }, [isAdmin, mode]);
+
+  useEffect(() => {
+    if (isAdmin || mode === "edit" || !customerId) return;
+    let cancelled = false;
+    getCustomerCoupon(customerId).then((coupon) => {
+      if (!cancelled) setCustomerCoupon(coupon);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdmin, mode, customerId]);
 
   useEffect(() => {
     if (tooYoungToBook) {
@@ -452,6 +476,13 @@ export default function BookingFlow({
   const originalTotal = groomSubtotal + pickupDropoffFee;
   const salesTax = calculateSalesTax(total);
   const grandTotal = total + salesTax;
+  // The combined discount is one additive rate applied once (see
+  // createAppointment), so the coupon's own share of it is just its
+  // percentage of the pre-discount subtotal — independent of whether a
+  // promo is also stacked on top.
+  const couponSavings = couponActive
+    ? Math.round(groomSubtotal * (customerCoupon!.discountPercent / 100) * 100) / 100
+    : 0;
 
   function toggleAddOn(name: string) {
     setSelectedAddOns((prev) =>
@@ -968,7 +999,7 @@ export default function BookingFlow({
         <div className="flex items-baseline justify-between text-sm text-foreground/80">
           <span>Subtotal</span>
           <span className="flex items-baseline gap-2">
-            {promoActive && originalTotal !== total && (
+            {effectiveDiscountPercent != null && originalTotal !== total && (
               <span className="text-muted line-through">${originalTotal}</span>
             )}
             <span>${total}</span>
@@ -988,8 +1019,14 @@ export default function BookingFlow({
         </div>
         {promoActive && (
           <p className="mt-1 text-xs font-medium text-accent-dark">
-            🎉 {effectiveDiscountPercent}% off applied — limited-time offer
+            🎉 {promoDiscountPercent}% off applied — limited-time offer
           </p>
+        )}
+        {couponActive && (
+          <div className="mt-3 rounded-xl bg-accent px-4 py-2.5 text-center text-sm font-medium text-white">
+            🎁 Redeeming your {customerCoupon!.discountPercent}% off coupon
+            — you&apos;re saving ${couponSavings.toFixed(2)}
+          </div>
         )}
       </div>
 

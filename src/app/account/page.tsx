@@ -91,6 +91,12 @@ export default async function AccountPage({
     (p) => p.credits_used < p.paid_count + p.free_count,
   );
 
+  const { data: coupons } = await supabase
+    .from("coupons")
+    .select("id, discount_percent, note, used_at")
+    .eq("customer_id", user.id)
+    .order("created_at", { ascending: false });
+
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
       <p className="text-sm font-medium tracking-wide text-accent-dark uppercase">
@@ -310,6 +316,47 @@ export default async function AccountPage({
             </p>
           )}
         </div>
+      </section>
+
+      <section className="mt-8 rounded-2xl border border-border bg-card p-6">
+        <h2 className="font-serif text-lg text-foreground">Your Coupons</h2>
+        {coupons && coupons.length > 0 ? (
+          <div className="mt-4 space-y-3">
+            {coupons.map((c) => (
+              <div
+                key={c.id}
+                className="rounded-xl border border-border bg-background p-4"
+              >
+                <div className="flex items-center justify-between">
+                  <p className="font-serif text-base text-foreground">
+                    {c.discount_percent}% off
+                  </p>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-medium ${
+                      c.used_at
+                        ? "bg-border text-muted"
+                        : "bg-accent-tint text-accent-dark"
+                    }`}
+                  >
+                    {c.used_at ? "Used" : "Available"}
+                  </span>
+                </div>
+                {c.note && (
+                  <p className="mt-1 text-xs text-muted">{c.note}</p>
+                )}
+                {!c.used_at && (
+                  <p className="mt-1 text-xs text-muted">
+                    Automatically applied at your next booking.
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-4 text-sm text-muted">
+            No coupons on your account right now.
+          </p>
+        )}
       </section>
 
       <ContactInfoCard

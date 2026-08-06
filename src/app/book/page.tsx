@@ -118,7 +118,7 @@ export default async function BookPage({
       )}
 
       <div className="mt-8">
-        <BookingFlow pets={pets} config={config} />
+        <BookingFlow pets={pets} config={config} customerId={user.id} />
       </div>
     </div>
   );

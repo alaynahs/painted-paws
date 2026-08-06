@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       const { data: appt } = await supabase
         .from("appointments")
         .select(
-          "customer_id, pet_id, appointment_date, appointment_hour, service, price, pets(name, rabies_vaccine_path)",
+          "customer_id, pet_id, appointment_date, appointment_hour, service, price, coupon_id, pets(name, rabies_vaccine_path)",
         )
         .eq("id", appointmentId)
         .single();
@@ -58,6 +58,15 @@ export async function POST(request: NextRequest) {
           service: appt.service,
           price: appt.price,
         });
+
+        // Only burn the coupon once payment actually confirms — an
+        // abandoned checkout leaves it available to try again.
+        if (appt.coupon_id) {
+          await supabase
+            .from("coupons")
+            .update({ used_at: new Date().toISOString(), redeemed_appointment_id: appointmentId })
+            .eq("id", appt.coupon_id);
+        }
       }
     }
 
