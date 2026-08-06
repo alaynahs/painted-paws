@@ -31,6 +31,21 @@ export default async function EditPetPage({
 
   const deletePetWithId = deletePet.bind(null, pet.id);
 
+  const { data: groomPhotos } = await supabase
+    .from("groom_photos")
+    .select("id, storage_path, caption, created_at")
+    .eq("pet_id", id)
+    .order("created_at", { ascending: false });
+
+  const groomPhotoUrls = await Promise.all(
+    (groomPhotos ?? []).map(async (p) => {
+      const { data: signed } = await supabase.storage
+        .from("groom-photos")
+        .createSignedUrl(p.storage_path, 60 * 10);
+      return { ...p, url: signed?.signedUrl ?? null };
+    }),
+  );
+
   const todayStr = todayInCentral();
   const isPuppyExempt =
     pet.species === "dog" &&
@@ -161,6 +176,33 @@ export default async function EditPetPage({
           </>
         )}
       </section>
+
+      {groomPhotoUrls.length > 0 && (
+        <section className="mt-8 rounded-2xl border border-border bg-card p-6">
+          <h2 className="font-serif text-lg text-foreground">
+            Photos from your groom
+          </h2>
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {groomPhotoUrls.map((photo) =>
+              photo.url ? (
+                <div key={photo.id}>
+                  <a href={photo.url} target="_blank" rel="noopener noreferrer">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- signed URLs from private storage, not an optimizable static asset */}
+                    <img
+                      src={photo.url}
+                      alt={photo.caption ?? `${pet.name} after a groom`}
+                      className="aspect-square w-full rounded-xl object-cover"
+                    />
+                  </a>
+                  {photo.caption && (
+                    <p className="mt-1 text-xs text-muted">{photo.caption}</p>
+                  )}
+                </div>
+              ) : null,
+            )}
+          </div>
+        </section>
+      )}
 
       <form action={deletePetWithId} className="mt-6">
         <button

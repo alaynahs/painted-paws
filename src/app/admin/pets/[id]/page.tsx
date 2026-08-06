@@ -4,10 +4,12 @@ import { requireAdmin } from "@/lib/supabase/admin";
 import { updatePet } from "@/app/account/pets/actions";
 import {
   addGroomNote,
+  deleteGroomPhoto,
   markAppointmentComplete,
   setCustomerDoNotBook,
   setPetActive,
   setPetDoNotBook,
+  uploadGroomPhoto,
 } from "@/app/admin/actions";
 import { confirmAppointment, getNoShowCount } from "@/app/book/actions";
 import { MAX_NO_SHOWS } from "@/lib/booking-hours";
@@ -25,10 +27,13 @@ import {
 
 export default async function AdminPetDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   const { id } = await params;
+  const { error } = await searchParams;
   const { supabase } = await requireAdmin();
 
   const { data: pet } = await supabase
@@ -101,6 +106,21 @@ export default async function AdminPetDetailPage({
       }),
   );
 
+  const { data: groomPhotos } = await supabase
+    .from("groom_photos")
+    .select("id, storage_path, caption, created_at")
+    .eq("pet_id", id)
+    .order("created_at", { ascending: false });
+
+  const groomPhotoUrls = await Promise.all(
+    (groomPhotos ?? []).map(async (p) => {
+      const { data: signed } = await supabase.storage
+        .from("groom-photos")
+        .createSignedUrl(p.storage_path, 60 * 10);
+      return { ...p, url: signed?.signedUrl ?? null };
+    }),
+  );
+
   const groomingNotes = (notes ?? []).filter((n) => n.note_type === "grooming");
   const behaviorNotes = (notes ?? []).filter((n) => n.note_type === "behavior");
 
@@ -137,6 +157,11 @@ export default async function AdminPetDetailPage({
         {pet.profiles?.phone ? ` · ${pet.profiles.phone}` : ""}
         {pet.profiles?.email ? ` · ${pet.profiles.email}` : ""}
       </p>
+      {error && (
+        <p className="mt-4 rounded-xl border border-border bg-accent-tint px-4 py-3 text-sm text-foreground">
+          {error}
+        </p>
+      )}
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {noShowCount > 0 && (
           <p
@@ -321,6 +346,72 @@ export default async function AdminPetDetailPage({
                   <p className="mt-2 text-sm text-muted">Not uploaded yet.</p>
                 )}
               </>
+            )}
+          </section>
+
+          <section className="rounded-2xl border border-border bg-card p-5">
+            <h2 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
+              Groom Photos
+            </h2>
+            <p className="mt-1 text-xs text-muted">
+              Visible to {pet.profiles?.full_name ?? "the pet parent"} on
+              their account.
+            </p>
+            <form
+              action={uploadGroomPhoto}
+              className="mt-3 space-y-2 border-b border-border pb-4"
+            >
+              <input type="hidden" name="petId" value={pet.id} />
+              <input
+                type="file"
+                name="file"
+                accept="image/*"
+                required
+                className="block w-full text-xs text-foreground/80"
+              />
+              <input
+                type="text"
+                name="caption"
+                placeholder="Caption (optional)"
+                className="w-full rounded-xl border border-border bg-background px-3 py-1.5 text-xs text-foreground outline-none focus:border-accent-dark"
+              />
+              <button
+                type="submit"
+                className="w-full rounded-full bg-accent px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-dark"
+              >
+                + Upload Photo
+              </button>
+            </form>
+            {groomPhotoUrls.length > 0 ? (
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {groomPhotoUrls.map((photo) =>
+                  photo.url ? (
+                    <div key={photo.id} className="space-y-1">
+                      <a href={photo.url} target="_blank" rel="noopener noreferrer">
+                        {/* eslint-disable-next-line @next/next/no-img-element -- signed URLs from private storage, not an optimizable static asset */}
+                        <img
+                          src={photo.url}
+                          alt={photo.caption ?? "Groom photo"}
+                          className="aspect-square w-full rounded-lg object-cover"
+                        />
+                      </a>
+                      {photo.caption && (
+                        <p className="text-[10px] text-muted">{photo.caption}</p>
+                      )}
+                      <form action={deleteGroomPhoto.bind(null, photo.id, pet.id)}>
+                        <button
+                          type="submit"
+                          className="text-[10px] text-muted hover:text-accent-dark"
+                        >
+                          Delete
+                        </button>
+                      </form>
+                    </div>
+                  ) : null,
+                )}
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-muted">No groom photos yet.</p>
             )}
           </section>
 

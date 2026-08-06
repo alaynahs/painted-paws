@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
@@ -64,6 +65,74 @@ export async function addGroomNote(formData: FormData) {
   });
 
   revalidatePath(`/admin/pets/${petId}`);
+}
+
+function sanitizeFileName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9.]+/g, "-");
+}
+
+// Photos taken during/after a groom, uploaded by the admin, visible to the
+// pet's owner on their account. Multiple photos per pet are expected (one
+// per visit), unlike the single-file-per-pet rabies vaccine upload.
+export async function uploadGroomPhoto(formData: FormData) {
+  const { supabase } = await requireAdmin();
+
+  const petId = formData.get("petId") as string;
+  const caption = ((formData.get("caption") as string) || "").trim() || null;
+  const appointmentId = ((formData.get("appointmentId") as string) || "") || null;
+  const file = formData.get("file") as File;
+
+  if (!file || file.size === 0) {
+    redirect(
+      `/admin/pets/${petId}?error=${encodeURIComponent("Choose a photo to upload.")}`,
+    );
+  }
+
+  const { data: pet } = await supabase
+    .from("pets")
+    .select("owner_id")
+    .eq("id", petId)
+    .single();
+
+  if (!pet) redirect(`/admin/pets/${petId}?error=${encodeURIComponent("Pet not found.")}`);
+
+  const storagePath = `${pet.owner_id}/${petId}/${randomUUID()}-${sanitizeFileName(file.name)}`;
+  const { error: uploadError } = await supabase.storage
+    .from("groom-photos")
+    .upload(storagePath, file, { contentType: file.type });
+
+  if (uploadError) {
+    redirect(`/admin/pets/${petId}?error=${encodeURIComponent(uploadError.message)}`);
+  }
+
+  await supabase.from("groom_photos").insert({
+    pet_id: petId,
+    customer_id: pet.owner_id,
+    appointment_id: appointmentId,
+    storage_path: storagePath,
+    caption,
+  });
+
+  revalidatePath(`/admin/pets/${petId}`);
+  revalidatePath(`/account/pets/${petId}`);
+}
+
+export async function deleteGroomPhoto(photoId: string, petId: string) {
+  const { supabase } = await requireAdmin();
+
+  const { data: photo } = await supabase
+    .from("groom_photos")
+    .select("storage_path")
+    .eq("id", photoId)
+    .single();
+
+  await supabase.from("groom_photos").delete().eq("id", photoId);
+  if (photo) {
+    await supabase.storage.from("groom-photos").remove([photo.storage_path]);
+  }
+
+  revalidatePath(`/admin/pets/${petId}`);
+  revalidatePath(`/account/pets/${petId}`);
 }
 
 type QuickMessageType =
