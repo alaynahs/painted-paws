@@ -4,6 +4,7 @@ import {
   centralDateOnly,
   centralWallClockToInstant,
   formatDate,
+  formatDuration,
   formatHour,
   todayInCentral,
 } from "@/lib/format";
@@ -70,10 +71,13 @@ export default async function AdminFollowUpsPage({
     { data: lapse8 },
     { data: lapse16 },
     { data: cancellations },
+    { data: landedHomeRows },
     { data: landedRows },
     { data: pickedTimeRows },
     { data: bookedRows },
     { data: paidRows },
+    { data: sessionDurationRows },
+    { data: excludedProfiles },
   ] = await Promise.all([
     supabase
       .from("notifications_log")
@@ -101,6 +105,10 @@ export default async function AdminFollowUpsPage({
       .lt("cancelled_at", rangeEndInstant)
       .order("cancelled_at", { ascending: false })
       .limit(100),
+    supabase
+      .from("booking_funnel_events")
+      .select("customer_id")
+      .eq("step", "landed_home"),
     supabase.from("booking_funnel_events").select("customer_id").eq("step", "landed"),
     supabase
       .from("booking_funnel_events")
@@ -108,18 +116,41 @@ export default async function AdminFollowUpsPage({
       .eq("step", "picked_time"),
     supabase.from("appointments").select("customer_id"),
     supabase.from("appointments").select("customer_id").eq("payment_status", "paid"),
+    supabase.from("site_session_durations").select("customer_id, duration_seconds"),
+    supabase
+      .from("profiles")
+      .select("id")
+      .in("full_name", ["Alaynah Showalter", "Yuri Beneche"]),
   ]);
 
+  // The owner's own accounts (testing/demoing) shouldn't skew "real
+  // customer" analytics — excluded from every count and average below.
+  const excludedIds = new Set((excludedProfiles ?? []).map((p) => p.id));
+
   const distinctCustomers = (rows: { customer_id: string }[] | null) =>
-    new Set((rows ?? []).map((r) => r.customer_id)).size;
+    new Set(
+      (rows ?? [])
+        .map((r) => r.customer_id)
+        .filter((id) => !excludedIds.has(id)),
+    ).size;
 
   const funnel = [
+    { label: "Landed on homepage", count: distinctCustomers(landedHomeRows) },
     { label: "Landed on booking page", count: distinctCustomers(landedRows) },
     { label: "Picked a time slot", count: distinctCustomers(pickedTimeRows) },
     { label: "Completed a booking", count: distinctCustomers(bookedRows) },
     { label: "Paid", count: distinctCustomers(paidRows) },
   ];
   const funnelMax = Math.max(1, ...funnel.map((f) => f.count));
+
+  const realSessionDurations = (sessionDurationRows ?? []).filter(
+    (r) => !excludedIds.has(r.customer_id),
+  );
+  const averageSessionSeconds =
+    realSessionDurations.length > 0
+      ? realSessionDurations.reduce((sum, r) => sum + r.duration_seconds, 0) /
+        realSessionDurations.length
+      : null;
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
@@ -137,9 +168,10 @@ export default async function AdminFollowUpsPage({
       <section className="mt-8 rounded-2xl border border-border bg-card p-6">
         <h2 className="font-serif text-lg text-foreground">Booking Funnel</h2>
         <p className="mt-1 text-sm text-muted">
-          Where people drop off, all-time. &quot;Landed&quot; and &quot;Picked
-          a time&quot; only just started being tracked, so those numbers will
-          look thin until more visits build up.
+          Where people drop off, all-time. &quot;Landed on homepage,&quot;
+          &quot;Landed on booking page,&quot; and &quot;Picked a time&quot;
+          only just started being tracked, so those numbers will look thin
+          until more visits build up. Excludes your own accounts.
         </p>
         <div className="mt-4 space-y-3">
           {funnel.map((step) => (
@@ -158,6 +190,14 @@ export default async function AdminFollowUpsPage({
               </div>
             </div>
           ))}
+        </div>
+        <div className="mt-6 flex items-baseline justify-between border-t border-border pt-4 text-sm">
+          <span className="text-foreground/90">Average time on site</span>
+          <span className="font-medium text-accent-dark">
+            {averageSessionSeconds !== null
+              ? formatDuration(averageSessionSeconds)
+              : "Not enough data yet"}
+          </span>
         </div>
       </section>
 

@@ -13,6 +13,13 @@ export function formatDate(dateStr: string) {
   });
 }
 
+export function formatDuration(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = Math.round(totalSeconds % 60);
+  if (minutes < 1) return `${seconds}s`;
+  return `${minutes}m ${seconds}s`;
+}
+
 // The business operates in Central time, but the server rendering this
 // page doesn't necessarily run there (Vercel's functions typically default
 // to UTC) — every formatter below pins "America/Chicago" explicitly so the

@@ -3,6 +3,7 @@ import Link from "next/link";
 import HeroFadeGallery from "@/components/hero-fade-gallery";
 import PawIcon from "@/components/paw-icon";
 import RevealOnScroll from "@/components/reveal-on-scroll";
+import TrackHomeLanding from "@/components/track-home-landing";
 import { createClient } from "@/lib/supabase/server";
 
 const features = [
@@ -48,6 +49,7 @@ export default async function Home() {
 
   return (
     <div>
+      <TrackHomeLanding />
       <section className="mx-auto max-w-6xl px-6 pt-16 pb-20 sm:pt-24 sm:pb-28">
         <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="max-w-2xl">

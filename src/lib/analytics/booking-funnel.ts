@@ -2,11 +2,13 @@
 
 import { createClient } from "@/lib/supabase/server";
 
-// Only two checkpoints worth tracking client-side — everything after that
+// Checkpoints worth tracking client-side — everything after that
 // ("booked", "paid") is already knowable from the appointments table
 // itself (created_at, payment_status), so there's no need to duplicate it
 // here just to answer "where do people drop off."
-export async function logBookingStep(step: "landed" | "picked_time") {
+export async function logBookingStep(
+  step: "landed" | "picked_time" | "landed_home",
+) {
   const supabase = await createClient();
   const {
     data: { user },

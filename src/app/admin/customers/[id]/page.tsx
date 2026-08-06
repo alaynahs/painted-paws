@@ -31,12 +31,23 @@ export default async function AdminCustomerPage({
   // updating a pet (including uploading a vaccine record), booking or
   // editing an appointment, and signing a waiver are all genuine,
   // database-enforced timestamps instead.
-  const [{ data: petActivity }, { data: apptActivity }, { data: waiverActivity }] =
-    await Promise.all([
-      supabase.from("pets").select("updated_at").eq("owner_id", id),
-      supabase.from("appointments").select("updated_at").eq("customer_id", id),
-      supabase.from("waiver_signings").select("created_at").eq("customer_id", id),
-    ]);
+  const [
+    { data: petActivity },
+    { data: apptActivity },
+    { data: waiverActivity },
+    { data: lastPageView },
+  ] = await Promise.all([
+    supabase.from("pets").select("updated_at").eq("owner_id", id),
+    supabase.from("appointments").select("updated_at").eq("customer_id", id),
+    supabase.from("waiver_signings").select("created_at").eq("customer_id", id),
+    supabase
+      .from("page_views")
+      .select("path, created_at")
+      .eq("customer_id", id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
   const activityTimestamps = [
     profile.updated_at,
@@ -54,6 +65,7 @@ export default async function AdminCustomerPage({
         )
       : null;
   const accountCreatedAt = formatDateTime(profile.created_at);
+  const lastPageAt = lastPageView ? formatDateTime(lastPageView.created_at) : null;
 
   const { data: pets } = await supabase
     .from("pets")
@@ -88,6 +100,15 @@ export default async function AdminCustomerPage({
         {accountCreatedAt && lastActiveAt ? " · " : ""}
         {lastActiveAt && `Last active ${lastActiveAt}`}
       </p>
+      {lastPageView && (
+        <p className="mt-1 text-xs text-muted">
+          Last page visited:{" "}
+          <span className="font-medium text-foreground/80">
+            {lastPageView.path}
+          </span>
+          {lastPageAt && ` (${lastPageAt})`}
+        </p>
+      )}
       {profile.do_not_book && (
         <p className="mt-2 inline-block rounded-full bg-accent px-3 py-1 text-xs font-medium text-white">
           Blocked from booking
