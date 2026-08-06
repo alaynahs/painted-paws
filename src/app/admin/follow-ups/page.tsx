@@ -40,6 +40,10 @@ function one<T>(rel: T | T[] | null): T | null {
   return Array.isArray(rel) ? (rel[0] ?? null) : rel;
 }
 
+// Beyond this many, the rest are only available as a PDF download rather
+// than cluttering the page.
+const VISIBLE_LIMIT = 5;
+
 export default async function AdminFollowUpsPage({
   searchParams,
 }: {
@@ -110,6 +114,7 @@ export default async function AdminFollowUpsPage({
         rows={(lapse8 ?? []) as unknown as NotificationRow[]}
         emptyText="No one has hit the 8-week lapse mark yet."
         renderDate={(r) => formatDate(centralDateOnly(r.sent_at))}
+        pdfHref="/api/admin/follow-ups/pdf?type=rebooking_8wk"
       />
 
       <LogSection
@@ -117,6 +122,7 @@ export default async function AdminFollowUpsPage({
         rows={(lapse16 ?? []) as unknown as NotificationRow[]}
         emptyText="No one has hit the 16-week lapse mark yet."
         renderDate={(r) => formatDate(centralDateOnly(r.sent_at))}
+        pdfHref="/api/admin/follow-ups/pdf?type=rebooking_16wk"
       />
 
       <section className="mt-8 rounded-2xl border border-border bg-card p-6">
@@ -141,40 +147,56 @@ export default async function AdminFollowUpsPage({
           </div>
         </div>
         <FollowUpWeekPicker start={weekStart} />
-        {cancellations && cancellations.length > 0 ? (
-          <div className="mt-4 space-y-3">
-            {(cancellations as unknown as CancellationRow[]).map((row) => {
-              const profile = one(row.profiles);
-              const pet = one(row.pets);
-              return (
-                <Link
-                  key={row.id}
-                  href={`/admin/customers/${row.customer_id}`}
-                  className="block rounded-xl border border-border bg-background p-4 transition-colors hover:border-accent-dark"
+        {(() => {
+          const allCancellations = (cancellations ?? []) as unknown as CancellationRow[];
+          const visible = allCancellations.slice(0, VISIBLE_LIMIT);
+          const remaining = allCancellations.length - visible.length;
+          return visible.length > 0 ? (
+            <>
+              <div className="mt-4 space-y-3">
+                {visible.map((row) => {
+                  const profile = one(row.profiles);
+                  const pet = one(row.pets);
+                  return (
+                    <Link
+                      key={row.id}
+                      href={`/admin/customers/${row.customer_id}`}
+                      className="block rounded-xl border border-border bg-background p-4 transition-colors hover:border-accent-dark"
+                    >
+                      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                        <p className="font-serif text-base text-foreground">
+                          {profile?.full_name ?? "Unknown"}
+                          {pet?.name ? ` · ${pet.name}` : ""}
+                        </p>
+                        {row.no_show && (
+                          <span className="rounded-full bg-accent-tint px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-accent-dark">
+                            No-show
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 text-xs text-muted">
+                        {profile?.phone ?? "No phone on file"} · Was booked for{" "}
+                        {formatDate(row.appointment_date)} at{" "}
+                        {formatHour(row.appointment_hour)}
+                        {row.cancelled_at &&
+                          ` · Cancelled ${formatDate(centralDateOnly(row.cancelled_at))}`}
+                      </p>
+                    </Link>
+                  );
+                })}
+              </div>
+              {remaining > 0 && (
+                <a
+                  href={`/api/admin/follow-ups/pdf?type=cancellations&start=${weekStart}`}
+                  className="mt-3 inline-block rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
                 >
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                    <p className="font-serif text-base text-foreground">
-                      {profile?.full_name ?? "Unknown"}
-                      {pet?.name ? ` · ${pet.name}` : ""}
-                    </p>
-                    {row.no_show && (
-                      <span className="rounded-full bg-accent-tint px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-accent-dark">
-                        No-show
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-1 text-xs text-muted">
-                    {profile?.phone ?? "No phone on file"} · Was booked for{" "}
-                    {formatDate(row.appointment_date)} at{" "}
-                    {formatHour(row.appointment_hour)}
-                    {row.cancelled_at &&
-                      ` · Cancelled ${formatDate(centralDateOnly(row.cancelled_at))}`}
-                  </p>
-                </Link>
-              );
-            })}
-          </div>
-        ) : (
+                  📄 Download full list ({allCancellations.length} total) as PDF
+                </a>
+              )}
+            </>
+          ) : null;
+        })()}
+        {(!cancellations || cancellations.length === 0) && (
           <p className="mt-4 text-sm text-muted">
             No cancellations in this week.
           </p>
@@ -189,18 +211,23 @@ function LogSection({
   rows,
   emptyText,
   renderDate,
+  pdfHref,
 }: {
   title: string;
   rows: NotificationRow[];
   emptyText: string;
   renderDate: (row: NotificationRow) => string;
+  pdfHref: string;
 }) {
+  const visible = rows.slice(0, VISIBLE_LIMIT);
+  const remaining = rows.length - visible.length;
+
   return (
     <section className="mt-8 rounded-2xl border border-border bg-card p-6">
       <h2 className="font-serif text-lg text-foreground">{title}</h2>
-      {rows.length > 0 ? (
+      {visible.length > 0 ? (
         <div className="mt-4 space-y-3">
-          {rows.map((row) => {
+          {visible.map((row) => {
             const profile = one(row.profiles);
             const pet = one(row.pets);
             return (
@@ -223,6 +250,14 @@ function LogSection({
         </div>
       ) : (
         <p className="mt-4 text-sm text-muted">{emptyText}</p>
+      )}
+      {remaining > 0 && (
+        <a
+          href={pdfHref}
+          className="mt-3 inline-block rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+        >
+          📄 Download full list ({rows.length} total) as PDF
+        </a>
       )}
     </section>
   );
