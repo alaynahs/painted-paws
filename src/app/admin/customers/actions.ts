@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/supabase/admin";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -21,9 +22,12 @@ export async function adminUpdateCustomerContact(
     redirect(`${editPath}?error=${encodeURIComponent("Email and phone are both required.")}`);
   }
 
+  // email_confirm: true skips Supabase's confirm-from-the-new-address flow —
+  // the admin is directly asserting this contact info is correct, so it
+  // should take effect immediately rather than sit pending confirmation.
   const { error: authError } = await createServiceClient().auth.admin.updateUserById(
     customerId,
-    { email },
+    { email, email_confirm: true },
   );
   if (authError) {
     redirect(`${editPath}?error=${encodeURIComponent(authError.message)}`);
@@ -37,5 +41,6 @@ export async function adminUpdateCustomerContact(
     redirect(`${editPath}?error=${encodeURIComponent(profileError.message)}`);
   }
 
+  revalidatePath(editPath);
   redirect(`${editPath}?message=${encodeURIComponent("Contact info updated.")}`);
 }
