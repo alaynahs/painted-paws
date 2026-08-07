@@ -202,6 +202,23 @@ ${BUSINESS_NAME} site`,
   };
 }
 
+export function tipReceivedEmail(vars: {
+  customerName: string;
+  petName: string;
+  amount: string;
+}): EmailContent {
+  return {
+    subject: `💰 New Tip: $${vars.amount} for ${vars.petName}`,
+    body: `Nice! A tip just came through.
+
+• Customer: ${vars.customerName}
+• Pet: ${vars.petName}
+• Amount: $${vars.amount}
+
+${BUSINESS_NAME} site`,
+  };
+}
+
 export function firstTimeWelcomeSms(vars: { firstName: string; petName: string }) {
   return `Welcome to ${BUSINESS_NAME}, ${vars.firstName}! 🐾
 

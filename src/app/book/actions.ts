@@ -1301,7 +1301,7 @@ export async function payTip(formData: FormData) {
   const supabase = createServiceClient();
   const { data: appt } = await supabase
     .from("appointments")
-    .select("id, pets(name)")
+    .select("id, customer_id, pets(name)")
     .eq("id", appointmentId)
     .single();
 
@@ -1331,7 +1331,11 @@ export async function payTip(formData: FormData) {
         quantity: 1,
       },
     ],
-    metadata: { appointmentId: appt.id, kind: "tip" },
+    // kind: "tip" is what tells the webhook this is NOT an appointment
+    // payment — both session types include appointmentId, so without this
+    // flag a completed tip checkout gets misread as the appointment itself
+    // being paid.
+    metadata: { appointmentId: appt.id, customerId: appt.customer_id, kind: "tip" },
     success_url: `${origin}/leave-a-review/${appointmentId}?tipped=1`,
     cancel_url: `${origin}/leave-a-review/${appointmentId}`,
   });

@@ -101,6 +101,12 @@ export default async function AdminCustomerPage({
     .in("type", QUICK_MESSAGE_TYPES)
     .order("sent_at", { ascending: false });
 
+  const { data: tips } = await supabase
+    .from("tips")
+    .select("id, amount_cents, created_at")
+    .eq("customer_id", id)
+    .order("created_at", { ascending: false });
+
   return (
     <div className="mx-auto max-w-2xl px-6 py-16">
       <p className="text-sm font-medium tracking-wide text-accent-dark uppercase">
@@ -247,6 +253,33 @@ export default async function AdminCustomerPage({
         ) : (
           <p className="mt-4 text-sm text-muted">
             No coupons on this account.
+          </p>
+        )}
+      </section>
+
+      <section className="mt-8 rounded-2xl border border-border bg-card p-6">
+        <h2 className="font-serif text-lg text-foreground">Tips</h2>
+        {tips && tips.length > 0 ? (
+          <div className="mt-4 space-y-2">
+            <ShowMoreList initialCount={3}>
+              {tips.map((t) => (
+                <div
+                  key={t.id}
+                  className="flex items-baseline justify-between rounded-xl border border-border bg-background p-3"
+                >
+                  <p className="text-sm font-medium text-accent-dark">
+                    ${(t.amount_cents / 100).toFixed(2)}
+                  </p>
+                  <p className="text-xs text-muted">
+                    {formatDateTime(t.created_at)}
+                  </p>
+                </div>
+              ))}
+            </ShowMoreList>
+          </div>
+        ) : (
+          <p className="mt-4 text-sm text-muted">
+            No tips from this customer yet.
           </p>
         )}
       </section>
