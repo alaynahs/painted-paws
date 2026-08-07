@@ -39,6 +39,7 @@ import { promotionAppliesToDate } from "@/lib/promotions/helpers";
 import { getCustomerCoupon } from "@/lib/coupons/actions";
 import { logBookingStep } from "@/lib/analytics/booking-funnel";
 import {
+  ADMIN_EXTRA_HOURS,
   BOOKING_HOURS as HOURS,
   PICKUP_MIN_LEAD_HOURS,
 } from "@/lib/booking-hours";
@@ -880,7 +881,7 @@ export default function BookingFlow({
           </p>
         )}
         <div className="mt-3 grid grid-cols-3 gap-2.5 sm:grid-cols-4">
-          {HOURS.map((h) => {
+          {(isAdmin ? [...HOURS, ...ADMIN_EXTRA_HOURS] : HOURS).map((h) => {
             const isSelected = hour === h && minute === 0;
             const isDisabled =
               bookedHours.includes(h) ||
@@ -939,7 +940,9 @@ export default function BookingFlow({
           </div>
         )}
         <p className="mt-2 text-xs text-muted">
-          Appointments run 8 AM – 4 PM, one pet at a time.
+          {isAdmin
+            ? "Customers book 8 AM – 4 PM; 5 PM and 6 PM (or any custom time above) are for admin bookings only."
+            : "Appointments run 8 AM – 4 PM, one pet at a time."}
           {pickupDropoff &&
             ` Pickup & drop-off requires booking at least ${PICKUP_MIN_LEAD_HOURS} hour${PICKUP_MIN_LEAD_HOURS === 1 ? "" : "s"} ahead.`}
         </p>

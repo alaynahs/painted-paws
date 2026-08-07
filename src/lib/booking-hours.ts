@@ -2,6 +2,12 @@
 // (server) so the two can never drift out of sync.
 export const BOOKING_HOURS = [8, 9, 10, 11, 12, 13, 14, 15, 16];
 
+// Extra whole-hour slots shown only when the admin is booking/editing an
+// appointment on a customer's behalf — kept separate from BOOKING_HOURS so
+// customer-facing availability (and the admin's own blocked-slots picker)
+// stay unaffected. 17 = 5 PM, 18 = 6 PM.
+export const ADMIN_EXTRA_HOURS = [17, 18];
+
 export const MAX_APPOINTMENTS_PER_DAY = 3;
 
 // Pickup & drop-off requires enough notice to actually plan the trip, so it
