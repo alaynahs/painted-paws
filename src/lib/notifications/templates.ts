@@ -349,6 +349,117 @@ See you soon!
 ${BUSINESS_NAME}`;
 }
 
+// Email versions of the "Quick Message" buttons on an appointment — used
+// in place of SMS, since text messaging (Twilio) was never set up.
+export function pickup15MinEmail(vars: {
+  firstName: string;
+  petName: string;
+  reviewUrl: string;
+}): EmailContent {
+  return {
+    subject: "15 Minutes Until Pickup! 🐾",
+    body: `Hi ${vars.firstName},
+
+We're putting the finishing touches on ${vars.petName} and they should be ready for pickup in about 15 minutes!
+
+Please head our way when you can. We'll let you know if anything changes.
+
+While you wait, feel free to leave a review or add a tip for your groomer: ${vars.reviewUrl}
+
+See you soon!
+${BUSINESS_NAME}`,
+  };
+}
+
+export function pickupReadyEmail(vars: {
+  firstName: string;
+  petName: string;
+}): EmailContent {
+  return {
+    subject: "Ready for Pickup! 🐶✨",
+    body: `Hi ${vars.firstName},
+
+${vars.petName} is all finished and ready to head home!
+
+Please pick up within 30 minutes, if possible. If you're running behind, just let us know.
+
+We can't wait for you to see their fresh new look!
+${BUSINESS_NAME}`,
+  };
+}
+
+export function mobilePickupOnWayEmail(vars: {
+  firstName: string;
+  petName: string;
+  eta: string;
+}): EmailContent {
+  return {
+    subject: "On My Way! 🚗🐾",
+    body: `Hi ${vars.firstName},
+
+I'm on my way to pick up ${vars.petName} and should arrive in about ${vars.eta}.
+
+Please have them ready with their leash or harness.
+
+See you soon!
+${BUSINESS_NAME}`,
+  };
+}
+
+export function mobilePickupArrivedEmail(vars: {
+  firstName: string;
+  petName: string;
+}): EmailContent {
+  return {
+    subject: "I've Arrived! 🐾",
+    body: `Hi ${vars.firstName},
+
+I've arrived to pick up ${vars.petName}.
+
+Whenever you're ready, please bring them out, or let me know if you'd like me to come to the door.
+
+${BUSINESS_NAME}`,
+  };
+}
+
+export function cantReachClientEmail(vars: {
+  firstName: string;
+  petName: string;
+  waitMinutes: string;
+}): EmailContent {
+  return {
+    subject: "Having Trouble Reaching You",
+    body: `Hi ${vars.firstName},
+
+I've arrived to pick up ${vars.petName}, but I haven't been able to reach you.
+
+Please reply or give me a call when you're available. I'll wait ${vars.waitMinutes} minutes before moving on to my next appointment.
+
+Thank you!
+${BUSINESS_NAME}`,
+  };
+}
+
+export function mobileDropoffOnWayEmail(vars: {
+  firstName: string;
+  petName: string;
+  eta: string;
+}): EmailContent {
+  return {
+    subject: "Heading Your Way! 🏡🐾",
+    body: `Hi ${vars.firstName},
+
+${vars.petName} is all fresh and clean, and we're on our way home!
+
+Our estimated arrival time is ${vars.eta}.
+
+Please make sure someone is available to receive them.
+
+See you soon!
+${BUSINESS_NAME}`,
+  };
+}
+
 export function postVisitThankYouSms(vars: { petName: string }) {
   return `Thank you for trusting us with ${vars.petName}! We hope you love their fresh groom. 💛
 ${BUSINESS_NAME}`;

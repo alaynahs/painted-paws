@@ -5,14 +5,14 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { requireAdmin } from "@/lib/supabase/admin";
-import { notifyEmail, notifyText, type NotificationType } from "@/lib/notifications/service";
+import { notifyEmail, type NotificationType } from "@/lib/notifications/service";
 import {
-  cantReachClientSms,
-  mobileDropoffOnWaySms,
-  mobilePickupArrivedSms,
-  mobilePickupOnWaySms,
-  pickup15MinSms,
-  pickupReadySms,
+  cantReachClientEmail,
+  mobileDropoffOnWayEmail,
+  mobilePickupArrivedEmail,
+  mobilePickupOnWayEmail,
+  pickup15MinEmail,
+  pickupReadyEmail,
   postVisitThankYouEmail,
 } from "@/lib/notifications/templates";
 
@@ -148,8 +148,8 @@ interface AppointmentContact {
   customer_id: string;
   pets: { id: string; name: string } | { id: string; name: string }[] | null;
   profiles:
-    | { full_name: string | null; phone: string | null }
-    | { full_name: string | null; phone: string | null }[]
+    | { full_name: string | null; email: string | null }
+    | { full_name: string | null; email: string | null }[]
     | null;
 }
 
@@ -167,7 +167,7 @@ export async function sendQuickMessage(formData: FormData) {
   const { data } = await supabase
     .from("appointments")
     .select(
-      "id, customer_id, pets(id, name), profiles:customer_id(full_name, phone)",
+      "id, customer_id, pets(id, name), profiles:customer_id(full_name, email)",
     )
     .eq("id", appointmentId)
     .single();
@@ -182,43 +182,43 @@ export async function sendQuickMessage(formData: FormData) {
     customerId: appt.customer_id,
     petId: pet.id,
     appointmentId: appt.id,
-    phone: profile?.phone ?? null,
+    email: profile?.email ?? null,
   };
   const vars = {
     firstName: (profile?.full_name || "there").split(" ")[0],
     petName: pet.name,
   };
 
-  let body: string;
+  let content: { subject: string; body: string };
   switch (type) {
     case "pickup_15min": {
       const origin = (await headers()).get("origin");
-      body = pickup15MinSms({
+      content = pickup15MinEmail({
         ...vars,
         reviewUrl: `${origin}/leave-a-review/${appt.id}`,
       });
       break;
     }
     case "pickup_ready":
-      body = pickupReadySms(vars);
+      content = pickupReadyEmail(vars);
       break;
     case "pickup_on_way":
-      body = mobilePickupOnWaySms({ ...vars, eta: extra || "15 minutes" });
+      content = mobilePickupOnWayEmail({ ...vars, eta: extra || "15 minutes" });
       break;
     case "pickup_arrived":
-      body = mobilePickupArrivedSms(vars);
+      content = mobilePickupArrivedEmail(vars);
       break;
     case "pickup_cant_reach":
-      body = cantReachClientSms({ ...vars, waitMinutes: extra || "10" });
+      content = cantReachClientEmail({ ...vars, waitMinutes: extra || "10" });
       break;
     case "dropoff_on_way":
-      body = mobileDropoffOnWaySms({ ...vars, eta: extra || "15 minutes" });
+      content = mobileDropoffOnWayEmail({ ...vars, eta: extra || "15 minutes" });
       break;
     default:
       return;
   }
 
-  await notifyText(supabase, target, type as NotificationType, body);
+  await notifyEmail(supabase, target, type as NotificationType, content);
 }
 
 // Marks the visit done and emails the pet parent the tip/review page link.

@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/supabase/admin";
 import { cancelAppointment, sendPaymentLinkEmail } from "@/app/book/actions";
 import { markAppointmentComplete } from "@/app/admin/actions";
 import BookingFlow from "@/components/booking-flow";
+import QuickMessageButtons from "@/components/quick-message-buttons";
 import {
   CAT_ADD_ON_NAMES,
   CREATIVE_TIER_LABELS,
@@ -121,6 +122,14 @@ export default async function AdminEditAppointmentPage({
           </form>
         </div>
       )}
+
+      <div className="mt-4">
+        <QuickMessageButtons appointmentId={appointment.id} />
+        <p className="mt-1.5 text-xs text-muted">
+          On my way, ready for pickup, can&apos;t reach client, and other
+          quick updates — sent straight to the pet parent&apos;s email.
+        </p>
+      </div>
 
       <div className="mt-8">
         <BookingFlow

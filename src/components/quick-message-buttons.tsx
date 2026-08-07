@@ -79,7 +79,7 @@ export default function QuickMessageButtons({
         onClick={() => setOpen((v) => !v)}
         className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
       >
-        {sentType ? "Sent ✓" : "Quick text ▾"}
+        {sentType ? "Sent ✓" : "Quick email ▾"}
       </button>
 
       {open && (
