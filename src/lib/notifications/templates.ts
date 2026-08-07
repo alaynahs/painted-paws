@@ -460,6 +460,29 @@ ${BUSINESS_NAME}`,
   };
 }
 
+// General "please respond or we may release your slot" nudge — distinct
+// from cantReachClientEmail, which is specifically for a groomer standing
+// at the door for a mobile pickup. This one's for any appointment the
+// admin can't get a hold of ahead of time.
+export function noResponseWarningEmail(vars: {
+  firstName: string;
+  petName: string;
+  date: string;
+  time: string;
+}): EmailContent {
+  return {
+    subject: "We Need to Hear From You",
+    body: `Hi ${vars.firstName},
+
+We've been trying to reach you about ${vars.petName}'s appointment on ${vars.date} at ${vars.time}, but haven't been able to connect.
+
+Please reply to this email or give us a call as soon as you can. If we don't hear back, we may need to release this time slot to another customer.
+
+Thank you!
+${BUSINESS_NAME}`,
+  };
+}
+
 export function postVisitThankYouSms(vars: { petName: string }) {
   return `Thank you for trusting us with ${vars.petName}! We hope you love their fresh groom. 💛
 ${BUSINESS_NAME}`;

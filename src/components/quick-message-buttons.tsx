@@ -30,6 +30,10 @@ const QUICK_MESSAGES: {
     prompt: "ETA?",
     promptDefault: "15 minutes",
   },
+  {
+    type: "no_response_warning",
+    label: "Unable to contact — need a response",
+  },
 ];
 
 export default function QuickMessageButtons({

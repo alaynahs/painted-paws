@@ -11,10 +11,12 @@ import {
   mobileDropoffOnWayEmail,
   mobilePickupArrivedEmail,
   mobilePickupOnWayEmail,
+  noResponseWarningEmail,
   pickup15MinEmail,
   pickupReadyEmail,
   postVisitThankYouEmail,
 } from "@/lib/notifications/templates";
+import { formatDate, formatHour } from "@/lib/format";
 
 // Marks a pet inactive (e.g. after they've passed away) so they no longer
 // show up as a bookable option — their profile and history stay intact.
@@ -141,11 +143,15 @@ type QuickMessageType =
   | "pickup_on_way"
   | "pickup_arrived"
   | "pickup_cant_reach"
-  | "dropoff_on_way";
+  | "dropoff_on_way"
+  | "no_response_warning";
 
 interface AppointmentContact {
   id: string;
   customer_id: string;
+  appointment_date: string;
+  appointment_hour: number;
+  appointment_minute: number;
   pets: { id: string; name: string } | { id: string; name: string }[] | null;
   profiles:
     | { full_name: string | null; email: string | null }
@@ -167,7 +173,7 @@ export async function sendQuickMessage(formData: FormData) {
   const { data } = await supabase
     .from("appointments")
     .select(
-      "id, customer_id, pets(id, name), profiles:customer_id(full_name, email)",
+      "id, customer_id, appointment_date, appointment_hour, appointment_minute, pets(id, name), profiles:customer_id(full_name, email)",
     )
     .eq("id", appointmentId)
     .single();
@@ -213,6 +219,13 @@ export async function sendQuickMessage(formData: FormData) {
       break;
     case "dropoff_on_way":
       content = mobileDropoffOnWayEmail({ ...vars, eta: extra || "15 minutes" });
+      break;
+    case "no_response_warning":
+      content = noResponseWarningEmail({
+        ...vars,
+        date: formatDate(appt.appointment_date),
+        time: formatHour(appt.appointment_hour, appt.appointment_minute),
+      });
       break;
     default:
       return;

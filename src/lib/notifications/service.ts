@@ -26,7 +26,8 @@ export type NotificationType =
   | "pickup_on_way"
   | "pickup_arrived"
   | "pickup_cant_reach"
-  | "dropoff_on_way";
+  | "dropoff_on_way"
+  | "no_response_warning";
 
 interface NotifyTarget {
   customerId: string;
