@@ -41,11 +41,19 @@ const LONG_DOODLES_POODLES = [
 
 // Matches "Goldendoodle" or "Goldendoodle Mix" (the latter from the
 // pet-form's mixed-breed checkbox) — either way it's the same cross.
+// Normalized so casing/spacing differences (e.g. "golden doodle") don't
+// cause a real doodle cross to miss the doodle-mix pricing rule.
 export function isDoodleMixBreed(breed: string): boolean {
   const trimmed = breed.trim();
-  return DOODLE_MIX_BREED_NAMES.some(
-    (name) => trimmed === name || trimmed === `${name} Mix`,
-  );
+  if (
+    DOODLE_MIX_BREED_NAMES.some(
+      (name) => trimmed === name || trimmed === `${name} Mix`,
+    )
+  ) {
+    return true;
+  }
+  const target = normalizeBreedTokens(trimmed.replace(/ Mix$/i, ""));
+  return DOODLE_MIX_BREED_NAMES.some((name) => normalizeBreedTokens(name) === target);
 }
 
 const LONG_SILKY_DROP = [
@@ -115,8 +123,29 @@ export const DOG_BREEDS: BreedEntry[] = [
   ...toEntries(LONG_WIRE, "long", "Wire Coats & Furnishings"),
 ].sort((a, b) => a.name.localeCompare(b.name));
 
+// Normalizes to a sorted set of words so formatting differences don't
+// cause an otherwise-known breed to fall through to a manual coat picker —
+// e.g. "Poodle Standard", "poodle standard", and "Poodle (Standard)" all
+// normalize to the same thing.
+function normalizeBreedTokens(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[()]/g, " ")
+    .replace(/[-–—]/g, " ")
+    .replace(/[^a-z0-9\s&]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .sort()
+    .join(" ");
+}
+
 export function findBreed(name: string): BreedEntry | undefined {
-  return DOG_BREEDS.find((b) => b.name === name);
+  const trimmed = name.trim();
+  if (!trimmed) return undefined;
+  const exact = DOG_BREEDS.find((b) => b.name === trimmed);
+  if (exact) return exact;
+  const target = normalizeBreedTokens(trimmed);
+  return DOG_BREEDS.find((b) => normalizeBreedTokens(b.name) === target);
 }
 
 export interface CatBreedEntry {
@@ -142,5 +171,10 @@ export const CAT_BREEDS: CatBreedEntry[] = [...CAT_BREED_ENTRIES].sort((a, b) =>
 );
 
 export function findCatBreed(name: string): CatBreedEntry | undefined {
-  return CAT_BREEDS.find((b) => b.name === name);
+  const trimmed = name.trim();
+  if (!trimmed) return undefined;
+  const exact = CAT_BREEDS.find((b) => b.name === trimmed);
+  if (exact) return exact;
+  const target = normalizeBreedTokens(trimmed);
+  return CAT_BREEDS.find((b) => normalizeBreedTokens(b.name) === target);
 }
