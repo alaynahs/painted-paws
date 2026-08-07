@@ -187,3 +187,54 @@ export async function createCouponsForGroup(formData: FormData) {
     `/admin/coupons?message=${encodeURIComponent(`Coupon given to ${members.length} customer${members.length === 1 ? "" : "s"}.`)}`,
   );
 }
+
+function randomCode(): string {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I
+  let code = "";
+  for (let i = 0; i < 8; i++) {
+    code += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+  return code;
+}
+
+export async function generateCouponCode(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const discount = readDiscountFields(formData);
+  const note = (formData.get("note") as string) || null;
+  const typedCode = ((formData.get("code") as string) || "").trim().toUpperCase();
+  const maxRedemptionsRaw = (formData.get("maxRedemptions") as string) || "";
+  const maxRedemptions = maxRedemptionsRaw ? Number(maxRedemptionsRaw) : null;
+  const expiresAtRaw = (formData.get("expiresAt") as string) || "";
+  const expiresAt = expiresAtRaw ? new Date(`${expiresAtRaw}T23:59:59`).toISOString() : null;
+
+  if (!discount.valid) {
+    redirect(
+      `/admin/coupons?error=${encodeURIComponent("Enter a discount amount greater than 0.")}`,
+    );
+  }
+
+  const code = typedCode || randomCode();
+
+  const { error } = await supabase.from("coupons").insert({
+    customer_id: null,
+    code,
+    discount_percent: discount.discount_percent,
+    discount_amount: discount.discount_amount,
+    note,
+    max_redemptions: maxRedemptions,
+    expires_at: expiresAt,
+  });
+
+  if (error) {
+    const message = error.code === "23505" ? "That code is already in use." : error.message;
+    redirect(`/admin/coupons?error=${encodeURIComponent(message)}`);
+  }
+
+  redirect(`/admin/coupons?message=${encodeURIComponent(`Code "${code}" created.`)}`);
+}
+
+export async function deleteCouponCode(codeId: string) {
+  const { supabase } = await requireAdmin();
+  await supabase.from("coupons").delete().eq("id", codeId).is("customer_id", null);
+  redirect(`/admin/coupons?message=${encodeURIComponent("Code deleted.")}`);
+}

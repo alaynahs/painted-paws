@@ -36,7 +36,7 @@ import {
 } from "@/app/book/actions";
 import { getActivePromotion, type ActivePromotion } from "@/lib/promotions/actions";
 import { promotionAppliesToDate } from "@/lib/promotions/helpers";
-import { getCustomerCoupon } from "@/lib/coupons/actions";
+import { getCustomerCoupon, redeemCouponCode } from "@/lib/coupons/actions";
 import { logBookingStep } from "@/lib/analytics/booking-funnel";
 import {
   ADMIN_EXTRA_HOURS,
@@ -267,9 +267,34 @@ export default function BookingFlow({
     discountAmount: number | null;
   } | null>(null);
   const [applyCoupon, setApplyCoupon] = useState(false);
+  const [couponCodeInput, setCouponCodeInput] = useState("");
+  const [couponCodeError, setCouponCodeError] = useState<string | null>(null);
+  const [couponCodeSubmitting, setCouponCodeSubmitting] = useState(false);
+  const [couponCodeApplied, setCouponCodeApplied] = useState(false);
   const couponActive = mode === "create" && customerCoupon != null && applyCoupon;
   const couponPercent = couponActive ? (customerCoupon!.discountPercent ?? 0) : 0;
   const couponAmount = couponActive ? (customerCoupon!.discountAmount ?? 0) : 0;
+
+  // Typing a code spawns a personal-coupon row for this customer server-side
+  // (see redeemCouponCode) and, on success, is applied the exact same way an
+  // admin-assigned coupon already is — same state, same price math below.
+  async function handleApplyCouponCode() {
+    if (!couponCodeInput.trim()) return;
+    setCouponCodeSubmitting(true);
+    setCouponCodeError(null);
+    const result = await redeemCouponCode(couponCodeInput);
+    setCouponCodeSubmitting(false);
+    if (!result.success) {
+      setCouponCodeError(result.error ?? "Could not apply that code.");
+      return;
+    }
+    setCustomerCoupon({
+      discountPercent: result.discountPercent ?? null,
+      discountAmount: result.discountAmount ?? null,
+    });
+    setApplyCoupon(true);
+    setCouponCodeApplied(true);
+  }
   // Admin bookings don't draw from the sitewide promo or a customer's saved
   // coupon — instead the admin can just type in whatever one-off discount
   // they want for this booking, e.g. to match a phone-quoted price.
@@ -1129,6 +1154,37 @@ export default function BookingFlow({
                 />
               )}
             </div>
+          </div>
+        )}
+
+        {!isAdmin && mode === "create" && !couponCodeApplied && (
+          <div className="mb-4 rounded-xl border border-accent-dark/40 bg-card px-3.5 py-2.5">
+            <p className="text-sm font-medium text-foreground/90">
+              Have a coupon code?
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <input
+                type="text"
+                value={couponCodeInput}
+                onChange={(e) => {
+                  setCouponCodeInput(e.target.value);
+                  setCouponCodeError(null);
+                }}
+                placeholder="Enter code"
+                className="w-36 rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground uppercase outline-none focus:border-accent-dark"
+              />
+              <button
+                type="button"
+                onClick={handleApplyCouponCode}
+                disabled={couponCodeSubmitting || !couponCodeInput.trim()}
+                className="rounded-full border border-accent-dark px-4 py-2 text-sm font-medium text-accent-dark transition-colors hover:bg-accent-dark hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {couponCodeSubmitting ? "Applying…" : "Apply"}
+              </button>
+            </div>
+            {couponCodeError && (
+              <p className="mt-2 text-xs text-accent-dark">{couponCodeError}</p>
+            )}
           </div>
         )}
 
