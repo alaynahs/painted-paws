@@ -8,6 +8,7 @@ import {
   notifyText,
 } from "@/lib/notifications/service";
 import { formatHour, todayInCentral } from "@/lib/format";
+import { QUICK_MESSAGE_TYPES } from "@/lib/notifications/quick-message-labels";
 import {
   BUSINESS_EMAIL,
   postVisitThankYouSms,
@@ -87,6 +88,7 @@ export async function GET(request: NextRequest) {
     rebooking16wk: 0,
     signupNoBooking: 0,
     deletedOldAppointments: 0,
+    deletedQuickMessageLogs: 0,
   };
 
   // 1. 24-hour reminder
@@ -348,6 +350,55 @@ export async function GET(request: NextRequest) {
     .lt("appointment_date", oneYearAgo)
     .select("id");
   results.deletedOldAppointments = deletedOld?.length ?? 0;
+
+  // 8. Quick Message emails (on my way, can't reach client, etc.) only need
+  // to stick around for a customer's most recent visits — trim each
+  // customer down to just the logs tied to their 3 most recent
+  // appointments, so old ones don't pile up on their admin profile forever.
+  const { data: quickMessageCustomers } = await supabase
+    .from("notifications_log")
+    .select("customer_id")
+    .in("type", QUICK_MESSAGE_TYPES)
+    .not("appointment_id", "is", null);
+
+  const distinctQuickMessageCustomerIds = [
+    ...new Set((quickMessageCustomers ?? []).map((r) => r.customer_id)),
+  ];
+
+  let deletedQuickMessageLogs = 0;
+  for (const customerId of distinctQuickMessageCustomerIds) {
+    const [{ data: recentAppts }, { data: quickLogs }] = await Promise.all([
+      supabase
+        .from("appointments")
+        .select("id")
+        .eq("customer_id", customerId)
+        .order("appointment_date", { ascending: false })
+        .order("appointment_hour", { ascending: false })
+        .limit(3),
+      supabase
+        .from("notifications_log")
+        .select("id, appointment_id")
+        .eq("customer_id", customerId)
+        .in("type", QUICK_MESSAGE_TYPES),
+    ]);
+
+    const keepAppointmentIds = new Set((recentAppts ?? []).map((a) => a.id));
+    const idsToDelete = (quickLogs ?? [])
+      .filter(
+        (l) => l.appointment_id && !keepAppointmentIds.has(l.appointment_id),
+      )
+      .map((l) => l.id);
+
+    if (idsToDelete.length > 0) {
+      const { data: deleted } = await supabase
+        .from("notifications_log")
+        .delete()
+        .in("id", idsToDelete)
+        .select("id");
+      deletedQuickMessageLogs += deleted?.length ?? 0;
+    }
+  }
+  results.deletedQuickMessageLogs = deletedQuickMessageLogs;
 
   return NextResponse.json({ ok: true, date: today, results });
 }

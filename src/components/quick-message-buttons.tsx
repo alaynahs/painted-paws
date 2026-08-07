@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { sendQuickMessage } from "@/app/admin/actions";
+import { QUICK_MESSAGE_LABELS } from "@/lib/notifications/quick-message-labels";
 
 const QUICK_MESSAGES: {
   type: string;
@@ -11,28 +12,28 @@ const QUICK_MESSAGES: {
 }[] = [
   {
     type: "pickup_on_way",
-    label: "On my way (mobile pickup)",
+    label: QUICK_MESSAGE_LABELS.pickup_on_way,
     prompt: "ETA?",
     promptDefault: "15 minutes",
   },
-  { type: "pickup_arrived", label: "I've arrived (mobile pickup)" },
+  { type: "pickup_arrived", label: QUICK_MESSAGE_LABELS.pickup_arrived },
   {
     type: "pickup_cant_reach",
-    label: "Can't reach client",
+    label: QUICK_MESSAGE_LABELS.pickup_cant_reach,
     prompt: "How many minutes will you wait?",
     promptDefault: "10",
   },
-  { type: "pickup_15min", label: "15 min until ready" },
-  { type: "pickup_ready", label: "Ready for pickup" },
+  { type: "pickup_15min", label: QUICK_MESSAGE_LABELS.pickup_15min },
+  { type: "pickup_ready", label: QUICK_MESSAGE_LABELS.pickup_ready },
   {
     type: "dropoff_on_way",
-    label: "Drop-off on my way",
+    label: QUICK_MESSAGE_LABELS.dropoff_on_way,
     prompt: "ETA?",
     promptDefault: "15 minutes",
   },
   {
     type: "no_response_warning",
-    label: "Unable to contact — need a response",
+    label: QUICK_MESSAGE_LABELS.no_response_warning,
   },
 ];
 

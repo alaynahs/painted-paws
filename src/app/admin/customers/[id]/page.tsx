@@ -2,6 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/supabase/admin";
 import { formatDate, formatDateTime, formatHour } from "@/lib/format";
+import {
+  QUICK_MESSAGE_LABELS,
+  QUICK_MESSAGE_TYPES,
+  type QuickMessageType,
+} from "@/lib/notifications/quick-message-labels";
+import ShowMoreList from "@/components/show-more-list";
 import { adminUpdateCustomerContact } from "../actions";
 
 export default async function AdminCustomerPage({
@@ -86,6 +92,14 @@ export default async function AdminCustomerPage({
     )
     .eq("customer_id", id)
     .order("signed_date", { ascending: false });
+
+  const { data: quickEmails } = await supabase
+    .from("notifications_log")
+    .select("id, type, sent_at, status")
+    .eq("customer_id", id)
+    .eq("channel", "email")
+    .in("type", QUICK_MESSAGE_TYPES)
+    .order("sent_at", { ascending: false });
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-16">
@@ -235,6 +249,47 @@ export default async function AdminCustomerPage({
             No coupons on this account.
           </p>
         )}
+      </section>
+
+      <section className="mt-8 rounded-2xl border border-border bg-card p-6">
+        <h2 className="font-serif text-lg text-foreground">
+          Quick Emails Sent
+        </h2>
+        {quickEmails && quickEmails.length > 0 ? (
+          <div className="mt-4 space-y-2">
+            <ShowMoreList initialCount={3}>
+              {quickEmails.map((qe) => (
+                <div
+                  key={qe.id}
+                  className="rounded-xl border border-border bg-background p-3"
+                >
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                    <p className="text-sm text-foreground/90">
+                      {QUICK_MESSAGE_LABELS[qe.type as QuickMessageType] ??
+                        qe.type}
+                    </p>
+                    {qe.status !== "sent" && (
+                      <span className="rounded-full bg-accent-tint px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-accent-dark">
+                        {qe.status}
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-1 text-xs text-muted">
+                    {formatDateTime(qe.sent_at)}
+                  </p>
+                </div>
+              ))}
+            </ShowMoreList>
+          </div>
+        ) : (
+          <p className="mt-4 text-sm text-muted">
+            No quick emails sent to this customer yet.
+          </p>
+        )}
+        <p className="mt-3 text-xs text-muted">
+          Older entries are cleared out automatically once a customer has 3
+          more recent appointments.
+        </p>
       </section>
 
       <section className="mt-8 rounded-2xl border border-border bg-card p-6">
