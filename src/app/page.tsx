@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 
 const features = [
   {
-    title: "One-on-one, always",
+    title: "One-on-one",
     body: "Your pet is the only one here for their appointment. No kennels, no crowded lobby, no waiting in a cage between steps.",
   },
   {
@@ -76,7 +76,7 @@ export default async function Home() {
                 🐱 Meow-approved
               </span>
               <span className="rounded-full bg-pastel-yellow/70 px-3 py-1 font-semibold text-foreground/85">
-                ✨ Zero cages, always
+                ✨ Zero cages
               </span>
             </div>
             <div className="mt-8 flex flex-wrap gap-4">
@@ -162,9 +162,6 @@ export default async function Home() {
                   ✓ Certified
                 </span>
                 <span className="rounded-full bg-accent-tint px-3 py-1 text-xs font-medium text-foreground/80">
-                  ✓ Licensed
-                </span>
-                <span className="rounded-full bg-accent-tint px-3 py-1 text-xs font-medium text-foreground/80">
                   ✓ Insured
                 </span>
               </div>
@@ -202,7 +199,7 @@ export default async function Home() {
           <RevealOnScroll delay={100} className="rounded-2xl border border-border bg-accent-tint p-6 text-center">
             <p className="text-2xl">🐾</p>
             <h3 className="mt-3 font-serif text-lg text-foreground">
-              Handled gently, always
+              Handled gently
             </h3>
             <p className="mt-2 text-sm text-muted">
               Patient, low-stress handling for anxious first-timers and

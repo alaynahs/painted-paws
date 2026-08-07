@@ -145,7 +145,7 @@ const faqGroups = [
       },
       {
         q: "Are you insured?",
-        a: "Yes. Certified, licensed, insured, and with a clean driving record for pickup & drop-off visits.",
+        a: "Yes. Certified, insured, and with a clean driving record for pickup & drop-off visits.",
       },
       {
         q: "Do you offer creative color or design grooming?",
