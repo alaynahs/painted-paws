@@ -188,14 +188,24 @@ export default async function AdminCustomerPage({
       </section>
 
       <section className="mt-8 rounded-2xl border border-border bg-card p-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-serif text-lg text-foreground">Pets</h2>
-          <Link
-            href={`/admin/pets/new?customerId=${profile.id}`}
-            className="rounded-full bg-accent px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-accent-dark"
-          >
-            + Add a Pet
-          </Link>
+          <div className="flex gap-2">
+            {pets && pets.length > 0 && (
+              <Link
+                href={`/admin/book/customer/${profile.id}`}
+                className="rounded-full border border-accent-dark px-4 py-2 text-xs font-medium text-accent-dark transition-colors hover:bg-accent-dark hover:text-white"
+              >
+                Book Appointment
+              </Link>
+            )}
+            <Link
+              href={`/admin/pets/new?customerId=${profile.id}`}
+              className="rounded-full bg-accent px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-accent-dark"
+            >
+              + Add a Pet
+            </Link>
+          </div>
         </div>
         {pets && pets.length > 0 ? (
           <div className="mt-4 grid gap-3 sm:grid-cols-2">

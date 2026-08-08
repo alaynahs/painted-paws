@@ -908,9 +908,12 @@ export default function BookingFlow({
         <div className="mt-3 grid grid-cols-3 gap-2.5 sm:grid-cols-4">
           {(isAdmin ? [...HOURS, ...ADMIN_EXTRA_HOURS] : HOURS).map((h) => {
             const isSelected = hour === h && minute === 0;
+            const isTaken = bookedHours.includes(h);
+            // Admin can intentionally double-book a slot (e.g. two dogs
+            // from the same household both at 5pm) — everyone else is
+            // still blocked from an already-taken or too-soon/past hour.
             const isDisabled =
-              bookedHours.includes(h) ||
-              (!isAdmin && isPastOrTooSoon(date, h, pickupDropoff));
+              !isAdmin && (isTaken || isPastOrTooSoon(date, h, pickupDropoff));
             return (
               <button
                 key={h}
@@ -923,11 +926,18 @@ export default function BookingFlow({
                 className={`flex items-center justify-center gap-1.5 rounded-2xl border px-3 py-3 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
                   isSelected
                     ? "border-accent bg-accent text-white"
-                    : "border-border bg-card text-foreground/80 hover:border-accent-dark"
+                    : isAdmin && isTaken
+                      ? "border-accent-dark/40 bg-accent-tint text-foreground/80 hover:border-accent-dark"
+                      : "border-border bg-card text-foreground/80 hover:border-accent-dark"
                 }`}
               >
                 {isSelected && <PawIcon className="h-3.5 w-3.5" />}
                 {formatHour(h)}
+                {isAdmin && isTaken && !isSelected && (
+                  <span className="text-[10px] text-accent-dark">
+                    (booked)
+                  </span>
+                )}
               </button>
             );
           })}
@@ -966,7 +976,7 @@ export default function BookingFlow({
         )}
         <p className="mt-2 text-xs text-muted">
           {isAdmin
-            ? "Customers book 8 AM – 4 PM; 5 PM and 6 PM (or any custom time above) are for admin bookings only."
+            ? "Customers book 8 AM – 4 PM; 5 PM, 6 PM, and any custom time above are for admin bookings only. Slots marked (booked) already have another appointment — you can still pick one to intentionally double-book (e.g. two dogs from the same household at once)."
             : "Appointments run 8 AM – 4 PM, one pet at a time."}
           {pickupDropoff &&
             ` Pickup & drop-off requires booking at least ${PICKUP_MIN_LEAD_HOURS} hour${PICKUP_MIN_LEAD_HOURS === 1 ? "" : "s"} ahead.`}

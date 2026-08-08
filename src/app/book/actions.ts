@@ -964,6 +964,10 @@ export async function updateAppointment(formData: FormData) {
       appointment_date: fields.date,
       appointment_hour: fields.hour,
       appointment_minute: fields.minute,
+      // Once an admin has touched an appointment's time, it's exempt from
+      // the customer-only same-slot uniqueness check going forward — lets
+      // the admin move it to intentionally overlap another appointment.
+      ...(admin ? { admin_booked: true } : {}),
       payment_method: fields.paymentMethod,
       price,
       sales_tax: salesTax,
@@ -1416,15 +1420,22 @@ export async function adminCreateAppointment(formData: FormData) {
 
   const customerId = formData.get("customerId") as string;
   const fields = readBookingFields(formData);
+  // Lets a caller (e.g. the multi-pet booking page) bring the admin back to
+  // itself instead of the generic /admin/book search page, so booking a
+  // second pet for the same customer doesn't require re-navigating.
+  const returnTo = ((formData.get("returnTo") as string) || "").trim() || null;
+  const errorBase = returnTo ?? "/admin/book";
+  const successBase = returnTo ?? "/admin";
+
   const waiver = readWaiverFields(formData);
   const waiverIssue = waiverError(waiver);
   if (waiverIssue) {
-    redirect(`/admin/book?error=${encodeURIComponent(waiverIssue)}`);
+    redirect(`${errorBase}?error=${encodeURIComponent(waiverIssue)}`);
   }
 
   const rangeIssue = adminTimeRangeError(fields.hour, fields.minute);
   if (rangeIssue) {
-    redirect(`/admin/book?error=${encodeURIComponent(rangeIssue)}`);
+    redirect(`${errorBase}?error=${encodeURIComponent(rangeIssue)}`);
   }
 
   const { data: pet } = await supabase
@@ -1433,7 +1444,7 @@ export async function adminCreateAppointment(formData: FormData) {
     .eq("id", fields.petId)
     .single();
 
-  if (!pet) redirect("/admin/book?error=Pet%20not%20found");
+  if (!pet) redirect(`${errorBase}?error=Pet%20not%20found`);
 
   const hasMembership = await petHasActiveMembership(supabase, fields.petId);
   const redeemablePack = fields.redeemCredit
@@ -1480,6 +1491,7 @@ export async function adminCreateAppointment(formData: FormData) {
       appointment_date: fields.date,
       appointment_hour: fields.hour,
       appointment_minute: fields.minute,
+      admin_booked: true,
       payment_method: fields.paymentMethod,
       price,
       sales_tax: salesTax,
@@ -1494,7 +1506,7 @@ export async function adminCreateAppointment(formData: FormData) {
 
   if (error || !appointment) {
     redirect(
-      `/admin/book?error=${encodeURIComponent(error?.message ?? "Could not book")}`,
+      `${errorBase}?error=${encodeURIComponent(error?.message ?? "Could not book")}`,
     );
   }
 
@@ -1522,5 +1534,5 @@ export async function adminCreateAppointment(formData: FormData) {
     price,
   });
 
-  redirect("/admin?booked=1");
+  redirect(`${successBase}?booked=${encodeURIComponent(pet.name)}`);
 }

@@ -69,12 +69,22 @@ export default function AdminBookingSearch() {
               key={customer.id}
               className="rounded-2xl border border-border bg-card p-4"
             >
-              <Link
-                href={`/admin/customers/${customer.id}`}
-                className="font-serif text-base text-foreground hover:text-accent-dark hover:underline"
-              >
-                {customer.full_name ?? "Unknown owner"}
-              </Link>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Link
+                  href={`/admin/customers/${customer.id}`}
+                  className="font-serif text-base text-foreground hover:text-accent-dark hover:underline"
+                >
+                  {customer.full_name ?? "Unknown owner"}
+                </Link>
+                {customer.pets.length > 0 && (
+                  <Link
+                    href={`/admin/book/customer/${customer.id}`}
+                    className="rounded-full bg-accent px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-dark"
+                  >
+                    Book Appointment
+                  </Link>
+                )}
+              </div>
               <p className="text-xs text-muted">
                 {customer.phone}
                 {customer.phone && customer.email ? " · " : ""}
