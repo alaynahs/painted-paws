@@ -5,7 +5,6 @@ import { updatePet } from "@/app/account/pets/actions";
 import {
   addGroomNote,
   deleteGroomPhoto,
-  markAppointmentComplete,
   setCustomerDoNotBook,
   setPetActive,
   setPetDoNotBook,
@@ -16,6 +15,7 @@ import { MAX_NO_SHOWS } from "@/lib/booking-hours";
 import PetForm from "@/components/pet-form";
 import MembershipCard from "@/components/membership-card";
 import CancelAppointmentButton from "@/components/cancel-appointment-button";
+import MarkCompleteButton from "@/components/mark-complete-button";
 import ShowMoreList from "@/components/show-more-list";
 import { centralDateOnly, formatDate, formatHour, todayInCentral } from "@/lib/format";
 import {
@@ -610,14 +610,7 @@ function AppointmentCard({
             </form>
           )}
           {appt.status !== "completed" && (
-            <form action={markAppointmentComplete.bind(null, appt.id)}>
-              <button
-                type="submit"
-                className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
-              >
-                Mark Complete
-              </button>
-            </form>
+            <MarkCompleteButton appointmentId={appt.id} compact />
           )}
           <Link
             href={`/admin/appointments/${appt.id}`}

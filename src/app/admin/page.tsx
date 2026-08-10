@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/supabase/admin";
 import { confirmAppointment } from "@/app/book/actions";
-import { markAppointmentComplete } from "@/app/admin/actions";
 import CancelAppointmentButton from "@/components/cancel-appointment-button";
 import QuickMessageButtons from "@/components/quick-message-buttons";
+import MarkCompleteButton from "@/components/mark-complete-button";
 import { formatHour } from "@/lib/format";
 import { formatServiceLabel } from "@/lib/pricing/pricing";
 
@@ -221,14 +221,7 @@ export default async function AdminDashboardPage({
                         </form>
                       )}
                       {appt.status !== "completed" && (
-                        <form action={markAppointmentComplete.bind(null, appt.id)}>
-                          <button
-                            type="submit"
-                            className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
-                          >
-                            Mark Complete
-                          </button>
-                        </form>
+                        <MarkCompleteButton appointmentId={appt.id} compact />
                       )}
                       <Link
                         href={`/admin/appointments/${appt.id}`}

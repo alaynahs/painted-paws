@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/supabase/admin";
 import { cancelAppointment, sendPaymentLinkEmail } from "@/app/book/actions";
-import { markAppointmentComplete } from "@/app/admin/actions";
 import BookingFlow from "@/components/booking-flow";
 import QuickMessageButtons from "@/components/quick-message-buttons";
 import RefundButton from "@/components/refund-button";
+import MarkCompleteButton from "@/components/mark-complete-button";
 import {
   CAT_ADD_ON_NAMES,
   CREATIVE_TIER_LABELS,
@@ -35,7 +35,6 @@ export default async function AdminEditAppointmentPage({
   if (!appointment || !appointment.pets) notFound();
 
   const cancelWithId = cancelAppointment.bind(null, appointment.id);
-  const markCompleteWithId = markAppointmentComplete.bind(null, appointment.id);
   const sendPaymentLinkWithId = sendPaymentLinkEmail.bind(null, appointment.id);
   const config = await getPricingConfig();
 
@@ -94,17 +93,13 @@ export default async function AdminEditAppointmentPage({
             ✓ Marked complete — thank-you email sent
           </p>
         ) : (
-          <form action={markCompleteWithId}>
-            <button
-              type="submit"
-              className="rounded-full bg-accent px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-dark"
-            >
-              Mark Complete / Sent Home
-            </button>
+          <>
+            <MarkCompleteButton appointmentId={appointment.id} />
             <p className="mt-1.5 text-xs text-muted">
-              Emails the pet parent their tip &amp; review link.
+              Choose whether the thank-you email asks for just a review, or
+              a review and a tip.
             </p>
-          </form>
+          </>
         )}
       </div>
 

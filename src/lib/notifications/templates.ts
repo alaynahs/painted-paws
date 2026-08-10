@@ -524,6 +524,29 @@ ${BUSINESS_NAME}`,
   };
 }
 
+// Same as postVisitThankYouEmail, minus the tip ask — for visits where the
+// admin doesn't want to solicit a tip (e.g. one was already given in
+// person). Still links to the same page, which is fine to also have a tip
+// option on it; this email itself just doesn't mention one.
+export function postVisitReviewOnlyEmail(vars: {
+  firstName: string;
+  petName: string;
+  reviewUrl: string;
+}): EmailContent {
+  return {
+    subject: `${vars.petName} is all set! 🐾`,
+    body: `Hi ${vars.firstName},
+
+${vars.petName} is all fresh, clean, and ready to head home! Thank you so much for trusting us with them today.
+
+If you have a moment, we'd love to hear how it went:
+${vars.reviewUrl}
+
+Thank you again — we hope to see you both soon!
+${BUSINESS_NAME}`,
+  };
+}
+
 export function reviewRequestSms(vars: { firstName: string; petName: string }) {
   return `Hi ${vars.firstName}! 💛
 

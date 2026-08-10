@@ -14,6 +14,7 @@ import {
   noResponseWarningEmail,
   pickup15MinEmail,
   pickupReadyEmail,
+  postVisitReviewOnlyEmail,
   postVisitThankYouEmail,
 } from "@/lib/notifications/templates";
 import { formatDate, formatHour } from "@/lib/format";
@@ -243,7 +244,10 @@ interface AppointmentEmailContact {
     | null;
 }
 
-export async function markAppointmentComplete(appointmentId: string) {
+export async function markAppointmentComplete(
+  appointmentId: string,
+  includeTip: boolean,
+) {
   const { supabase } = await requireAdmin();
 
   const { data } = await supabase
@@ -267,6 +271,11 @@ export async function markAppointmentComplete(appointmentId: string) {
 
   if (profile?.email) {
     const origin = (await headers()).get("origin");
+    const emailVars = {
+      firstName: (profile.full_name || "there").split(" ")[0],
+      petName: pet?.name ?? "Your pet",
+      reviewUrl: `${origin}/leave-a-review/${appt.id}`,
+    };
     await notifyEmail(
       supabase,
       {
@@ -276,18 +285,14 @@ export async function markAppointmentComplete(appointmentId: string) {
         email: profile.email,
       },
       "post_visit_thank_you",
-      postVisitThankYouEmail({
-        firstName: (profile.full_name || "there").split(" ")[0],
-        petName: pet?.name ?? "Your pet",
-        reviewUrl: `${origin}/leave-a-review/${appt.id}`,
-      }),
+      includeTip ? postVisitThankYouEmail(emailVars) : postVisitReviewOnlyEmail(emailVars),
     );
   }
 
   redirect(
     `/admin/appointments/${appointmentId}?message=${encodeURIComponent(
       profile?.email
-        ? "Marked complete — thank-you email sent."
+        ? `Marked complete — ${includeTip ? "review + tip" : "review"} email sent.`
         : "Marked complete — no email on file to notify.",
     )}`,
   );
