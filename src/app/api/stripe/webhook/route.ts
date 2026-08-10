@@ -77,9 +77,11 @@ export async function POST(request: NextRequest) {
 
     if (appointmentId) {
       const supabase = createServiceClient();
+      const paymentIntentId =
+        typeof session.payment_intent === "string" ? session.payment_intent : null;
       await supabase
         .from("appointments")
-        .update({ payment_status: "paid" })
+        .update({ payment_status: "paid", stripe_payment_intent_id: paymentIntentId })
         .eq("id", appointmentId);
 
       const { data: appt } = await supabase

@@ -166,7 +166,9 @@ export default async function AccountPage({
                   {appt.payment_method === "online"
                     ? appt.payment_status === "paid"
                       ? "Paid online"
-                      : "Pay online (unpaid)"
+                      : appt.payment_status === "refunded"
+                        ? "Refunded"
+                        : "Pay online (unpaid)"
                     : "Pay in person"}
                   {" · "}
                   {appt.status}
@@ -190,7 +192,8 @@ export default async function AccountPage({
                   </Link>
                   <CancelAppointmentButton appointmentId={appt.id} />
                   {appt.payment_method === "online" &&
-                    appt.payment_status !== "paid" && (
+                    appt.payment_status !== "paid" &&
+                    appt.payment_status !== "refunded" && (
                       <form action={payAppointmentNow.bind(null, appt.id)}>
                         <button
                           type="submit"

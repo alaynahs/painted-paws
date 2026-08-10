@@ -54,13 +54,16 @@ export default function PastAppointmentsList({
                   {appt.payment_method === "online"
                     ? appt.payment_status === "paid"
                       ? "Paid online"
-                      : "Pay online (unpaid)"
+                      : appt.payment_status === "refunded"
+                        ? "Refunded"
+                        : "Pay online (unpaid)"
                     : "Pay in person"}
                   {" · "}
                   {appt.status}
                 </p>
                 {appt.payment_method === "online" &&
                   appt.payment_status !== "paid" &&
+                  appt.payment_status !== "refunded" &&
                   appt.status !== "cancelled" && (
                     <div className="mt-3">
                       <form action={payAppointmentNowAction.bind(null, appt.id)}>

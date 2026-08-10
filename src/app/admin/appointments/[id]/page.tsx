@@ -4,6 +4,7 @@ import { cancelAppointment, sendPaymentLinkEmail } from "@/app/book/actions";
 import { markAppointmentComplete } from "@/app/admin/actions";
 import BookingFlow from "@/components/booking-flow";
 import QuickMessageButtons from "@/components/quick-message-buttons";
+import RefundButton from "@/components/refund-button";
 import {
   CAT_ADD_ON_NAMES,
   CREATIVE_TIER_LABELS,
@@ -107,7 +108,7 @@ export default async function AdminEditAppointmentPage({
         )}
       </div>
 
-      {appointment.payment_status !== "paid" && (
+      {appointment.payment_status !== "paid" && appointment.payment_status !== "refunded" && (
         <div className="mt-4">
           <form action={sendPaymentLinkWithId}>
             <button
@@ -121,6 +122,23 @@ export default async function AdminEditAppointmentPage({
             </p>
           </form>
         </div>
+      )}
+
+      {appointment.payment_status === "paid" && (
+        <div className="mt-4">
+          <RefundButton appointmentId={appointment.id} price={appointment.price} />
+          <p className="mt-1.5 text-xs text-muted">
+            {appointment.stripe_payment_intent_id
+              ? "Refunds the actual Stripe charge back to their card."
+              : "No Stripe payment on record for this one — refund it directly in the Stripe dashboard instead."}
+          </p>
+        </div>
+      )}
+
+      {appointment.payment_status === "refunded" && (
+        <p className="mt-4 rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground/90">
+          ↩ Refunded
+        </p>
       )}
 
       <div className="mt-4">

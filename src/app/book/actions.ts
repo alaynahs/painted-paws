@@ -1287,6 +1287,48 @@ export async function sendPaymentLinkEmail(appointmentId: string) {
   redirect(`${editPath}?message=${encodeURIComponent(`Payment link emailed to ${profile.email}.`)}`);
 }
 
+// One-click full refund straight from the appointment page — refunds the
+// actual Stripe charge (captured at payment time via the webhook), not
+// just a local status flip, so the customer's card is genuinely credited.
+export async function refundAppointmentPayment(appointmentId: string) {
+  const { supabase } = await requireAdmin();
+  const editPath = `/admin/appointments/${appointmentId}`;
+
+  const { data: appt } = await supabase
+    .from("appointments")
+    .select("payment_status, stripe_payment_intent_id")
+    .eq("id", appointmentId)
+    .single();
+
+  if (!appt) redirect(`${editPath}?error=Appointment%20not%20found`);
+  if (appt.payment_status !== "paid") {
+    redirect(`${editPath}?error=${encodeURIComponent("This appointment isn't marked paid.")}`);
+  }
+  if (!appt.stripe_payment_intent_id) {
+    redirect(
+      `${editPath}?error=${encodeURIComponent("No Stripe payment on record for this appointment — refund it directly in the Stripe dashboard instead.")}`,
+    );
+  }
+  if (!stripe) {
+    redirect(`${editPath}?error=${encodeURIComponent("Stripe isn't set up.")}`);
+  }
+
+  try {
+    await stripe.refunds.create({ payment_intent: appt.stripe_payment_intent_id });
+  } catch (err) {
+    redirect(
+      `${editPath}?error=${encodeURIComponent(err instanceof Error ? err.message : "Refund failed.")}`,
+    );
+  }
+
+  await supabase
+    .from("appointments")
+    .update({ payment_status: "refunded" })
+    .eq("id", appointmentId);
+
+  redirect(`${editPath}?message=${encodeURIComponent("Refund issued.")}`);
+}
+
 const MAX_TIP_CENTS = 50000; // $500 sanity cap
 
 // Reached from the "ready for pickup" text link — no login, since it's a
