@@ -1,8 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { updatePet, uploadRabiesVaccine } from "@/app/account/pets/actions";
-import { deletePet } from "@/app/account/actions";
 import PetForm from "@/components/pet-form";
+import RemovePetButton from "@/components/remove-pet-button";
 import { formatDate, todayInCentral } from "@/lib/format";
 import { monthsSince } from "@/lib/pricing/pricing";
 
@@ -28,8 +28,6 @@ export default async function EditPetPage({
     .single();
 
   if (!pet) notFound();
-
-  const deletePetWithId = deletePet.bind(null, pet.id);
 
   const { data: groomPhotos } = await supabase
     .from("groom_photos")
@@ -204,14 +202,9 @@ export default async function EditPetPage({
         </section>
       )}
 
-      <form action={deletePetWithId} className="mt-6">
-        <button
-          type="submit"
-          className="text-sm text-muted hover:text-foreground"
-        >
-          Remove this pet
-        </button>
-      </form>
+      <div className="mt-6">
+        <RemovePetButton petId={pet.id} petName={pet.name} />
+      </div>
     </div>
   );
 }
