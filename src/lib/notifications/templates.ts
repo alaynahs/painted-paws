@@ -572,8 +572,7 @@ Thank you for choosing ${BUSINESS_NAME}! We loved spending time with ${vars.petN
 
 If you enjoyed your visit, would you mind taking a minute to leave us a review? Your support helps other pet parents discover our salon.
 
-⭐ Leave a review here:
-${REVIEW_LINK}
+⭐ [Click here to leave a review](${REVIEW_LINK})
 
 Thank you again! We can't wait to see you both next time!
 ${BUSINESS_NAME}`,
