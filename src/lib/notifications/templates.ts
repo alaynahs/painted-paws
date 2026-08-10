@@ -517,7 +517,7 @@ export function postVisitThankYouEmail(vars: {
 ${vars.petName} is all fresh, clean, and ready to head home! Thank you so much for trusting us with them today.
 
 If you'd like to leave a review or add a tip for your groomer, you can do both here:
-${vars.reviewUrl}
+[Leave a review or tip here](${vars.reviewUrl})
 
 Thank you again — we hope to see you both soon!
 ${BUSINESS_NAME}`,
@@ -540,7 +540,7 @@ export function postVisitReviewOnlyEmail(vars: {
 ${vars.petName} is all fresh, clean, and ready to head home! Thank you so much for trusting us with them today.
 
 If you have a moment, we'd love to hear how it went:
-${vars.reviewUrl}
+[Leave a review here](${vars.reviewUrl})
 
 Thank you again — we hope to see you both soon!
 ${BUSINESS_NAME}`,

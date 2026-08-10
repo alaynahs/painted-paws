@@ -10,10 +10,10 @@ export default async function LeaveReviewPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tipped?: string; error?: string }>;
+  searchParams: Promise<{ tipped?: string; error?: string; notip?: string }>;
 }) {
   const { id } = await params;
-  const { tipped, error } = await searchParams;
+  const { tipped, error, notip } = await searchParams;
   const supabase = createServiceClient();
 
   const { data: appointment } = await supabase
@@ -61,9 +61,11 @@ export default async function LeaveReviewPage({
         ⭐ Leave a Review
       </a>
 
-      <div className="mt-10 rounded-2xl border border-border bg-card p-6 text-left">
-        <TipSelector appointmentId={appointment.id} price={appointment.price} />
-      </div>
+      {!notip && (
+        <div className="mt-10 rounded-2xl border border-border bg-card p-6 text-left">
+          <TipSelector appointmentId={appointment.id} price={appointment.price} />
+        </div>
+      )}
     </div>
   );
 }

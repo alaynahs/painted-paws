@@ -274,7 +274,7 @@ export async function markAppointmentComplete(
     const emailVars = {
       firstName: (profile.full_name || "there").split(" ")[0],
       petName: pet?.name ?? "Your pet",
-      reviewUrl: `${origin}/leave-a-review/${appt.id}`,
+      reviewUrl: `${origin}/leave-a-review/${appt.id}${includeTip ? "" : "?notip=1"}`,
     };
     await notifyEmail(
       supabase,
