@@ -52,26 +52,38 @@ export async function setPetDoNotBook(petId: string, doNotBook: boolean) {
   revalidatePath(`/admin/pets/${petId}`);
 }
 
+function sanitizeFileName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9.]+/g, "-");
+}
+
 export async function addGroomNote(formData: FormData) {
   const { supabase } = await requireAdmin();
 
   const petId = formData.get("petId") as string;
   const noteType = formData.get("noteType") as string;
-  const note = formData.get("note") as string;
+  const note = ((formData.get("note") as string) || "").trim();
+  const file = formData.get("photo") as File | null;
+  const hasPhoto = !!file && file.size > 0;
 
-  if (!note.trim()) return;
+  if (!note && !hasPhoto) return;
+
+  let photoPath: string | null = null;
+  if (hasPhoto) {
+    const storagePath = `${petId}/${randomUUID()}-${sanitizeFileName(file!.name)}`;
+    const { error: uploadError } = await supabase.storage
+      .from("groom-note-photos")
+      .upload(storagePath, file!, { contentType: file!.type });
+    if (!uploadError) photoPath = storagePath;
+  }
 
   await supabase.from("groom_notes").insert({
     pet_id: petId,
     note_type: noteType,
     note,
+    photo_path: photoPath,
   });
 
   revalidatePath(`/admin/pets/${petId}`);
-}
-
-function sanitizeFileName(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9.]+/g, "-");
 }
 
 // Photos taken during/after a groom, uploaded by the admin, visible to the

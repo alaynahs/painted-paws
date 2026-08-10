@@ -122,6 +122,18 @@ export default async function AdminPetDetailPage({
     }),
   );
 
+  const noteUrls: Record<string, string> = {};
+  await Promise.all(
+    (notes ?? [])
+      .filter((n) => n.photo_path)
+      .map(async (n) => {
+        const { data: signed } = await supabase.storage
+          .from("groom-note-photos")
+          .createSignedUrl(n.photo_path, 60 * 10);
+        if (signed?.signedUrl) noteUrls[n.id] = signed.signedUrl;
+      }),
+  );
+
   const groomingNotes = (notes ?? []).filter((n) => n.note_type === "grooming");
   const behaviorNotes = (notes ?? []).filter((n) => n.note_type === "behavior");
 
@@ -270,7 +282,22 @@ export default async function AdminPetDetailPage({
                       key={n.id}
                       className="rounded-lg border border-border bg-background p-3 text-sm text-foreground/90"
                     >
-                      <p>{n.note}</p>
+                      {n.note && <p>{n.note}</p>}
+                      {noteUrls[n.id] && (
+                        <a
+                          href={noteUrls[n.id]}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-2 block"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element -- signed URL from private storage, not an optimizable static asset */}
+                          <img
+                            src={noteUrls[n.id]}
+                            alt="Note photo"
+                            className="max-h-40 rounded-lg object-cover"
+                          />
+                        </a>
+                      )}
                       <p className="mt-1 text-xs text-muted">
                         {formatDate(centralDateOnly(n.created_at))}
                       </p>
@@ -300,7 +327,22 @@ export default async function AdminPetDetailPage({
                       key={n.id}
                       className="rounded-lg border border-border bg-background p-3 text-sm text-foreground/90"
                     >
-                      <p>{n.note}</p>
+                      {n.note && <p>{n.note}</p>}
+                      {noteUrls[n.id] && (
+                        <a
+                          href={noteUrls[n.id]}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-2 block"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element -- signed URL from private storage, not an optimizable static asset */}
+                          <img
+                            src={noteUrls[n.id]}
+                            alt="Note photo"
+                            className="max-h-40 rounded-lg object-cover"
+                          />
+                        </a>
+                      )}
                       <p className="mt-1 text-xs text-muted">
                         {formatDate(centralDateOnly(n.created_at))}
                       </p>
@@ -646,6 +688,15 @@ function NoteForm({
         }
         className="w-full rounded-xl border border-border bg-background px-4 py-2 text-sm text-foreground outline-none focus:border-accent-dark"
       />
+      <input
+        name="photo"
+        type="file"
+        accept="image/*"
+        className="block w-full text-xs text-foreground/80"
+      />
+      <p className="text-[10px] text-muted">
+        Photo is just for you — never shown to the pet parent.
+      </p>
       <button
         type="submit"
         className="w-full rounded-full bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-dark"
