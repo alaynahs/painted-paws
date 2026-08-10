@@ -197,14 +197,9 @@ export async function sendQuickMessage(formData: FormData) {
 
   let content: { subject: string; body: string };
   switch (type) {
-    case "pickup_15min": {
-      const origin = (await headers()).get("origin");
-      content = pickup15MinEmail({
-        ...vars,
-        reviewUrl: `${origin}/leave-a-review/${appt.id}`,
-      });
+    case "pickup_15min":
+      content = pickup15MinEmail(vars);
       break;
-    }
     case "pickup_ready":
       content = pickupReadyEmail(vars);
       break;

@@ -371,7 +371,6 @@ ${BUSINESS_NAME}`;
 export function pickup15MinEmail(vars: {
   firstName: string;
   petName: string;
-  reviewUrl: string;
 }): EmailContent {
   return {
     subject: "15 Minutes Until Pickup! 🐾",
@@ -380,8 +379,6 @@ export function pickup15MinEmail(vars: {
 We're putting the finishing touches on ${vars.petName} and they should be ready for pickup in about 15 minutes!
 
 Please head our way when you can. We'll let you know if anything changes.
-
-While you wait, feel free to leave a review or add a tip for your groomer: ${vars.reviewUrl}
 
 See you soon!
 ${BUSINESS_NAME}`,
