@@ -11,6 +11,11 @@ import CouponAnnouncement from "@/components/coupon-announcement";
 import SessionDurationTracker from "@/components/session-duration-tracker";
 import PageViewTracker from "@/components/page-view-tracker";
 import { isCurrentUserAdmin } from "@/lib/supabase/is-admin";
+import {
+  BUSINESS_EMAIL,
+  BUSINESS_NAME,
+  BUSINESS_PHONE_TEL,
+} from "@/lib/notifications/templates";
 
 const heading = Fraunces({
   variable: "--font-heading",
@@ -52,12 +57,37 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const isAdmin = await isCurrentUserAdmin();
+  const localBusinessJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    name: BUSINESS_NAME,
+    image: "https://www.paintedpawsaustin.com/og-image.jpg",
+    url: "https://www.paintedpawsaustin.com",
+    telephone: BUSINESS_PHONE_TEL,
+    email: BUSINESS_EMAIL,
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: "304 Lemon Light Lane",
+      addressLocality: "Pflugerville",
+      addressRegion: "TX",
+      addressCountry: "US",
+    },
+    areaServed: ["Pflugerville, TX", "Austin, TX"],
+    priceRange: "$$",
+    description:
+      "One-on-one, in-home dog grooming in the Austin, TX area. No kennels, no crowds — just your dog and a dedicated groomer, by appointment.",
+  };
+
   return (
     <html
       lang="en"
       className={`${heading.variable} ${body.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessJsonLd) }}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html:
