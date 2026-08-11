@@ -90,7 +90,7 @@ export default async function AdminDashboardPage({
         </div>
       </div>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Link
           href="/admin/pricing"
           className="rounded-xl border border-border bg-card p-4 text-center text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
@@ -114,6 +114,12 @@ export default async function AdminDashboardPage({
           className="rounded-xl border border-border bg-card p-4 text-center text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
         >
           Follow-Up Log
+        </Link>
+        <Link
+          href="/admin/revenue"
+          className="rounded-xl border border-border bg-card p-4 text-center text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+        >
+          Revenue
         </Link>
       </div>
 

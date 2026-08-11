@@ -310,6 +310,21 @@ export async function markAppointmentComplete(
   );
 }
 
+// For in-person payments, which never touch Stripe and so never get flipped
+// to "paid" by the webhook automatically — lets cash/card-in-hand payments
+// actually count toward the revenue report instead of sitting unpaid
+// forever.
+export async function markAppointmentPaid(appointmentId: string) {
+  const { supabase } = await requireAdmin();
+  await supabase
+    .from("appointments")
+    .update({ payment_status: "paid" })
+    .eq("id", appointmentId)
+    .eq("payment_method", "in_person");
+  revalidatePath(`/admin/appointments/${appointmentId}`);
+  redirect(`/admin/appointments/${appointmentId}?message=Marked+paid.`);
+}
+
 export async function addBlockedSlot(formData: FormData) {
   const { supabase } = await requireAdmin();
 

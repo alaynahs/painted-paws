@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/supabase/admin";
 import { cancelAppointment, sendPaymentLinkEmail } from "@/app/book/actions";
+import { markAppointmentPaid } from "@/app/admin/actions";
 import BookingFlow from "@/components/booking-flow";
 import QuickMessageButtons from "@/components/quick-message-buttons";
 import RefundButton from "@/components/refund-button";
@@ -36,6 +37,7 @@ export default async function AdminEditAppointmentPage({
 
   const cancelWithId = cancelAppointment.bind(null, appointment.id);
   const sendPaymentLinkWithId = sendPaymentLinkEmail.bind(null, appointment.id);
+  const markPaidWithId = markAppointmentPaid.bind(null, appointment.id);
   const config = await getPricingConfig();
 
   let promoDiscountPercent: number | null = null;
@@ -104,7 +106,7 @@ export default async function AdminEditAppointmentPage({
       </div>
 
       {appointment.payment_status !== "paid" && appointment.payment_status !== "refunded" && (
-        <div className="mt-4">
+        <div className="mt-4 flex flex-wrap gap-3">
           <form action={sendPaymentLinkWithId}>
             <button
               type="submit"
@@ -116,6 +118,20 @@ export default async function AdminEditAppointmentPage({
               Emails a Stripe payment link straight to the pet parent.
             </p>
           </form>
+          {appointment.payment_method === "in_person" && (
+            <form action={markPaidWithId}>
+              <button
+                type="submit"
+                className="rounded-full bg-accent px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-dark"
+              >
+                Mark Paid (in person)
+              </button>
+              <p className="mt-1.5 text-xs text-muted">
+                Confirms cash/card was collected, so it counts on the
+                revenue report.
+              </p>
+            </form>
+          )}
         </div>
       )}
 
