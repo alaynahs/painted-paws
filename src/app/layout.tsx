@@ -65,9 +65,11 @@ export default async function RootLayout({
     url: "https://www.paintedpawsaustin.com",
     telephone: BUSINESS_PHONE_TEL,
     email: BUSINESS_EMAIL,
+    // No streetAddress on purpose — this is a home-based studio, and the
+    // exact address should never be publicly crawlable. Matches how the
+    // Google Business Profile is set up (service area, no map pin).
     address: {
       "@type": "PostalAddress",
-      streetAddress: "304 Lemon Light Lane",
       addressLocality: "Pflugerville",
       addressRegion: "TX",
       addressCountry: "US",

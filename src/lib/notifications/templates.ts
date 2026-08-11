@@ -1,8 +1,8 @@
 export const BUSINESS_NAME = "Painted Paws";
 export const BUSINESS_EMAIL = "booking@paintedpawsaustin.com";
 export const BUSINESS_ADDRESS = "304 Lemon Light Lane, Pflugerville, TX";
-export const BUSINESS_PHONE_DISPLAY = "(515) 553-9585";
-export const BUSINESS_PHONE_TEL = "+15155539585";
+export const BUSINESS_PHONE_DISPLAY = "(512) 553-9585";
+export const BUSINESS_PHONE_TEL = "+15125539585";
 export const REVIEW_LINK =
   process.env.NEXT_PUBLIC_REVIEW_LINK || "https://share.google/NFbmSKFrnlSnjLjHD";
 
