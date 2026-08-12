@@ -33,11 +33,12 @@ function money(n: number) {
 export default async function AdminRevenuePage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string }>;
+  searchParams: Promise<{ month?: string; taxRate?: string }>;
 }) {
   const { supabase } = await requireAdmin();
-  const { month: monthParam } = await searchParams;
+  const { month: monthParam, taxRate: taxRateParam } = await searchParams;
   const month = monthParam || todayInCentral().slice(0, 7);
+  const taxRatePercent = Number(taxRateParam) > 0 ? Number(taxRateParam) : 30;
   const { start, end } = monthBounds(month);
   const prevMonth = shiftMonth(month, -1);
   const nextMonth = shiftMonth(month, 1);
@@ -93,6 +94,8 @@ export default async function AdminRevenuePage({
     0,
   );
 
+  const taxSetAside = confirmedTotal * (taxRatePercent / 100);
+
   const byService = new Map<string, number>();
   for (const a of paidAppts ?? []) {
     byService.set(a.service, (byService.get(a.service) ?? 0) + Number(a.price));
@@ -116,7 +119,7 @@ export default async function AdminRevenuePage({
 
       <div className="mt-6 flex items-center justify-between gap-4">
         <Link
-          href={`/admin/revenue?month=${prevMonth}`}
+          href={`/admin/revenue?month=${prevMonth}&taxRate=${taxRatePercent}`}
           className="rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
         >
           ← Previous month
@@ -125,7 +128,7 @@ export default async function AdminRevenuePage({
           {monthLabel(month)}
         </p>
         <Link
-          href={`/admin/revenue?month=${nextMonth}`}
+          href={`/admin/revenue?month=${nextMonth}&taxRate=${taxRatePercent}`}
           className="rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
         >
           Next month →
@@ -178,6 +181,62 @@ export default async function AdminRevenuePage({
           from the total above).
         </p>
       )}
+
+      <section className="mt-8 rounded-2xl border border-border bg-card p-6">
+        <h2 className="font-serif text-lg text-foreground">
+          Set Aside for Taxes
+        </h2>
+        <p className="mt-1 text-sm text-muted">
+          Texas has no state income tax, but as a self-employed sole
+          proprietor you still owe federal income tax plus self-employment
+          tax (Social Security + Medicare, 15.3%) on your net profit. This
+          applies your set-aside rate to the confirmed revenue above — it
+          doesn&apos;t subtract deductible business expenses (supplies,
+          mileage, home studio costs, etc.), so it&apos;s a conservative
+          estimate and your actual bill will likely be lower. Not tax
+          advice — check the number with an accountant or tax software.
+        </p>
+        <form
+          method="get"
+          className="mt-4 flex flex-wrap items-end gap-3"
+        >
+          <input type="hidden" name="month" value={month} />
+          <div>
+            <label
+              className="text-xs font-medium text-foreground"
+              htmlFor="taxRate"
+            >
+              Set-aside rate
+            </label>
+            <div className="mt-1 flex items-center gap-1">
+              <input
+                id="taxRate"
+                type="number"
+                name="taxRate"
+                min={0}
+                max={100}
+                step={1}
+                defaultValue={taxRatePercent}
+                className="w-20 rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground outline-none focus:border-accent-dark"
+              />
+              <span className="text-sm text-muted">%</span>
+            </div>
+          </div>
+          <button
+            type="submit"
+            className="rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+          >
+            Update
+          </button>
+        </form>
+        <p className="mt-4 font-serif text-2xl text-accent-dark">
+          ${money(taxSetAside)}
+        </p>
+        <p className="mt-1 text-xs text-muted">
+          {taxRatePercent}% of ${money(confirmedTotal)} confirmed revenue this
+          month
+        </p>
+      </section>
 
       {serviceBreakdown.length > 0 && (
         <section className="mt-8 rounded-2xl border border-border bg-card p-6">
