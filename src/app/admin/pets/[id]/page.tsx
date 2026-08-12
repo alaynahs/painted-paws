@@ -9,6 +9,7 @@ import {
   setPetActive,
   setPetDoNotBook,
   uploadGroomPhoto,
+  uploadRabiesVaccineAdmin,
 } from "@/app/admin/actions";
 import { confirmAppointment, getNoShowCount } from "@/app/book/actions";
 import { MAX_NO_SHOWS } from "@/lib/booking-hours";
@@ -390,6 +391,50 @@ export default async function AdminPetDetailPage({
                 {!pet.rabies_vaccine_path && (
                   <p className="mt-2 text-sm text-muted">Not uploaded yet.</p>
                 )}
+
+                <form
+                  action={uploadRabiesVaccineAdmin}
+                  className="mt-3 space-y-2 border-t border-border pt-3"
+                >
+                  <input type="hidden" name="petId" value={pet.id} />
+                  <div>
+                    <label
+                      className="text-xs font-medium text-foreground"
+                      htmlFor="file"
+                    >
+                      Vaccine record (PDF)
+                    </label>
+                    <input
+                      id="file"
+                      type="file"
+                      name="file"
+                      accept="application/pdf"
+                      required
+                      className="mt-1 block w-full text-xs text-foreground/80"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      className="text-xs font-medium text-foreground"
+                      htmlFor="expiresAt"
+                    >
+                      Expiration date
+                    </label>
+                    <input
+                      id="expiresAt"
+                      type="date"
+                      name="expiresAt"
+                      required
+                      className="mt-1 block w-full rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-foreground outline-none focus:border-accent-dark"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="rounded-full bg-accent px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-dark"
+                  >
+                    Upload
+                  </button>
+                </form>
               </>
             )}
           </section>
