@@ -105,16 +105,16 @@ const creativeTiers = [
 
 const memberships = [
   {
-    name: "Spa Pup",
-    body: "Monthly Bath + Brush at 10% off, priority booking, and discounted add-ons. Subscribe 3 months and get a 4th month free.",
+    name: "Bath",
+    body: "Monthly Bath at your dog's normal rate, priority booking, and 15% off add-ons and bundles.",
   },
   {
-    name: "Royal Pup",
-    body: "Monthly Bath + Trim at 10% off, priority booking, and discounted add-ons. Subscribe 4 months and get a 5th month free.",
+    name: "Bath & Tidy",
+    body: "Monthly Bath + Tidy Up at your dog's normal rate, priority booking, and 15% off add-ons and bundles.",
   },
   {
-    name: "Couture Pup",
-    body: "Monthly Bath + Full Haircut at 10% off, priority booking, and discounted add-ons. Subscribe 5 months and get a 6th month free.",
+    name: "Bath & Full Groom",
+    body: "Monthly Bath + Full Groom at your dog's normal rate, priority booking, and 15% off add-ons and bundles.",
   },
 ];
 
@@ -182,7 +182,11 @@ export default function ServicesPage() {
             Add-Ons / Standalone Services
           </h2>
           <p className="mt-2 text-sm text-muted">
-            Layer any of these onto a core service to tailor the visit.
+            Layer any of these onto a core service to tailor the visit. Ear
+            cleaning, paw pad shave, sanitary shave/trim, nail trim, and
+            anal glands (dogs) already come free with any Bath, Tidy Up, or
+            Full Groom — they&apos;re only priced separately for a
+            standalone visit that skips the core service.
           </p>
           <div className="mt-6 grid gap-6 lg:grid-cols-2">
             <RevealOnScroll className="rounded-2xl border border-border bg-background p-6">

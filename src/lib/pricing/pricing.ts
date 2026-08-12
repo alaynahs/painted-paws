@@ -255,6 +255,24 @@ export const CAT_ADD_ON_NAMES: string[] = [
   "Nail Caps (4 paws)",
 ];
 
+// Already included free with any bath/trim/haircut — only worth listing as
+// a paid add-on for a standalone visit that skips the base service entirely
+// (e.g. a customer who just wants a nail trim, no bath).
+export const DOG_ADD_ONS_INCLUDED_WITH_SERVICE = [
+  "Ear cleaning",
+  "Paw pad shave",
+  "Anal glands",
+  "Sanitary shave",
+  "Nail trim",
+];
+
+export const CAT_ADD_ONS_INCLUDED_WITH_SERVICE = [
+  "Ear cleaning",
+  "Paw pad shave",
+  "Sanitary trim",
+  "Nail trim",
+];
+
 export function dogAddOns(config: PricingConfig): AddOn[] {
   return DOG_ADD_ON_NAMES.map((name, i) => ({ name, price: config.addOns.dog[i] }));
 }
@@ -321,24 +339,15 @@ export function calculateCreativePrice(
 export type MembershipTier = "spaPup" | "royalPup" | "couturePup";
 
 export const MEMBERSHIP_TIER_LABELS: Record<MembershipTier, string> = {
-  spaPup: "Spa Pup",
-  royalPup: "Royal Pup",
-  couturePup: "Couture Pup",
+  spaPup: "Bath",
+  royalPup: "Bath & Tidy",
+  couturePup: "Bath & Full Groom",
 };
 
 export const MEMBERSHIP_TIER_SERVICE: Record<MembershipTier, DogServiceLevel> = {
   spaPup: "bath",
   royalPup: "trim",
   couturePup: "haircut",
-};
-
-export const MEMBERSHIP_TIER_DESCRIPTIONS: Record<MembershipTier, string> = {
-  spaPup:
-    "Monthly Bath at your dog's normal rate, priority booking, discounted add-ons and packages.",
-  royalPup:
-    "Monthly Bath + Trim at your dog's normal rate, priority booking, discounted add-ons and packages.",
-  couturePup:
-    "Monthly Bath + Full Haircut at your dog's normal rate, priority booking, discounted add-ons and packages.",
 };
 
 // One-time pre-purchased groom credit packs — priced at the pet's own Bath

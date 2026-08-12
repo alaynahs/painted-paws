@@ -7,9 +7,11 @@ import {
   calculateDogPrice,
   applyMemberAddonDiscount,
   catAddOns,
+  CAT_ADD_ONS_INCLUDED_WITH_SERVICE,
   CAT_SERVICE_DESCRIPTIONS,
   CAT_SERVICE_LABELS,
   dogAddOns,
+  DOG_ADD_ONS_INCLUDED_WITH_SERVICE,
   DOG_SERVICE_DESCRIPTIONS,
   DOG_SERVICE_LABELS,
   memberPackagePrices,
@@ -474,9 +476,13 @@ export default function BookingFlow({
   // Sorted cheapest-to-priciest so the list stays in a sensible order even
   // after the admin re-prices something (unlike the admin editor itself,
   // which keeps a fixed order so fields don't jump around while typing).
-  const addOnCatalog = [...(pet?.species === "dog" ? dogAddOns(config) : catAddOns(config))].sort(
-    (a, b) => a.price - b.price,
-  );
+  const includedWithService =
+    pet?.species === "dog"
+      ? DOG_ADD_ONS_INCLUDED_WITH_SERVICE
+      : CAT_ADD_ONS_INCLUDED_WITH_SERVICE;
+  const addOnCatalog = [...(pet?.species === "dog" ? dogAddOns(config) : catAddOns(config))]
+    .filter((a) => standalone || !includedWithService.includes(a.name))
+    .sort((a, b) => a.price - b.price);
 
   const priceResult = useMemo(() => {
     if (!pet) return null;
@@ -743,8 +749,12 @@ export default function BookingFlow({
         {!addOnsOpen && (
           <p className="mt-1.5 px-1 text-xs text-muted">
             {pet.species === "dog"
-              ? "Nail grinding, teeth brushing, ear cleaning, and more."
-              : "Nail trim, ear cleaning, sanitary trim, and more."}
+              ? standalone
+                ? "Nail trim, ear cleaning, anal glands, and more."
+                : "Nail grinding, teeth brushing, de-matting, and more."
+              : standalone
+                ? "Nail trim, ear cleaning, sanitary trim, and more."
+                : "De-matting, extra brushing, nail caps, and more."}
           </p>
         )}
         {hasMembership && (

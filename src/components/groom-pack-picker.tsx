@@ -7,6 +7,7 @@ import {
   calculateSalesTax,
   SALES_TAX_PERCENT,
   dogAddOns,
+  DOG_ADD_ONS_INCLUDED_WITH_SERVICE,
   GROOM_PACK_SERVICE_LABELS,
   GROOM_PACK_SERVICES,
   GROOM_PACK_TIER_LABELS,
@@ -106,7 +107,12 @@ export default function GroomPackPicker({
         ? memberPackages[packageTier]
         : config.packages[packageTier]
       : 0;
-  const addonsTotal = dogAddOns(config)
+  // Each redeemed credit is a real bath/haircut visit, so these come free
+  // already — no point offering them as a paid add-on here.
+  const individualAddOns = dogAddOns(config).filter(
+    (a) => !DOG_ADD_ONS_INCLUDED_WITH_SERVICE.includes(a.name),
+  );
+  const addonsTotal = individualAddOns
     .filter((a) => addonNames.includes(a.name))
     .reduce((sum, a) => sum + addonPrice(a.price), 0);
   const totalPrice = packPrice + bundlePrice + addonsTotal;
@@ -250,7 +256,7 @@ export default function GroomPackPicker({
           <span className="font-normal text-muted">(optional)</span>
         </label>
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
-          {[...dogAddOns(config)].sort((a, b) => a.price - b.price).map((addOn) => (
+          {[...individualAddOns].sort((a, b) => a.price - b.price).map((addOn) => (
             <label
               key={addOn.name}
               className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm text-foreground/90"

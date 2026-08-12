@@ -7,7 +7,9 @@ import {
   calculateSalesTax,
   SALES_TAX_PERCENT,
   dogAddOns,
+  DOG_ADD_ONS_INCLUDED_WITH_SERVICE,
   memberPackagePrices,
+  DOG_SERVICE_DESCRIPTIONS,
   MEMBERSHIP_TIER_LABELS,
   MEMBERSHIP_TIER_SERVICE,
   PACKAGE_DESCRIPTIONS,
@@ -80,10 +82,16 @@ export default function MembershipTierPicker({
     );
   }
 
+  // A membership always includes a real bath/trim/haircut, so these come
+  // free already — no point offering them as a paid add-on here.
+  const individualAddOns = dogAddOns(config).filter(
+    (a) => !DOG_ADD_ONS_INCLUDED_WITH_SERVICE.includes(a.name),
+  );
+
   const memberPackages = memberPackagePrices(config);
   const tierPrice = monthlyPriceFor(tier);
   const bundlePrice = addonBundle !== "none" ? memberPackages[addonBundle] : 0;
-  const addonNamesTotal = dogAddOns(config)
+  const addonNamesTotal = individualAddOns
     .filter((a) => addonNames.includes(a.name))
     .reduce((sum, a) => sum + applyMemberAddonDiscount(a.price, config), 0);
   const total = tierPrice + bundlePrice + addonNamesTotal;
@@ -146,6 +154,9 @@ export default function MembershipTierPicker({
                   ${monthlyPriceFor(t)}/mo
                 </span>
               </div>
+              <p className="mt-1 text-xs text-foreground/70">
+                {DOG_SERVICE_DESCRIPTIONS[MEMBERSHIP_TIER_SERVICE[t]]}
+              </p>
               <ul className="mt-2 space-y-1 text-xs text-muted">
                 <li>• Priority booking</li>
                 <li>
@@ -228,7 +239,7 @@ export default function MembershipTierPicker({
           membership every month, each at your member discount.
         </p>
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
-          {[...dogAddOns(config)].sort((a, b) => a.price - b.price).map((addOn) => (
+          {[...individualAddOns].sort((a, b) => a.price - b.price).map((addOn) => (
             <label
               key={addOn.name}
               className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm text-foreground/90"
