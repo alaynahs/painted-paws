@@ -118,20 +118,18 @@ export default async function AdminEditAppointmentPage({
               Emails a Stripe payment link straight to the pet parent.
             </p>
           </form>
-          {appointment.payment_method === "in_person" && (
-            <form action={markPaidWithId}>
-              <button
-                type="submit"
-                className="rounded-full bg-accent px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-dark"
-              >
-                Mark Paid (in person)
-              </button>
-              <p className="mt-1.5 text-xs text-muted">
-                Confirms cash/card was collected, so it counts on the
-                revenue report.
-              </p>
-            </form>
-          )}
+          <form action={markPaidWithId}>
+            <button
+              type="submit"
+              className="rounded-full bg-accent px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-dark"
+            >
+              Mark Paid
+            </button>
+            <p className="mt-1.5 text-xs text-muted">
+              Confirms payment was collected outside checkout (cash, card
+              reader, etc.), so it counts on the revenue report.
+            </p>
+          </form>
         </div>
       )}
 

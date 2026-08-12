@@ -377,8 +377,7 @@ export async function markAppointmentPaid(appointmentId: string) {
   await supabase
     .from("appointments")
     .update({ payment_status: "paid" })
-    .eq("id", appointmentId)
-    .eq("payment_method", "in_person");
+    .eq("id", appointmentId);
   revalidatePath(`/admin/appointments/${appointmentId}`);
   redirect(`/admin/appointments/${appointmentId}?message=Marked+paid.`);
 }
