@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  advanceBookingDiscountAmount,
   calculateCatPrice,
   calculateCreativePrice,
   calculateDogPrice,
@@ -82,6 +83,7 @@ export interface BookingInitialValues {
   pickupDropoff?: boolean;
   pickupAddress?: string;
   promoDiscountPercent?: number | null;
+  advanceBookingDiscount?: number;
 }
 
 
@@ -259,6 +261,13 @@ export default function BookingFlow({
         ? activePromotion.discountPercent
         : null;
   const promoActive = promoDiscountPercent != null;
+  // Same rule the server applies (advanceBookingDiscountAmount) —
+  // re-evaluated against the selected date on a new booking; edits carry
+  // over whatever was already locked in, same as the promo above.
+  const advanceDiscountAmount =
+    mode === "edit"
+      ? (initial?.advanceBookingDiscount ?? 0)
+      : advanceBookingDiscountAmount(config, date);
   // A personal coupon (admin-assigned) is opt-in, never automatic — the
   // customer chooses to redeem it, same as redeeming a groom pack credit
   // below. When redeemed, it stacks on top of the sitewide promo, if any,
@@ -306,7 +315,7 @@ export default function BookingFlow({
     isAdmin && adminDiscountType === "percent" ? Number(adminDiscountValue) || 0 : 0;
   const adminDiscountAmount =
     isAdmin && adminDiscountType === "amount" ? Number(adminDiscountValue) || 0 : 0;
-  const flatDiscountAmount = couponAmount + adminDiscountAmount;
+  const flatDiscountAmount = couponAmount + adminDiscountAmount + advanceDiscountAmount;
   const effectiveDiscountPercent =
     (promoDiscountPercent ?? 0) + couponPercent + adminDiscountPercent || null;
   const [availableCredits, setAvailableCredits] = useState(0);
@@ -400,7 +409,7 @@ export default function BookingFlow({
       setAvailableCredits(0);
       return;
     }
-    if (dogService !== "bath" && dogService !== "haircut") {
+    if (dogService !== "bath" && dogService !== "trim" && dogService !== "haircut") {
       setAvailableCredits(0);
       return;
     }
@@ -899,6 +908,15 @@ export default function BookingFlow({
             loadUnavailableDates={getUnavailableDates}
           />
         </div>
+        {config.advanceBookingDiscount.active && (
+          <p className="mt-2 text-xs text-muted">
+            {advanceDiscountAmount > 0
+              ? `📅 $${advanceDiscountAmount} off applied for booking ${config.advanceBookingDiscount.minLeadWeeks}+ weeks ahead.`
+              : mode === "create"
+                ? `📅 Book at least ${config.advanceBookingDiscount.minLeadWeeks} weeks ahead to save $${config.advanceBookingDiscount.amount}.`
+                : null}
+          </p>
+        )}
       </div>
 
       <div>
@@ -1252,6 +1270,12 @@ export default function BookingFlow({
         {promoActive && (
           <p className="mt-1 text-xs font-medium text-accent-dark">
             🎉 {promoDiscountPercent}% off applied — limited-time offer
+          </p>
+        )}
+        {advanceDiscountAmount > 0 && (
+          <p className="mt-1 text-xs font-medium text-accent-dark">
+            📅 ${advanceDiscountAmount} off applied for booking{" "}
+            {config.advanceBookingDiscount.minLeadWeeks}+ weeks ahead
           </p>
         )}
         {couponActive && (

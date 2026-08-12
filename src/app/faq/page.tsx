@@ -120,7 +120,7 @@ const faqGroups = [
       },
       {
         q: "What are groom packs?",
-        a: "A groom pack is a one-time pre-purchase of Bath or Full Groom visits for a specific dog: buy 5, get 1 free, or buy 9, get 3 more free. It's priced at that dog's own rate based on weight and coat, not a flat price.",
+        a: "A groom pack is a one-time pre-purchase of Bath, Bath & Tidy, or Full Groom visits for a specific dog: buy 5, get 1 free, or buy 9, get 3 more free. It's priced at that dog's own rate based on weight and coat, not a flat price.",
       },
       {
         q: "Do groom pack credits expire?",
@@ -128,7 +128,7 @@ const faqGroups = [
       },
       {
         q: "Can I add extras to a groom pack, or use a credit toward a different service?",
-        a: "You can add a one-time bundle and/or individual add-ons when you buy the pack. The credits themselves only cover the base Bath or Full Groom price you purchased; de-shed treatment, creative color, add-ons, bundles, and pickup & drop-off still cost extra at booking, same as normal. Credits aren't interchangeable between Bath and Full Groom.",
+        a: "You can add a one-time bundle and/or individual add-ons when you buy the pack. The credits themselves only cover the base groom price you purchased; de-shed treatment, creative color, add-ons, bundles, and pickup & drop-off still cost extra at booking, same as normal. Credits aren't interchangeable between Bath, Bath & Tidy, and Full Groom.",
       },
       {
         q: "Do I need a membership to buy a groom pack?",

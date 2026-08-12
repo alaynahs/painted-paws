@@ -117,6 +117,18 @@ export async function updateFlatFees(formData: FormData) {
   redirect("/admin/pricing?saved=fees");
 }
 
+export async function updateAdvanceBookingDiscount(formData: FormData) {
+  await saveConfigPatch((c) => ({
+    ...c,
+    advanceBookingDiscount: {
+      active: formData.get("advanceBookingDiscount-active") === "true",
+      amount: num(formData, "advanceBookingDiscount-amount"),
+      minLeadWeeks: num(formData, "advanceBookingDiscount-minLeadWeeks"),
+    },
+  }));
+  redirect("/admin/pricing?saved=advanceBookingDiscount");
+}
+
 export async function updateDoodleMixPricing(formData: FormData) {
   await saveConfigPatch((c) => ({
     ...c,

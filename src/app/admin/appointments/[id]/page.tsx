@@ -178,6 +178,7 @@ export default async function AdminEditAppointmentPage({
             pickupDropoff: appointment.pickup_dropoff ?? false,
             pickupAddress: appointment.pickup_address ?? "",
             promoDiscountPercent,
+            advanceBookingDiscount: appointment.advance_booking_discount ?? 0,
           }}
           config={config}
           isAdmin

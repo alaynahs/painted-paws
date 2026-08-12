@@ -8,6 +8,7 @@ import { requireAdmin } from "@/lib/supabase/admin";
 import { stripe } from "@/lib/stripe/client";
 import { isDoodleMixBreed } from "@/lib/pricing/breeds";
 import {
+  advanceBookingDiscountAmount,
   applyMemberAddonDiscount,
   applyDiscount,
   calculateCatPrice,
@@ -195,7 +196,7 @@ async function findRedeemablePack(
   petId: string,
   service: string,
 ): Promise<RedeemablePack | null> {
-  if (service !== "bath" && service !== "haircut") return null;
+  if (service !== "bath" && service !== "trim" && service !== "haircut") return null;
 
   const { data } = await supabase
     .from("groom_credit_packs")
@@ -675,7 +676,7 @@ export async function getPetMembershipStatus(petId: string) {
 }
 
 export async function getAvailableGroomCredits(petId: string, service: string) {
-  if (service !== "bath" && service !== "haircut") return 0;
+  if (service !== "bath" && service !== "trim" && service !== "haircut") return 0;
 
   const supabase = await createClient();
   const { data } = await supabase
@@ -770,6 +771,7 @@ export async function createAppointment(formData: FormData) {
   const couponAmount = couponApplied ? (coupon!.discountAmount ?? 0) : 0;
   const totalDiscountPercent = (promoDiscountPercent ?? 0) + couponPercent || null;
   const config = await getPricingConfig();
+  const advanceDiscount = advanceBookingDiscountAmount(config, fields.date);
   const { price: priceBeforeCouponAmount, addOns } = computeAppointmentPrice(
     pet,
     fields.service,
@@ -786,7 +788,7 @@ export async function createAppointment(formData: FormData) {
   );
   const subtotal = Math.max(
     0,
-    Math.round((priceBeforeCouponAmount - couponAmount) * 100) / 100,
+    Math.round((priceBeforeCouponAmount - couponAmount - advanceDiscount) * 100) / 100,
   );
   const salesTax = calculateSalesTax(subtotal);
   const price = subtotal + salesTax;
@@ -813,6 +815,7 @@ export async function createAppointment(formData: FormData) {
       pickup_address: fields.pickupAddress,
       promo_id: promoId,
       coupon_id: couponApplied ? coupon!.id : null,
+      advance_booking_discount: advanceDiscount,
     })
     .select("id")
     .single();
@@ -912,12 +915,13 @@ export async function updateAppointment(formData: FormData) {
     redirect(`${editPath}?error=Pet%20not%20found`);
   }
 
-  // Edits neither grant nor revoke a promo — whatever this appointment
-  // already had (or didn't) at booking time carries over as-is, at that
-  // promotion's original discount rate.
+  // Edits neither grant nor revoke a promo (or the advance booking
+  // discount) — whatever this appointment already had (or didn't) at
+  // booking time carries over as-is, at that promotion's original discount
+  // rate, regardless of whether the date gets moved during the edit.
   const { data: existingAppt } = await supabase
     .from("appointments")
-    .select("promo_id")
+    .select("promo_id, advance_booking_discount")
     .eq("id", appointmentId)
     .single();
   let promoDiscountPercent: number | null = null;
@@ -929,13 +933,14 @@ export async function updateAppointment(formData: FormData) {
       .single();
     promoDiscountPercent = promo?.discount_percent ?? null;
   }
+  const advanceDiscount = existingAppt?.advance_booking_discount ?? 0;
 
   const hasMembership = await petHasActiveMembership(supabase, fields.petId);
   const redeemablePack = fields.redeemCredit
     ? await findRedeemablePack(supabase, fields.petId, fields.service)
     : null;
   const config = await getPricingConfig();
-  const { price: subtotal, addOns } = computeAppointmentPrice(
+  const { price: priceBeforeDiscountAmount, addOns } = computeAppointmentPrice(
     pet,
     fields.service,
     fields.deshed,
@@ -948,6 +953,10 @@ export async function updateAppointment(formData: FormData) {
     !!redeemablePack,
     promoDiscountPercent,
     config,
+  );
+  const subtotal = Math.max(
+    0,
+    Math.round((priceBeforeDiscountAmount - advanceDiscount) * 100) / 100,
   );
   const salesTax = calculateSalesTax(subtotal);
   const price = subtotal + salesTax;
@@ -1500,6 +1509,7 @@ export async function adminCreateAppointment(formData: FormData) {
   const adminDiscountAmount =
     fields.adminDiscountType === "amount" ? fields.adminDiscountValue : 0;
   const config = await getPricingConfig();
+  const advanceDiscount = advanceBookingDiscountAmount(config, fields.date);
   const { price: priceBeforeDiscountAmount, addOns } = computeAppointmentPrice(
     pet,
     fields.service,
@@ -1516,7 +1526,9 @@ export async function adminCreateAppointment(formData: FormData) {
   );
   const subtotal = Math.max(
     0,
-    Math.round((priceBeforeDiscountAmount - adminDiscountAmount) * 100) / 100,
+    Math.round(
+      (priceBeforeDiscountAmount - adminDiscountAmount - advanceDiscount) * 100,
+    ) / 100,
   );
   const salesTax = calculateSalesTax(subtotal);
   const price = subtotal + salesTax;
@@ -1542,6 +1554,7 @@ export async function adminCreateAppointment(formData: FormData) {
       inspo_photo_path: inspoPhotoPath,
       pickup_dropoff: fields.pickupDropoff,
       pickup_address: fields.pickupAddress,
+      advance_booking_discount: advanceDiscount,
     })
     .select("id")
     .single();

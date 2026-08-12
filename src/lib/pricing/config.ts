@@ -26,6 +26,10 @@ function mergeWithDefaults(
     },
     groomPacks: { ...d.groomPacks, ...partial.groomPacks },
     doodleMix: { ...d.doodleMix, ...partial.doodleMix },
+    advanceBookingDiscount: {
+      ...d.advanceBookingDiscount,
+      ...partial.advanceBookingDiscount,
+    },
   };
 }
 

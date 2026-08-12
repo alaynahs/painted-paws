@@ -14,6 +14,7 @@ import {
   updatePuppyPricing,
   updateCatMatrix,
   updateFlatFees,
+  updateAdvanceBookingDiscount,
   updateDoodleMixPricing,
   updateDogAddOns,
   updateCatAddOns,
@@ -280,6 +281,37 @@ export default async function AdminPricingPage({
                 name="flatFee-pickupDropoff"
                 label="Pickup & Drop-Off"
                 defaultValue={config.flatFees.pickupDropoff}
+              />
+            </div>
+            <SaveButton />
+          </form>
+        </Section>
+
+        <Section
+          title="Advance Booking Discount"
+          description="A flat-dollar discount applied automatically when a customer books at least this many weeks ahead — no code needed."
+        >
+          <form action={updateAdvanceBookingDiscount}>
+            <label className="mt-4 flex items-center gap-2 text-sm text-foreground/90">
+              <input
+                type="checkbox"
+                name="advanceBookingDiscount-active"
+                value="true"
+                defaultChecked={config.advanceBookingDiscount.active}
+                className="h-4 w-4 rounded border-border accent-accent"
+              />
+              Active
+            </label>
+            <div className="mt-3 grid max-w-md grid-cols-2 gap-3">
+              <NumberField
+                name="advanceBookingDiscount-amount"
+                label="Discount ($)"
+                defaultValue={config.advanceBookingDiscount.amount}
+              />
+              <NumberField
+                name="advanceBookingDiscount-minLeadWeeks"
+                label="Minimum lead time (weeks)"
+                defaultValue={config.advanceBookingDiscount.minLeadWeeks}
               />
             </div>
             <SaveButton />

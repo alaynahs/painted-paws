@@ -97,6 +97,7 @@ export default async function EditAppointmentPage({
             paymentMethod: appointment.payment_method,
             customerNote: appointment.customer_note ?? "",
             promoDiscountPercent,
+            advanceBookingDiscount: appointment.advance_booking_discount ?? 0,
           }}
           config={config}
         />

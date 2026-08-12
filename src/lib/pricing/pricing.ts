@@ -1,4 +1,5 @@
 import type { CoatLength } from "./breeds";
+import { daysUntil } from "../promotions/helpers";
 
 // Promotions (name, discount %, date range, usage cap, appointment
 // lead-time rule) are managed as a list in the `promotions` table — see
@@ -350,15 +351,16 @@ export const MEMBERSHIP_TIER_SERVICE: Record<MembershipTier, DogServiceLevel> = 
   couturePup: "haircut",
 };
 
-// One-time pre-purchased groom credit packs — priced at the pet's own Bath
-// or Full Groom rate, credits never expire.
-export type GroomPackService = "bath" | "haircut";
+// One-time pre-purchased groom credit packs — priced at the pet's own Bath,
+// Bath & Tidy, or Full Groom rate, credits never expire.
+export type GroomPackService = "bath" | "trim" | "haircut";
 export type GroomPackTier = "five" | "nine";
 
-export const GROOM_PACK_SERVICES: GroomPackService[] = ["bath", "haircut"];
+export const GROOM_PACK_SERVICES: GroomPackService[] = ["bath", "trim", "haircut"];
 
 export const GROOM_PACK_SERVICE_LABELS: Record<GroomPackService, string> = {
   bath: "Bath",
+  trim: "Bath & Tidy",
   haircut: "Full Groom",
 };
 
@@ -431,6 +433,14 @@ export interface PricingConfig {
     trim45Plus: number;
     haircut45Plus: number;
   };
+  // A flat-dollar incentive for booking well ahead of time, independent of
+  // the sitewide promotions system (which discounts booking *soon*, not
+  // *in advance*). Applies automatically, no code needed.
+  advanceBookingDiscount: {
+    active: boolean;
+    amount: number;
+    minLeadWeeks: number;
+  };
 }
 
 const byCoat = (short: number, long: number): WeightCoatPrice => ({ short, long });
@@ -485,4 +495,17 @@ export const DEFAULT_PRICING_CONFIG: PricingConfig = {
     nine: { paidCount: 9, freeCount: 3 },
   },
   doodleMix: { bath45Plus: 70, trim45Plus: 85, haircut45Plus: 105 },
+  advanceBookingDiscount: { active: true, amount: 5, minLeadWeeks: 4 },
 };
+
+// Single source of truth for whether a booking qualifies for the advance
+// booking discount, shared by both the client (for display) and the server
+// (for the actual charge) so they can never disagree.
+export function advanceBookingDiscountAmount(
+  config: PricingConfig,
+  dateStr: string,
+): number {
+  if (!config.advanceBookingDiscount.active || !dateStr) return 0;
+  if (daysUntil(dateStr) < config.advanceBookingDiscount.minLeadWeeks * 7) return 0;
+  return config.advanceBookingDiscount.amount;
+}
