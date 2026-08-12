@@ -135,48 +135,55 @@ export async function uploadGroomPhoto(formData: FormData) {
 // Lets the admin upload a rabies vaccine record for a customer's pet
 // directly — e.g. a client texts/emails a photo instead of uploading it
 // themselves through their account. Same storage path convention and pets
-// columns as the customer-facing upload in account/pets/actions.ts.
+// columns as the customer-facing upload in account/pets/actions.ts. The PDF
+// itself is optional here (unlike the customer-facing version) — the admin
+// may just be recording an expiration date she was told over the phone/in
+// person, with no file on hand to attach.
 export async function uploadRabiesVaccineAdmin(formData: FormData) {
   const { supabase } = await requireAdmin();
 
   const petId = formData.get("petId") as string;
-  const file = formData.get("file") as File;
+  const file = formData.get("file") as File | null;
+  const hasFile = !!file && file.size > 0;
   const expiresAt = formData.get("expiresAt") as string;
 
-  if (!file || file.size === 0) {
-    redirect(`/admin/pets/${petId}?error=${encodeURIComponent("Choose a PDF to upload.")}`);
-  }
   if (!expiresAt) {
     redirect(
       `/admin/pets/${petId}?error=${encodeURIComponent("Enter the vaccine's expiration date.")}`,
     );
   }
 
-  const { data: pet } = await supabase
-    .from("pets")
-    .select("owner_id")
-    .eq("id", petId)
-    .single();
+  const update: {
+    rabies_expires_at: string;
+    rabies_uploaded_at: string;
+    rabies_vaccine_path?: string;
+  } = {
+    rabies_expires_at: expiresAt,
+    rabies_uploaded_at: new Date().toISOString(),
+  };
 
-  if (!pet) redirect(`/admin/pets/${petId}?error=${encodeURIComponent("Pet not found.")}`);
+  if (hasFile) {
+    const { data: pet } = await supabase
+      .from("pets")
+      .select("owner_id")
+      .eq("id", petId)
+      .single();
 
-  const path = `${pet.owner_id}/${petId}.pdf`;
-  const { error: uploadError } = await supabase.storage
-    .from("vaccine-records")
-    .upload(path, file, { upsert: true, contentType: "application/pdf" });
+    if (!pet) redirect(`/admin/pets/${petId}?error=${encodeURIComponent("Pet not found.")}`);
 
-  if (uploadError) {
-    redirect(`/admin/pets/${petId}?error=${encodeURIComponent(uploadError.message)}`);
+    const path = `${pet.owner_id}/${petId}.pdf`;
+    const { error: uploadError } = await supabase.storage
+      .from("vaccine-records")
+      .upload(path, file, { upsert: true, contentType: "application/pdf" });
+
+    if (uploadError) {
+      redirect(`/admin/pets/${petId}?error=${encodeURIComponent(uploadError.message)}`);
+    }
+
+    update.rabies_vaccine_path = path;
   }
 
-  await supabase
-    .from("pets")
-    .update({
-      rabies_vaccine_path: path,
-      rabies_uploaded_at: new Date().toISOString(),
-      rabies_expires_at: expiresAt,
-    })
-    .eq("id", petId);
+  await supabase.from("pets").update(update).eq("id", petId);
 
   revalidatePath(`/admin/pets/${petId}`);
   revalidatePath(`/account/pets/${petId}`);

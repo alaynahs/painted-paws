@@ -402,14 +402,14 @@ export default async function AdminPetDetailPage({
                       className="text-xs font-medium text-foreground"
                       htmlFor="file"
                     >
-                      Vaccine record (PDF)
+                      Vaccine record (PDF){" "}
+                      <span className="font-normal text-muted">(optional)</span>
                     </label>
                     <input
                       id="file"
                       type="file"
                       name="file"
                       accept="application/pdf"
-                      required
                       className="mt-1 block w-full text-xs text-foreground/80"
                     />
                   </div>
