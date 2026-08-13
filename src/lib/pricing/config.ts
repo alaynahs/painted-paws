@@ -2,6 +2,15 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_PRICING_CONFIG, type PricingConfig } from "./pricing";
 
+// addOns arrays are matched positionally against DOG_ADD_ON_NAMES/
+// CAT_ADD_ON_NAMES, so a stored array can be shorter than today's defaults
+// after a new add-on is added to the name list — pad it with the default
+// price at each missing index rather than leaving it undefined.
+function padAddOns(defaults: number[], stored: number[] | undefined): number[] {
+  if (!stored) return defaults;
+  return defaults.map((d, i) => stored[i] ?? d);
+}
+
 // Fills in any field missing from a stored config row with today's default
 // — future-proofs against adding new config fields without an immediate
 // re-seed, and protects against a partially-written row.
@@ -15,7 +24,10 @@ function mergeWithDefaults(
     puppy: { ...d.puppy, ...partial.puppy },
     cat: { ...d.cat, ...partial.cat },
     flatFees: { ...d.flatFees, ...partial.flatFees },
-    addOns: { ...d.addOns, ...partial.addOns },
+    addOns: {
+      dog: padAddOns(d.addOns.dog, partial.addOns?.dog),
+      cat: padAddOns(d.addOns.cat, partial.addOns?.cat),
+    },
     packages: { ...d.packages, ...partial.packages },
     memberAddonDiscountPercent:
       partial.memberAddonDiscountPercent ?? d.memberAddonDiscountPercent,

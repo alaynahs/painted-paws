@@ -68,6 +68,7 @@ const catAddOns = [
   "Extra brushing",
   "Nail trim",
   "Nail caps",
+  "Flea bath",
 ];
 
 const packages = [

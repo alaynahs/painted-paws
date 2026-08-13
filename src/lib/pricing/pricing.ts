@@ -254,6 +254,7 @@ export const CAT_ADD_ON_NAMES: string[] = [
   "Extra scissoring (30 min)",
   "Nail Caps (2 paws)",
   "Nail Caps (4 paws)",
+  "Flea bath",
 ];
 
 // Already included free with any bath/trim/haircut — only worth listing as
@@ -481,7 +482,7 @@ export const DEFAULT_PRICING_CONFIG: PricingConfig = {
   flatFees: { deshed: 15, pickupDropoff: 25 },
   addOns: {
     dog: [5, 10, 10, 12, 12, 15, 15, 15, 15, 15, 15, 19, 20, 20, 20, 22, 30, 30, 30, 30],
-    cat: [15, 15, 15, 15, 15, 20, 25, 30, 30, 30, 35, 45],
+    cat: [15, 15, 15, 15, 15, 20, 25, 30, 30, 30, 35, 45, 100],
   },
   packages: { freshStart: 25, pampered: 30, vip: 35 },
   memberAddonDiscountPercent: 15,
