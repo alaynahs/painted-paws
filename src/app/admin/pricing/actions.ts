@@ -102,6 +102,7 @@ export async function updateCatMatrix(formData: FormData) {
       waterlessBath: readTable("waterlessBath"),
       waterlessLightTrim: readTable("waterlessLightTrim"),
       fleaBath: num(formData, "cat-fleaBath"),
+      fleaBathTidy: num(formData, "cat-fleaBathTidy"),
     },
   }));
   redirect("/admin/pricing?saved=cat");

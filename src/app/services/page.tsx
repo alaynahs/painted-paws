@@ -37,7 +37,7 @@ const catCore = [
     includes: "All Bath inclusions, plus 15 minutes of extra brushing and a de-shedding treatment.",
   },
   {
-    name: "Light Tidy",
+    name: "Bath & Tidy",
     blurb: "A bath plus a light trim.",
     includes: "All Bath inclusions, plus a paw pad shave and sanitary trim.",
   },
@@ -45,6 +45,11 @@ const catCore = [
     name: "Flea Bath",
     blurb: "A flea treatment bath and rinse.",
     includes: "Eliminates fleas and soothes irritated skin. Flat rate, any size or coat.",
+  },
+  {
+    name: "Flea Bath & Tidy",
+    blurb: "A flea treatment bath plus a light trim.",
+    includes: "All Flea Bath inclusions, plus a paw pad shave and sanitary trim. Flat rate, any size or coat.",
   },
 ];
 
