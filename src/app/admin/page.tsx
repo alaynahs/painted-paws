@@ -235,7 +235,7 @@ export default async function AdminDashboardPage({
                       >
                         Edit
                       </Link>
-                      <CancelAppointmentButton appointmentId={appt.id} />
+                      <CancelAppointmentButton appointmentId={appt.id} isAdmin />
                       <QuickMessageButtons appointmentId={appt.id} />
                     </div>
                   </div>

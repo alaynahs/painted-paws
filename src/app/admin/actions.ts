@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { requireAdmin } from "@/lib/supabase/admin";
+import { getPricingConfig } from "@/lib/pricing/config";
 import { notifyEmail, type NotificationType } from "@/lib/notifications/service";
 import {
   cantReachClientEmail,
@@ -268,9 +269,19 @@ export async function sendQuickMessage(formData: FormData) {
 
   let content: { subject: string; body: string };
   switch (type) {
-    case "pickup_15min":
-      content = pickup15MinEmail(vars);
+    case "pickup_15min": {
+      const config = await getPricingConfig();
+      content = pickup15MinEmail({
+        ...vars,
+        advanceDiscountAmount: config.advanceBookingDiscount.active
+          ? config.advanceBookingDiscount.amount
+          : undefined,
+        advanceDiscountMinLeadWeeks: config.advanceBookingDiscount.active
+          ? config.advanceBookingDiscount.minLeadWeeks
+          : undefined,
+      });
       break;
+    }
     case "pickup_ready":
       content = pickupReadyEmail(vars);
       break;

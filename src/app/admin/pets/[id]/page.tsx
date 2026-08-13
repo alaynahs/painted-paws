@@ -705,7 +705,7 @@ function AppointmentCard({
           >
             Edit
           </Link>
-          <CancelAppointmentButton appointmentId={appt.id} />
+          <CancelAppointmentButton appointmentId={appt.id} isAdmin />
         </div>
       )}
     </div>

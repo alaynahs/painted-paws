@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { cancelAppointment } from "@/app/book/actions";
 import BookingFlow from "@/components/booking-flow";
+import CancelAppointmentButton from "@/components/cancel-appointment-button";
 import {
   CAT_ADD_ON_NAMES,
   CREATIVE_TIER_LABELS,
@@ -36,7 +36,6 @@ export default async function EditAppointmentPage({
 
   if (!appointment || !appointment.pets) notFound();
 
-  const cancelWithId = cancelAppointment.bind(null, appointment.id);
   const config = await getPricingConfig();
 
   let promoDiscountPercent: number | null = null;
@@ -103,14 +102,9 @@ export default async function EditAppointmentPage({
         />
       </div>
 
-      <form action={cancelWithId} className="mt-6">
-        <button
-          type="submit"
-          className="text-sm text-muted hover:text-foreground"
-        >
-          Cancel this appointment
-        </button>
-      </form>
+      <div className="mt-6">
+        <CancelAppointmentButton appointmentId={appointment.id} variant="link" />
+      </div>
     </div>
   );
 }

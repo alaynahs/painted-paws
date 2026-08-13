@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/supabase/admin";
-import { cancelAppointment, sendPaymentLinkEmail } from "@/app/book/actions";
+import { sendPaymentLinkEmail } from "@/app/book/actions";
 import { markAppointmentPaid } from "@/app/admin/actions";
 import BookingFlow from "@/components/booking-flow";
+import CancelAppointmentButton from "@/components/cancel-appointment-button";
 import QuickMessageButtons from "@/components/quick-message-buttons";
 import RefundButton from "@/components/refund-button";
 import MarkCompleteButton from "@/components/mark-complete-button";
@@ -35,7 +36,6 @@ export default async function AdminEditAppointmentPage({
 
   if (!appointment || !appointment.pets) notFound();
 
-  const cancelWithId = cancelAppointment.bind(null, appointment.id);
   const sendPaymentLinkWithId = sendPaymentLinkEmail.bind(null, appointment.id);
   const markPaidWithId = markAppointmentPaid.bind(null, appointment.id);
   const config = await getPricingConfig();
@@ -185,14 +185,13 @@ export default async function AdminEditAppointmentPage({
         />
       </div>
 
-      <form action={cancelWithId} className="mt-6">
-        <button
-          type="submit"
-          className="text-sm text-muted hover:text-foreground"
-        >
-          Cancel this appointment
-        </button>
-      </form>
+      <div className="mt-6">
+        <CancelAppointmentButton
+          appointmentId={appointment.id}
+          isAdmin
+          variant="link"
+        />
+      </div>
     </div>
   );
 }

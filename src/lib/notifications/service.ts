@@ -28,6 +28,7 @@ export type NotificationType =
   | "pickup_cant_reach"
   | "dropoff_on_way"
   | "no_response_warning"
+  | "no_call_no_show_warning"
   | "tip_received";
 
 interface NotifyTarget {

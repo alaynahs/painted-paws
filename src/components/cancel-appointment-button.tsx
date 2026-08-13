@@ -2,22 +2,38 @@
 
 import { useState } from "react";
 import { cancelAppointment } from "@/app/book/actions";
+import {
+  ADMIN_CANCELLATION_REASONS,
+  CANCELLATION_REASON_LABELS,
+  CUSTOMER_CANCELLATION_REASONS,
+  type CancellationReason,
+} from "@/lib/cancellation-reasons";
 
 export default function CancelAppointmentButton({
   appointmentId,
+  isAdmin = false,
+  variant = "button",
 }: {
   appointmentId: string;
+  isAdmin?: boolean;
+  variant?: "button" | "link";
 }) {
   const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState<CancellationReason | "">("");
+  const reasons = isAdmin ? ADMIN_CANCELLATION_REASONS : CUSTOMER_CANCELLATION_REASONS;
 
   return (
     <>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+        className={
+          variant === "link"
+            ? "text-sm text-muted hover:text-foreground"
+            : "rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+        }
       >
-        Cancel
+        Cancel{variant === "link" ? " this appointment" : ""}
       </button>
 
       {open && (
@@ -36,23 +52,48 @@ export default function CancelAppointmentButton({
               This can&apos;t be undone. You&apos;ll need to rebook if you
               change your mind.
             </p>
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent-dark"
-              >
-                No, keep it
-              </button>
-              <form action={cancelAppointment.bind(null, appointmentId)}>
+
+            <form action={cancelAppointment} className="mt-4">
+              <input type="hidden" name="appointmentId" value={appointmentId} />
+              <p className="text-xs font-medium text-foreground">
+                Why are you cancelling?
+              </p>
+              <div className="mt-2 space-y-1.5">
+                {reasons.map((r) => (
+                  <label
+                    key={r}
+                    className="flex items-center gap-2 text-sm text-foreground/90"
+                  >
+                    <input
+                      type="radio"
+                      name="reason"
+                      value={r}
+                      checked={reason === r}
+                      onChange={() => setReason(r)}
+                      className="h-4 w-4 border-border accent-accent"
+                    />
+                    {CANCELLATION_REASON_LABELS[r]}
+                  </label>
+                ))}
+              </div>
+
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent-dark"
+                >
+                  No, keep it
+                </button>
                 <button
                   type="submit"
-                  className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-dark"
+                  disabled={!reason}
+                  className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-dark disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Yes, cancel it
                 </button>
-              </form>
-            </div>
+              </div>
+            </form>
           </div>
         </div>
       )}

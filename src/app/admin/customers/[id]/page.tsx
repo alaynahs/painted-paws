@@ -9,6 +9,7 @@ import {
 } from "@/lib/notifications/quick-message-labels";
 import ShowMoreList from "@/components/show-more-list";
 import { adminUpdateCustomerContact } from "../actions";
+import { getNoShowCount } from "@/app/book/actions";
 
 export default async function AdminCustomerPage({
   params,
@@ -28,6 +29,8 @@ export default async function AdminCustomerPage({
     .single();
 
   if (!profile) notFound();
+
+  const noShowCount = await getNoShowCount(supabase, id);
 
   // "Last active" is built from real actions, not login state — logins
   // persist for 400 days now, so a customer can keep using the site
@@ -132,6 +135,12 @@ export default async function AdminCustomerPage({
       {profile.do_not_book && (
         <p className="mt-2 inline-block rounded-full bg-accent px-3 py-1 text-xs font-medium text-white">
           Blocked from booking
+        </p>
+      )}
+      {noShowCount > 0 && (
+        <p className="mt-2 text-xs text-muted">
+          {noShowCount} no-call-no-show{noShowCount === 1 ? "" : "s"}
+          {noShowCount >= 3 ? " — auto-blocked from online booking" : ""}
         </p>
       )}
 

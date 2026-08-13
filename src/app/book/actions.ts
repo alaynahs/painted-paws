@@ -36,10 +36,13 @@ import { getCustomerCoupon } from "@/lib/coupons/actions";
 import { getActivePromotion } from "@/lib/promotions/actions";
 import { promotionAppliesToDate } from "@/lib/promotions/helpers";
 import {
+  isValidCancellationReason,
+  type CancellationReason,
+} from "@/lib/cancellation-reasons";
+import {
   BOOKING_HOURS,
   MAX_APPOINTMENTS_PER_DAY,
   MAX_NO_SHOWS,
-  NO_SHOW_GRACE_MINUTES,
   PICKUP_MIN_LEAD_HOURS,
 } from "@/lib/booking-hours";
 import { centralWallClockToInstant, formatDate, formatHour } from "@/lib/format";
@@ -55,6 +58,7 @@ import {
   firstTimeWelcomeEmail,
   firstTimeWelcomeSms,
   newClientVaccineReminderSms,
+  noCallNoShowWarningEmail,
   paymentLinkEmail,
 } from "@/lib/notifications/templates";
 
@@ -1003,7 +1007,7 @@ function appointmentDateTime(date: string, hour: number, minute: number = 0): Da
   return centralWallClockToInstant(date, hour, minute);
 }
 
-export async function cancelAppointment(appointmentId: string) {
+export async function cancelAppointment(formData: FormData) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -1011,25 +1015,24 @@ export async function cancelAppointment(appointmentId: string) {
   if (!user) redirect("/login");
 
   const admin = await isAdminUser(supabase, user.id);
+  const appointmentId = formData.get("appointmentId") as string;
+  const reasonInput = (formData.get("reason") as string) || "";
+  const editPath = admin ? `/admin/appointments/${appointmentId}` : `/account`;
+
+  if (!isValidCancellationReason(reasonInput, admin)) {
+    redirect(`${editPath}?error=${encodeURIComponent("Please choose a cancellation reason.")}`);
+  }
+  const reason = reasonInput as CancellationReason;
+  // Only an admin cancelling as "No call, no show" ever counts as a real
+  // no-show — a customer cancelling for any reason, even last-minute, is
+  // proactively telling us, not disappearing on us.
+  const noShow = admin && reason === "no_call_no_show";
 
   const { data: appt } = await supabase
     .from("appointments")
-    .select("appointment_date, appointment_hour, appointment_minute")
+    .select("customer_id, pets(name), profiles:customer_id(full_name, phone)")
     .eq("id", appointmentId)
     .single();
-
-  let noShow = false;
-  if (appt) {
-    const scheduled = appointmentDateTime(
-      appt.appointment_date,
-      appt.appointment_hour,
-      appt.appointment_minute,
-    );
-    const deadline = admin
-      ? new Date(scheduled.getTime() + NO_SHOW_GRACE_MINUTES * 60 * 1000)
-      : scheduled;
-    noShow = new Date().getTime() > deadline.getTime();
-  }
 
   let query = supabase
     .from("appointments")
@@ -1037,6 +1040,7 @@ export async function cancelAppointment(appointmentId: string) {
       status: "cancelled",
       cancelled_at: new Date().toISOString(),
       no_show: noShow,
+      cancellation_reason: reason,
     })
     .eq("id", appointmentId);
 
@@ -1045,6 +1049,34 @@ export async function cancelAppointment(appointmentId: string) {
   }
 
   await query;
+
+  if (noShow && appt) {
+    const customerId = appt.customer_id as string;
+    const pet = Array.isArray(appt.pets) ? appt.pets[0] : appt.pets;
+    const profile = Array.isArray(appt.profiles) ? appt.profiles[0] : appt.profiles;
+    const count = await getNoShowCount(supabase, customerId);
+
+    if (count === 2 || count === 3) {
+      if (count === 3) {
+        await supabase
+          .from("profiles")
+          .update({ do_not_book: true })
+          .eq("id", customerId);
+      }
+      await notifyEmail(
+        supabase,
+        { customerId, email: BUSINESS_EMAIL },
+        "no_call_no_show_warning",
+        noCallNoShowWarningEmail({
+          customerName: profile?.full_name || "Unknown",
+          customerPhone: profile?.phone ?? "",
+          petName: pet?.name ?? "Pet",
+          count,
+          blocked: count === 3,
+        }),
+      );
+    }
+  }
 
   redirect(
     admin

@@ -1,3 +1,5 @@
+import { NO_SHOW_GRACE_MINUTES } from "@/lib/booking-hours";
+
 export const BUSINESS_NAME = "Painted Paws";
 export const BUSINESS_EMAIL = "booking@paintedpawsaustin.com";
 export const BUSINESS_ADDRESS = "304 Lemon Light Lane, Pflugerville, TX";
@@ -86,6 +88,10 @@ Appointment Details
 
 Please arrive on time and make sure your pup has had a potty break before coming in.
 
+Curbside hand-off: our home workspace is a pet-only zone — no walk-ins. When you arrive, park in the driveway and send a quick text; we'll meet you at your car to bring your pet in, and do the same for pickup once the groom is complete.
+
+Please note: if you haven't shown up ${NO_SHOW_GRACE_MINUTES} minutes past your appointment time, it will be cancelled as a no-show.
+
 If you need to make any changes, simply reply to this email or contact us.
 
 We look forward to seeing you and ${vars.petName}!
@@ -126,6 +132,30 @@ ${BUSINESS_NAME}`,
 // Sent to the admin when a customer reaches Stripe Checkout for a booking
 // but never completes payment — either by explicitly backing out, or by
 // abandoning the tab until the checkout session expires.
+// Sent to the admin when cancelling an appointment with "No call, no show"
+// pushes a customer to their 2nd or 3rd such cancellation — the 3rd also
+// auto-blocks them from booking online (see isBlockedFromOnlineBooking).
+export function noCallNoShowWarningEmail(vars: {
+  customerName: string;
+  customerPhone: string;
+  petName: string;
+  count: number;
+  blocked: boolean;
+}): EmailContent {
+  return {
+    subject: `${vars.customerName} now has ${vars.count} no-call-no-shows${vars.blocked ? " — blocked from online booking" : ""}`,
+    body: `${vars.customerName}${vars.customerPhone ? ` (${vars.customerPhone})` : ""} just hit their ${vars.count === 2 ? "2nd" : "3rd"} no-call-no-show, cancelling ${vars.petName}'s appointment.
+
+${
+  vars.blocked
+    ? "This is their 3rd — they've been automatically blocked from booking online. They'll need to email or call to book going forward."
+    : "One more and they'll be automatically blocked from online booking."
+}
+
+${BUSINESS_NAME} site`,
+  };
+}
+
 export function checkoutAbandonedEmail(vars: {
   customerName: string;
   customerPhone: string;
@@ -371,14 +401,20 @@ ${BUSINESS_NAME}`;
 export function pickup15MinEmail(vars: {
   firstName: string;
   petName: string;
+  advanceDiscountAmount?: number;
+  advanceDiscountMinLeadWeeks?: number;
 }): EmailContent {
+  const promo =
+    vars.advanceDiscountAmount && vars.advanceDiscountMinLeadWeeks
+      ? `\n\nWhile you're here: book your next appointment at least ${vars.advanceDiscountMinLeadWeeks} weeks out and get $${vars.advanceDiscountAmount} off.`
+      : "";
   return {
     subject: "15 Minutes Until Pickup! 🐾",
     body: `Hi ${vars.firstName},
 
 We're putting the finishing touches on ${vars.petName} and they should be ready for pickup in about 15 minutes!
 
-Please head our way when you can. We'll let you know if anything changes.
+Please head our way when you can. We'll let you know if anything changes.${promo}
 
 See you soon!
 ${BUSINESS_NAME}`,

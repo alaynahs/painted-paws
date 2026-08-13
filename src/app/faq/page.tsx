@@ -95,7 +95,7 @@ const faqGroups = [
       },
       {
         q: "What counts as a no-show?",
-        a: "If an appointment is cancelled after its scheduled start time, meaning nobody showed up, it's recorded as a no-show. This also applies if we have to cancel on our end more than 15 minutes past your start time.",
+        a: "If you don't show up and don't reach out, that appointment is recorded as a no-call-no-show once we cancel it on our end — which happens 15 minutes past your start time. Cancelling ahead of time for any reason, even last-minute, is never treated as a no-show.",
       },
       {
         q: "What happens after repeated no-shows?",
