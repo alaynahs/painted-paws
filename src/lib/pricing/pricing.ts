@@ -22,7 +22,7 @@ export type DogWeightClass = "small" | "medium" | "large" | "xlarge";
 export type CatWeightClass = "under20" | "over20";
 export type DogServiceLevel = "bath" | "trim" | "haircut";
 export type DogBookingService = DogServiceLevel | "puppyIntro";
-export type CatServiceLevel = "bath" | "lightTrim";
+export type CatServiceLevel = "bath" | "lightTrim" | "fleaBath";
 export type PuppyWeightBand = "under5" | "under10" | "under20" | "over20";
 
 export const DOG_WEIGHT_LABELS: Record<DogWeightClass, string> = {
@@ -153,6 +153,7 @@ export function calculateDogPrice(
 export const CAT_SERVICE_LABELS: Record<CatServiceLevel, string> = {
   bath: "Bath",
   lightTrim: "Light Tidy (bath + paw pad shave + sanitary trim)",
+  fleaBath: "Flea Bath",
 };
 
 const SERVICE_LABELS: Record<string, string> = {
@@ -170,6 +171,7 @@ export function formatServiceLabel(service: string): string {
 export const CAT_SERVICE_DESCRIPTIONS: Record<CatServiceLevel, string> = {
   bath: "Water bath, 15-min brushing, nail clipping, ear cleaning, blow-out.",
   lightTrim: "All Bath inclusions, plus a paw pad shave and sanitary trim.",
+  fleaBath: "A flea treatment bath and rinse to eliminate fleas and soothe irritated skin. Flat rate, any size or coat.",
 };
 
 export interface CatPriceInput {
@@ -185,6 +187,16 @@ export function calculateCatPrice(
   config: PricingConfig,
 ): PriceResult {
   const lines: PriceBreakdownLine[] = [];
+
+  // Flat rate, no weight/coat table lookup — unlike bath and lightTrim.
+  if (input.service === "fleaBath") {
+    lines.push({ label: CAT_SERVICE_LABELS.fleaBath, amount: config.cat.fleaBath });
+    if (input.deshed) {
+      lines.push({ label: "De-shed treatment", amount: config.flatFees.deshed });
+    }
+    return { total: lines.reduce((sum, l) => sum + l.amount, 0), lines };
+  }
+
   const weightClass = catWeightClass(input.weightLb);
 
   const table = input.waterless
@@ -254,7 +266,6 @@ export const CAT_ADD_ON_NAMES: string[] = [
   "Extra scissoring (30 min)",
   "Nail Caps (2 paws)",
   "Nail Caps (4 paws)",
-  "Flea bath",
 ];
 
 // Already included free with any bath/trim/haircut — only worth listing as
@@ -408,6 +419,9 @@ export interface PricingConfig {
     lightTrim: Record<CatWeightClass, WeightCoatPrice>;
     waterlessBath: Record<CatWeightClass, WeightCoatPrice>;
     waterlessLightTrim: Record<CatWeightClass, WeightCoatPrice>;
+    // Flat rate, unlike the other cat services — same price regardless of
+    // weight or coat length.
+    fleaBath: number;
   };
   flatFees: {
     deshed: number;
@@ -478,11 +492,12 @@ export const DEFAULT_PRICING_CONFIG: PricingConfig = {
     lightTrim: { under20: byCoat(115, 130), over20: byCoat(125, 140) },
     waterlessBath: { under20: byCoat(95, 115), over20: byCoat(105, 125) },
     waterlessLightTrim: { under20: byCoat(105, 120), over20: byCoat(115, 130) },
+    fleaBath: 100,
   },
   flatFees: { deshed: 15, pickupDropoff: 25 },
   addOns: {
     dog: [5, 10, 10, 12, 12, 15, 15, 15, 15, 15, 15, 19, 20, 20, 20, 22, 30, 30, 30, 30],
-    cat: [15, 15, 15, 15, 15, 20, 25, 30, 30, 30, 35, 45, 100],
+    cat: [15, 15, 15, 15, 15, 20, 25, 30, 30, 30, 35, 45],
   },
   packages: { freshStart: 25, pampered: 30, vip: 35 },
   memberAddonDiscountPercent: 15,

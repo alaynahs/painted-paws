@@ -41,6 +41,11 @@ const catCore = [
     blurb: "A bath plus a light trim.",
     includes: "All Bath inclusions, plus a paw pad shave and sanitary trim.",
   },
+  {
+    name: "Flea Bath",
+    blurb: "A flea treatment bath and rinse.",
+    includes: "Eliminates fleas and soothes irritated skin. Flat rate, any size or coat.",
+  },
 ];
 
 const dogAddOns = [
@@ -68,7 +73,6 @@ const catAddOns = [
   "Extra brushing",
   "Nail trim",
   "Nail caps",
-  "Flea bath",
 ];
 
 const packages = [

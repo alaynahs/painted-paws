@@ -699,9 +699,9 @@ export default function BookingFlow({
             />
           ) : (
             <PillGroup
-              options={(["bath", "lightTrim"] as CatServiceLevel[]).map(
-                (s) => ({ value: s, label: CAT_SERVICE_LABELS[s] }),
-              )}
+              options={(
+                ["bath", "lightTrim", "fleaBath"] as CatServiceLevel[]
+              ).map((s) => ({ value: s, label: CAT_SERVICE_LABELS[s] }))}
               value={catService}
               onChange={setCatService}
               disabled={standalone}

@@ -264,6 +264,21 @@ export default async function AdminPricingPage({
                   </div>
                 </div>
               ))}
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  Flea Bath
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                  Flat rate, any weight or coat length.
+                </p>
+                <div className="mt-2 max-w-[190px]">
+                  <NumberField
+                    name="cat-fleaBath"
+                    label="Price"
+                    defaultValue={config.cat.fleaBath}
+                  />
+                </div>
+              </div>
             </div>
             <SaveButton />
           </form>
