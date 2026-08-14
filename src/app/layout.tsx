@@ -98,8 +98,11 @@ export default async function RootLayout({
           }}
         />
         {/* Meta Pixel — tracks visits/conversions for the Meta (Facebook +
-            Instagram) ad campaign. Pixel ID: 2236026120544488. */}
-        <Script id="meta-pixel" strategy="afterInteractive">
+            Instagram) ad campaign. Pixel ID: 2236026120544488.
+            beforeInteractive so Next.js renders it into the actual <head>
+            of the server-rendered HTML, matching Meta's own placement
+            requirement and what its automated setup checker scans for. */}
+        <Script id="meta-pixel" strategy="beforeInteractive">
           {`
             !function(f,b,e,v,n,t,s)
             {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
