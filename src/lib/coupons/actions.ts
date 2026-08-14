@@ -94,6 +94,47 @@ export async function markCouponAnnounced(couponId: string) {
     .eq("customer_id", user.id);
 }
 
+export interface FeaturedCouponCode {
+  code: string;
+  discountPercent: number | null;
+  discountAmount: number | null;
+}
+
+// The one coupon code (if any) the admin has chosen to advertise in the
+// site-wide banner — purely an announcement, unlike a promotions-table
+// promo. Still requires the customer to actually type the code in at
+// checkout; this just tells them it exists. Falls back to null once the
+// code expires or hits its redemption cap, same as an automatic promotion
+// disappearing from the banner.
+export async function getFeaturedCouponCode(): Promise<FeaturedCouponCode | null> {
+  const supabase = createServiceClient();
+  const { data } = await supabase
+    .from("coupons")
+    .select("id, code, discount_percent, discount_amount, max_redemptions, expires_at")
+    .is("customer_id", null)
+    .eq("featured_banner", true)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!data) return null;
+  if (data.expires_at && new Date(data.expires_at).getTime() < Date.now()) return null;
+
+  if (data.max_redemptions != null) {
+    const { count } = await supabase
+      .from("coupons")
+      .select("id", { count: "exact", head: true })
+      .eq("source_code_id", data.id);
+    if ((count ?? 0) >= data.max_redemptions) return null;
+  }
+
+  return {
+    code: data.code as string,
+    discountPercent: data.discount_percent,
+    discountAmount: data.discount_amount,
+  };
+}
+
 export interface RedeemCodeResult {
   success: boolean;
   error?: string;

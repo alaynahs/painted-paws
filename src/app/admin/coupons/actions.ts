@@ -206,6 +206,7 @@ export async function generateCouponCode(formData: FormData) {
   const maxRedemptions = maxRedemptionsRaw ? Number(maxRedemptionsRaw) : null;
   const expiresAtRaw = (formData.get("expiresAt") as string) || "";
   const expiresAt = expiresAtRaw ? new Date(`${expiresAtRaw}T23:59:59`).toISOString() : null;
+  const featuredBanner = formData.get("featuredBanner") === "true";
 
   if (!discount.valid) {
     redirect(
@@ -215,6 +216,15 @@ export async function generateCouponCode(formData: FormData) {
 
   const code = typedCode || randomCode();
 
+  // Only one code is ever featured in the banner at a time.
+  if (featuredBanner) {
+    await supabase
+      .from("coupons")
+      .update({ featured_banner: false })
+      .is("customer_id", null)
+      .eq("featured_banner", true);
+  }
+
   const { error } = await supabase.from("coupons").insert({
     customer_id: null,
     code,
@@ -223,6 +233,7 @@ export async function generateCouponCode(formData: FormData) {
     note,
     max_redemptions: maxRedemptions,
     expires_at: expiresAt,
+    featured_banner: featuredBanner,
   });
 
   if (error) {
@@ -237,4 +248,31 @@ export async function deleteCouponCode(codeId: string) {
   const { supabase } = await requireAdmin();
   await supabase.from("coupons").delete().eq("id", codeId).is("customer_id", null);
   redirect(`/admin/coupons?message=${encodeURIComponent("Code deleted.")}`);
+}
+
+// Feature this code in the site-wide banner, un-featuring whichever code
+// (if any) held that spot before — only one code is ever featured at once.
+export async function setFeaturedCouponCode(codeId: string) {
+  const { supabase } = await requireAdmin();
+  await supabase
+    .from("coupons")
+    .update({ featured_banner: false })
+    .is("customer_id", null)
+    .eq("featured_banner", true);
+  await supabase
+    .from("coupons")
+    .update({ featured_banner: true })
+    .eq("id", codeId)
+    .is("customer_id", null);
+  redirect(`/admin/coupons?message=${encodeURIComponent("Featured in banner.")}`);
+}
+
+export async function unfeatureCouponCode(codeId: string) {
+  const { supabase } = await requireAdmin();
+  await supabase
+    .from("coupons")
+    .update({ featured_banner: false })
+    .eq("id", codeId)
+    .is("customer_id", null);
+  redirect(`/admin/coupons?message=${encodeURIComponent("Removed from banner.")}`);
 }

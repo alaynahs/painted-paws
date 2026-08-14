@@ -31,7 +31,9 @@ export async function getActivePromotion(): Promise<ActivePromotion | null> {
     )
     .eq("active", true)
     .lte("starts_at", nowIso)
-    .gte("ends_at", nowIso)
+    // A null ends_at means "runs until manually stopped" — never filtered
+    // out by the end-date check.
+    .or(`ends_at.is.null,ends_at.gte.${nowIso}`)
     .order("discount_percent", { ascending: false });
 
   if (!promos || promos.length === 0) return null;

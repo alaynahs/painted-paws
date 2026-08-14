@@ -1267,7 +1267,7 @@ export default function BookingFlow({
             ${grandTotal}
           </span>
         </div>
-        {promoActive && (
+        {promoActive && promoDiscountPercent! > 0 && (
           <p className="mt-1 text-xs font-medium text-accent-dark">
             🎉 {promoDiscountPercent}% off applied — limited-time offer
           </p>

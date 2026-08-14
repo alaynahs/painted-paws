@@ -2,7 +2,12 @@ import { requireAdmin } from "@/lib/supabase/admin";
 import AdminCouponSearch from "@/components/admin-coupon-search";
 import AdminCouponGroup from "@/components/admin-coupon-group";
 import CouponDiscountInputs from "@/components/coupon-discount-inputs";
-import { generateCouponCode, deleteCouponCode } from "./actions";
+import {
+  generateCouponCode,
+  deleteCouponCode,
+  setFeaturedCouponCode,
+  unfeatureCouponCode,
+} from "./actions";
 import { formatDate, formatDateTime } from "@/lib/format";
 
 export default async function AdminCouponsPage({
@@ -17,7 +22,7 @@ export default async function AdminCouponsPage({
     supabase
       .from("coupons")
       .select(
-        "id, code, discount_percent, discount_amount, note, max_redemptions, expires_at, created_at",
+        "id, code, discount_percent, discount_amount, note, max_redemptions, expires_at, created_at, featured_banner",
       )
       .is("customer_id", null)
       .order("created_at", { ascending: false }),
@@ -101,6 +106,15 @@ export default async function AdminCouponsPage({
             name="expiresAt"
             className="rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-accent-dark"
           />
+          <label className="flex items-center gap-2 text-sm text-foreground/90">
+            <input
+              type="checkbox"
+              name="featuredBanner"
+              value="true"
+              className="h-4 w-4 rounded border-border accent-accent"
+            />
+            Feature in site banner
+          </label>
           <button
             type="submit"
             className="rounded-full bg-accent px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-dark"
@@ -123,6 +137,11 @@ export default async function AdminCouponsPage({
                   <div>
                     <p className="font-mono text-sm font-medium text-foreground">
                       {c.code}
+                      {c.featured_banner && (
+                        <span className="ml-2 rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white">
+                          In banner
+                        </span>
+                      )}
                       {(expired || capped) && (
                         <span className="ml-2 rounded-full bg-accent-tint px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-accent-dark">
                           {expired ? "Expired" : "Limit reached"}
@@ -142,14 +161,30 @@ export default async function AdminCouponsPage({
                       {formatDateTime(c.created_at)}
                     </p>
                   </div>
-                  <form action={deleteCouponCode.bind(null, c.id)}>
-                    <button
-                      type="submit"
-                      className="text-xs text-muted hover:text-accent-dark"
+                  <div className="flex shrink-0 items-center gap-3">
+                    <form
+                      action={
+                        c.featured_banner
+                          ? unfeatureCouponCode.bind(null, c.id)
+                          : setFeaturedCouponCode.bind(null, c.id)
+                      }
                     >
-                      Delete
-                    </button>
-                  </form>
+                      <button
+                        type="submit"
+                        className="text-xs text-muted hover:text-accent-dark"
+                      >
+                        {c.featured_banner ? "Remove from banner" : "Feature in banner"}
+                      </button>
+                    </form>
+                    <form action={deleteCouponCode.bind(null, c.id)}>
+                      <button
+                        type="submit"
+                        className="text-xs text-muted hover:text-accent-dark"
+                      >
+                        Delete
+                      </button>
+                    </form>
+                  </div>
                 </div>
               );
             })}

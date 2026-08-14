@@ -595,11 +595,15 @@ export default async function AdminPricingPage({
                         />
                       </label>
                       <label className="block">
-                        <span className="text-xs text-muted">Ends</span>
+                        <span className="text-xs text-muted">
+                          Ends (blank = runs until stopped)
+                        </span>
                         <input
                           type="datetime-local"
                           name="endsAt"
-                          defaultValue={toDatetimeLocal(promo.ends_at)}
+                          defaultValue={
+                            promo.ends_at ? toDatetimeLocal(promo.ends_at) : ""
+                          }
                           className="mt-1 w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm text-foreground outline-none focus:border-accent-dark"
                         />
                       </label>
@@ -718,11 +722,12 @@ export default async function AdminPricingPage({
                   />
                 </label>
                 <label className="block">
-                  <span className="text-xs text-muted">Ends</span>
+                  <span className="text-xs text-muted">
+                    Ends (blank = runs until stopped)
+                  </span>
                   <input
                     type="datetime-local"
                     name="endsAt"
-                    required
                     className="mt-1 w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm text-foreground outline-none focus:border-accent-dark"
                   />
                 </label>
@@ -738,6 +743,17 @@ export default async function AdminPricingPage({
                   placeholder="e.g. Use code PAWS for 20% off!"
                   className="mt-1 w-full max-w-sm rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm text-foreground outline-none focus:border-accent-dark"
                 />
+              </label>
+              <label className="flex items-center gap-2 text-sm text-foreground/90">
+                <input
+                  type="checkbox"
+                  name="bannerOnly"
+                  value="true"
+                  className="h-4 w-4 rounded border-border accent-accent"
+                />
+                Banner only — announce it, don&apos;t actually discount
+                anything (e.g. to advertise a coupon code instead). Requires
+                a banner message above.
               </label>
               <SaveButton label="Create Promotion" />
             </form>

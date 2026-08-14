@@ -13,14 +13,18 @@ function revalidateEverywhere() {
 function readPromotionFields(formData: FormData) {
   const maxUsesRaw = (formData.get("maxUses") as string)?.trim();
   const leadDaysRaw = (formData.get("maxAppointmentLeadDays") as string)?.trim();
+  const bannerOnly = formData.get("bannerOnly") === "true";
   return {
     name: ((formData.get("name") as string) || "").trim(),
-    discountPercent: Number(formData.get("discountPercent")),
+    // Banner-only promos never discount anything — force 0 regardless of
+    // whatever's still sitting in the percent field.
+    discountPercent: bannerOnly ? 0 : Number(formData.get("discountPercent")),
     maxUses: maxUsesRaw ? Number(maxUsesRaw) : null,
     startsAt: formData.get("startsAt") as string,
     endsAt: formData.get("endsAt") as string,
     maxAppointmentLeadDays: leadDaysRaw ? Number(leadDaysRaw) : null,
     bannerMessage: ((formData.get("bannerMessage") as string) || "").trim() || null,
+    bannerOnly,
   };
 }
 
@@ -28,8 +32,13 @@ export async function createPromotion(formData: FormData) {
   const { supabase } = await requireAdmin();
   const fields = readPromotionFields(formData);
 
-  if (!fields.name || !fields.startsAt || !fields.endsAt || !Number.isFinite(fields.discountPercent)) {
+  if (!fields.name || !fields.startsAt || !Number.isFinite(fields.discountPercent)) {
     redirect("/admin/pricing?error=Please+fill+out+the+promotion+form.");
+  }
+  if (fields.bannerOnly && !fields.bannerMessage) {
+    redirect(
+      "/admin/pricing?error=Banner-only+promotions+need+banner+message+text.",
+    );
   }
 
   await supabase.from("promotions").insert({
@@ -37,7 +46,7 @@ export async function createPromotion(formData: FormData) {
     discount_percent: fields.discountPercent,
     max_uses: fields.maxUses,
     starts_at: new Date(fields.startsAt).toISOString(),
-    ends_at: new Date(fields.endsAt).toISOString(),
+    ends_at: fields.endsAt ? new Date(fields.endsAt).toISOString() : null,
     max_appointment_lead_days: fields.maxAppointmentLeadDays,
     banner_message: fields.bannerMessage,
     active: true,
@@ -60,7 +69,7 @@ export async function updatePromotion(formData: FormData) {
       discount_percent: fields.discountPercent,
       max_uses: fields.maxUses,
       starts_at: new Date(fields.startsAt).toISOString(),
-      ends_at: new Date(fields.endsAt).toISOString(),
+      ends_at: fields.endsAt ? new Date(fields.endsAt).toISOString() : null,
       max_appointment_lead_days: fields.maxAppointmentLeadDays,
       banner_message: fields.bannerMessage,
       active,
