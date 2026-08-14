@@ -90,12 +90,18 @@ export default async function AdminDashboardPage({
         </div>
       </div>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
         <Link
           href="/admin/pricing"
           className="rounded-xl border border-border bg-card p-4 text-center text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
         >
           Pricing
+        </Link>
+        <Link
+          href="/admin/quick-quote"
+          className="rounded-xl border border-border bg-card p-4 text-center text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+        >
+          Quick Quote
         </Link>
         <Link
           href="/admin/photos"
