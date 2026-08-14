@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 import { Fraunces, Inter } from "next/font/google";
 import "./globals.css";
 import SiteHeader from "@/components/site-header";
@@ -86,6 +85,41 @@ export default async function RootLayout({
       lang="en"
       className={`${heading.variable} ${body.variable} h-full antialiased`}
     >
+      <head>
+        {/* Meta Pixel — tracks visits/conversions for the Meta (Facebook +
+            Instagram) ad campaign. Pixel ID: 2236026120544488. A literal
+            <head> block (rather than next/script) so the tag actually
+            lands inside <head>...</head> in the server-rendered HTML —
+            next/script's beforeInteractive strategy still resolves to a
+            deferred hydration payload in <body> under the App Router,
+            which Meta's own setup checker doesn't recognize as installed. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              !function(f,b,e,v,n,t,s)
+              {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+              n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+              if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+              n.queue=[];t=b.createElement(e);t.async=!0;
+              t.src=v;s=b.getElementsByTagName(e)[0];
+              s.parentNode.insertBefore(t,s)}(window, document,'script',
+              'https://connect.facebook.net/en_US/fbevents.js');
+              fbq('init', '2236026120544488');
+              fbq('track', 'PageView');
+            `,
+          }}
+        />
+        <noscript>
+          {/* eslint-disable-next-line @next/next/no-img-element -- external tracking beacon, not an optimizable local image */}
+          <img
+            height="1"
+            width="1"
+            style={{ display: "none" }}
+            src="https://www.facebook.com/tr?id=2236026120544488&ev=PageView&noscript=1"
+            alt=""
+          />
+        </noscript>
+      </head>
       <body className="min-h-full flex flex-col">
         <script
           type="application/ld+json"
@@ -97,35 +131,6 @@ export default async function RootLayout({
               "try{if(localStorage.getItem('theme')==='dark'){document.documentElement.dataset.theme='dark';}}catch(e){}",
           }}
         />
-        {/* Meta Pixel — tracks visits/conversions for the Meta (Facebook +
-            Instagram) ad campaign. Pixel ID: 2236026120544488.
-            beforeInteractive so Next.js renders it into the actual <head>
-            of the server-rendered HTML, matching Meta's own placement
-            requirement and what its automated setup checker scans for. */}
-        <Script id="meta-pixel" strategy="beforeInteractive">
-          {`
-            !function(f,b,e,v,n,t,s)
-            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-            n.queue=[];t=b.createElement(e);t.async=!0;
-            t.src=v;s=b.getElementsByTagName(e)[0];
-            s.parentNode.insertBefore(t,s)}(window, document,'script',
-            'https://connect.facebook.net/en_US/fbevents.js');
-            fbq('init', '2236026120544488');
-            fbq('track', 'PageView');
-          `}
-        </Script>
-        <noscript>
-          {/* eslint-disable-next-line @next/next/no-img-element -- external tracking beacon, not an optimizable local image */}
-          <img
-            height="1"
-            width="1"
-            style={{ display: "none" }}
-            src="https://www.facebook.com/tr?id=2236026120544488&ev=PageView&noscript=1"
-            alt=""
-          />
-        </noscript>
         <DecorativeBackground />
         <PromoBanner />
         <CouponAnnouncement />
