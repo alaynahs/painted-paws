@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import BookingFlow from "@/components/booking-flow";
+import MetaInitiateCheckoutEvent from "@/components/meta-initiate-checkout-event";
 import { isBlockedFromOnlineBooking } from "@/app/book/actions";
 import { getPricingConfig } from "@/lib/pricing/config";
 import {
@@ -109,6 +110,7 @@ export default async function BookPage({
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-16">
+      <MetaInitiateCheckoutEvent />
       <p className="text-sm font-medium tracking-wide text-accent-dark uppercase">
         Book an appointment
       </p>
