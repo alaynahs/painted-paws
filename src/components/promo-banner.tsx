@@ -13,10 +13,12 @@ export default async function PromoBanner() {
     >
       <PawIcon className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
       <span>
-        Limited-Time Offer: {promo.discountPercent}% Off Any Groom
-        {promo.remaining != null
-          ? ` — Only ${promo.remaining} spot${promo.remaining === 1 ? "" : "s"} left, book now`
-          : ", book now"}
+        {promo.bannerMessage ||
+          `Limited-Time Offer: ${promo.discountPercent}% Off Any Groom${
+            promo.remaining != null
+              ? ` — Only ${promo.remaining} spot${promo.remaining === 1 ? "" : "s"} left, book now`
+              : ", book now"
+          }`}
       </span>
       <PawIcon className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
     </Link>

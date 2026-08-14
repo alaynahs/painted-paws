@@ -109,7 +109,7 @@ export default async function AdminPricingPage({
   const { data: promotions } = await supabase
     .from("promotions")
     .select(
-      "id, name, discount_percent, max_uses, starts_at, ends_at, max_appointment_lead_days, active",
+      "id, name, discount_percent, max_uses, starts_at, ends_at, max_appointment_lead_days, active, banner_message",
     )
     .order("created_at", { ascending: false });
 
@@ -604,6 +604,19 @@ export default async function AdminPricingPage({
                         />
                       </label>
                     </div>
+                    <label className="block">
+                      <span className="text-xs text-muted">
+                        Banner message (optional — leave blank for the
+                        default wording)
+                      </span>
+                      <input
+                        type="text"
+                        name="bannerMessage"
+                        defaultValue={promo.banner_message ?? ""}
+                        placeholder="e.g. Use code PAWS for 20% off!"
+                        className="mt-1 w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm text-foreground outline-none focus:border-accent-dark"
+                      />
+                    </label>
                     <div className="flex items-center gap-3">
                       <button
                         type="submit"
@@ -714,6 +727,18 @@ export default async function AdminPricingPage({
                   />
                 </label>
               </div>
+              <label className="block">
+                <span className="text-xs text-muted">
+                  Banner message (optional — leave blank for the default
+                  wording)
+                </span>
+                <input
+                  type="text"
+                  name="bannerMessage"
+                  placeholder="e.g. Use code PAWS for 20% off!"
+                  className="mt-1 w-full max-w-sm rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm text-foreground outline-none focus:border-accent-dark"
+                />
+              </label>
               <SaveButton label="Create Promotion" />
             </form>
           </div>

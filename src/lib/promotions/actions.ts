@@ -9,6 +9,9 @@ export interface ActivePromotion {
   // null = unlimited (no cap configured for this promotion).
   remaining: number | null;
   maxAppointmentLeadDays: number | null;
+  // Custom banner copy, if the admin set one — falls back to generated
+  // wording ("Limited-Time Offer: X% Off Any Groom") when null.
+  bannerMessage: string | null;
 }
 
 // Finds the best currently-running, not-yet-maxed-out promotion (if any).
@@ -23,7 +26,9 @@ export async function getActivePromotion(): Promise<ActivePromotion | null> {
 
   const { data: promos } = await supabase
     .from("promotions")
-    .select("id, name, discount_percent, max_uses, max_appointment_lead_days")
+    .select(
+      "id, name, discount_percent, max_uses, max_appointment_lead_days, banner_message",
+    )
     .eq("active", true)
     .lte("starts_at", nowIso)
     .gte("ends_at", nowIso)
@@ -56,6 +61,7 @@ export async function getActivePromotion(): Promise<ActivePromotion | null> {
       discountPercent: promo.discount_percent,
       remaining,
       maxAppointmentLeadDays: promo.max_appointment_lead_days,
+      bannerMessage: promo.banner_message,
     };
   }
   return null;

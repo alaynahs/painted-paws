@@ -20,6 +20,7 @@ function readPromotionFields(formData: FormData) {
     startsAt: formData.get("startsAt") as string,
     endsAt: formData.get("endsAt") as string,
     maxAppointmentLeadDays: leadDaysRaw ? Number(leadDaysRaw) : null,
+    bannerMessage: ((formData.get("bannerMessage") as string) || "").trim() || null,
   };
 }
 
@@ -38,6 +39,7 @@ export async function createPromotion(formData: FormData) {
     starts_at: new Date(fields.startsAt).toISOString(),
     ends_at: new Date(fields.endsAt).toISOString(),
     max_appointment_lead_days: fields.maxAppointmentLeadDays,
+    banner_message: fields.bannerMessage,
     active: true,
   });
 
@@ -60,6 +62,7 @@ export async function updatePromotion(formData: FormData) {
       starts_at: new Date(fields.startsAt).toISOString(),
       ends_at: new Date(fields.endsAt).toISOString(),
       max_appointment_lead_days: fields.maxAppointmentLeadDays,
+      banner_message: fields.bannerMessage,
       active,
     })
     .eq("id", id);
@@ -71,8 +74,11 @@ export async function updatePromotion(formData: FormData) {
 export async function deletePromotion(formData: FormData) {
   const { supabase } = await requireAdmin();
   const id = formData.get("id") as string;
-  await supabase.from("promotions").delete().eq("id", id);
+  const { error } = await supabase.from("promotions").delete().eq("id", id);
   revalidateEverywhere();
+  if (error) {
+    redirect(`/admin/pricing?error=${encodeURIComponent(error.message)}`);
+  }
   redirect("/admin/pricing?saved=promotion-deleted");
 }
 
