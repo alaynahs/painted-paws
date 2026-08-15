@@ -72,6 +72,7 @@ interface Pet {
 export interface BookingInitialValues {
   service: string;
   deshed: boolean;
+  waterless?: boolean;
   creativeTier: CreativeTier | "none";
   addOnNames?: string[];
   packageTier?: PackageTier | "none";
@@ -195,6 +196,7 @@ export default function BookingFlow({
     (!initialIsDogService && (initial?.service as CatServiceLevel)) || "bath",
   );
   const [deshed, setDeshed] = useState(initial?.deshed ?? false);
+  const [waterless, setWaterless] = useState(initial?.waterless ?? false);
   const [creativeTier, setCreativeTier] = useState<CreativeTier | "none">(
     initial?.creativeTier ?? "none",
   );
@@ -494,6 +496,16 @@ export default function BookingFlow({
     .filter((a) => standalone || !includedWithService.includes(a.name))
     .sort((a, b) => a.price - b.price);
 
+  // Only actually apply the waterless checkbox where it's shown (kitten
+  // bath/lightTrim) — otherwise a stale `true` left over from switching
+  // pets/services could silently swap an adult cat onto the (currently
+  // unexposed) adult waterless rate table instead of the regular one.
+  const waterlessEligible =
+    pet?.species === "cat" &&
+    !!pet?.is_kitten &&
+    (catService === "bath" || catService === "lightTrim");
+  const effectiveWaterless = waterlessEligible && waterless;
+
   const priceResult = useMemo(() => {
     if (!pet) return null;
     if (pet.species === "dog") {
@@ -514,13 +526,13 @@ export default function BookingFlow({
         weightLb: pet.weight_lb,
         coat: pet.coat,
         service: catService,
-        waterless: false,
+        waterless: effectiveWaterless,
         deshed,
         isKitten: pet.is_kitten ?? false,
       },
       config,
     );
-  }, [pet, dogService, catService, deshed, config]);
+  }, [pet, dogService, catService, deshed, effectiveWaterless, config]);
 
   const creativeAddOnPrice =
     !standalone &&
@@ -617,6 +629,7 @@ export default function BookingFlow({
         value={standalone ? "standalone" : service}
       />
       <input type="hidden" name="deshed" value={String(deshed)} />
+      <input type="hidden" name="waterless" value={String(effectiveWaterless)} />
       <input type="hidden" name="creativeTier" value={creativeTier} />
       <input type="hidden" name="addOnNames" value={JSON.stringify(selectedAddOns)} />
       <input type="hidden" name="packageTier" value={packageTier} />
@@ -717,6 +730,20 @@ export default function BookingFlow({
               ? DOG_SERVICE_DESCRIPTIONS[dogService]
               : CAT_SERVICE_DESCRIPTIONS[catService]}
         </p>
+        {!standalone &&
+          pet.species === "cat" &&
+          pet.is_kitten &&
+          (catService === "bath" || catService === "lightTrim") && (
+            <label className="mt-3 flex items-center gap-2 text-sm text-foreground/90">
+              <input
+                type="checkbox"
+                checked={waterless}
+                onChange={(e) => setWaterless(e.target.checked)}
+                className="h-4 w-4 rounded border-border accent-accent"
+              />
+              Waterless bath
+            </label>
+          )}
         {availableCredits > 0 && (
           <label className="mt-3 flex items-center justify-between gap-2 rounded-xl border border-accent-dark/40 bg-accent-tint px-3.5 py-2.5 text-sm text-foreground/90">
             <span className="flex items-center gap-2">

@@ -69,6 +69,7 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
   const [manualCoat, setManualCoat] = useState<CoatLength>("short");
   const [isPuppy, setIsPuppy] = useState(false);
   const [isKitten, setIsKitten] = useState(false);
+  const [waterless, setWaterless] = useState(false);
   const [weightLb, setWeightLb] = useState("");
   const [dogService, setDogService] = useState<DogBookingService>("bath");
   const [catService, setCatService] = useState<CatServiceLevel>("bath");
@@ -94,6 +95,13 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
     ? [...DOG_SERVICES, "puppyIntro"]
     : DOG_SERVICES;
 
+  // Only actually apply the waterless checkbox where it's shown (kitten
+  // bath/lightTrim) — guards against a stale `true` leaking into an
+  // ineligible combination (adult cat, flea services) after switching.
+  const waterlessEligible =
+    species === "cat" && isKitten && (catService === "bath" || catService === "lightTrim");
+  const effectiveWaterless = waterlessEligible && waterless;
+
   const result = useMemo(() => {
     if (!hasWeight) return null;
     if (species === "dog") {
@@ -114,7 +122,7 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
         weightLb: weight,
         coat,
         service: catService,
-        waterless: false,
+        waterless: effectiveWaterless,
         deshed: false,
         isKitten,
       },
@@ -129,6 +137,7 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
     catService,
     isPuppy,
     isKitten,
+    effectiveWaterless,
     fullBreedName,
     config,
   ]);
@@ -328,6 +337,17 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
             />
           )}
         </div>
+        {waterlessEligible && (
+          <label className="mt-3 flex items-center gap-2 text-sm text-foreground/90">
+            <input
+              type="checkbox"
+              checked={waterless}
+              onChange={(e) => setWaterless(e.target.checked)}
+              className="h-4 w-4 rounded border-border accent-accent"
+            />
+            Waterless bath
+          </label>
+        )}
       </div>
 
       <div>

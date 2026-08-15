@@ -84,6 +84,7 @@ function computeAppointmentPrice(
   redeemedCredit: boolean,
   promoDiscountPercent: number | null,
   config: PricingConfig,
+  waterless: boolean = false,
 ) {
   const pickupFee = pickupDropoff ? config.flatFees.pickupDropoff : 0;
   const pickupLabel = pickupDropoff ? ["Pickup & Drop-Off"] : [];
@@ -128,7 +129,7 @@ function computeAppointmentPrice(
             weightLb: pet.weight_lb,
             coat: pet.coat,
             service: service as CatServiceLevel,
-            waterless: false,
+            waterless,
             deshed,
             isKitten: pet.is_kitten ?? false,
           },
@@ -157,6 +158,7 @@ function computeAppointmentPrice(
   const labels = [
     ...(redeemedCredit ? ["Groom pack credit redeemed"] : []),
     ...(deshed ? ["De-shed treatment"] : []),
+    ...(waterless && pet.species === "cat" ? ["Waterless"] : []),
     ...(creativeTier !== "none"
       ? [CREATIVE_TIER_LABELS[creativeTier as CreativeTier]]
       : []),
@@ -233,6 +235,7 @@ function readBookingFields(formData: FormData) {
     petId: formData.get("petId") as string,
     service: formData.get("service") as string,
     deshed: formData.get("deshed") === "true",
+    waterless: formData.get("waterless") === "true",
     creativeTier: (formData.get("creativeTier") as string) || "none",
     addOnNames: JSON.parse(
       (formData.get("addOnNames") as string) || "[]",
@@ -791,6 +794,7 @@ export async function createAppointment(formData: FormData) {
     !!redeemablePack,
     totalDiscountPercent,
     config,
+    fields.waterless,
   );
   const subtotal = Math.max(
     0,
@@ -959,6 +963,7 @@ export async function updateAppointment(formData: FormData) {
     !!redeemablePack,
     promoDiscountPercent,
     config,
+    fields.waterless,
   );
   const subtotal = Math.max(
     0,
@@ -1557,6 +1562,7 @@ export async function adminCreateAppointment(formData: FormData) {
     !!redeemablePack,
     adminDiscountPercent || null,
     config,
+    fields.waterless,
   );
   const subtotal = Math.max(
     0,

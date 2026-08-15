@@ -10,7 +10,6 @@ import {
   type PricingConfig,
   type DogWeightClass,
   type PuppyWeightBand,
-  type CatWeightClass,
 } from "@/lib/pricing/pricing";
 
 function num(formData: FormData, key: string): number {
@@ -19,7 +18,6 @@ function num(formData: FormData, key: string): number {
 
 const DOG_WEIGHT_CLASSES: DogWeightClass[] = ["small", "medium", "large", "xlarge"];
 const PUPPY_BANDS: PuppyWeightBand[] = ["under5", "under10", "under20", "over20"];
-const CAT_WEIGHT_CLASSES: CatWeightClass[] = ["under20", "over20"];
 
 // Every section below reads the CURRENT config, patches only its own
 // top-level key(s), and writes the whole object back — so two admins (or
@@ -81,26 +79,18 @@ export async function updatePuppyPricing(formData: FormData) {
 }
 
 export async function updateCatMatrix(formData: FormData) {
-  const readTable = (
-    service: "bath" | "lightTrim" | "waterlessBath" | "waterlessLightTrim",
-  ) =>
-    Object.fromEntries(
-      CAT_WEIGHT_CLASSES.map((wc) => [
-        wc,
-        {
-          short: num(formData, `cat-${service}-${wc}-short`),
-          long: num(formData, `cat-${service}-${wc}-long`),
-        },
-      ]),
-    ) as Record<CatWeightClass, { short: number; long: number }>;
+  const readCoat = (service: "bath" | "lightTrim" | "waterlessBath" | "waterlessLightTrim") => ({
+    short: num(formData, `cat-${service}-short`),
+    long: num(formData, `cat-${service}-long`),
+  });
 
   await saveConfigPatch((c) => ({
     ...c,
     cat: {
-      bath: readTable("bath"),
-      lightTrim: readTable("lightTrim"),
-      waterlessBath: readTable("waterlessBath"),
-      waterlessLightTrim: readTable("waterlessLightTrim"),
+      bath: readCoat("bath"),
+      lightTrim: readCoat("lightTrim"),
+      waterlessBath: readCoat("waterlessBath"),
+      waterlessLightTrim: readCoat("waterlessLightTrim"),
       fleaBath: num(formData, "cat-fleaBath"),
       fleaBathTidy: num(formData, "cat-fleaBathTidy"),
       kitten: {
@@ -108,6 +98,8 @@ export async function updateCatMatrix(formData: FormData) {
         lightTrim: num(formData, "cat-kitten-lightTrim"),
         fleaBath: num(formData, "cat-kitten-fleaBath"),
         fleaBathTidy: num(formData, "cat-kitten-fleaBathTidy"),
+        waterlessBath: num(formData, "cat-kitten-waterlessBath"),
+        waterlessLightTrim: num(formData, "cat-kitten-waterlessLightTrim"),
       },
     },
   }));

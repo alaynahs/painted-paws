@@ -86,6 +86,7 @@ export default async function EditAppointmentPage({
           initial={{
             service: appointment.service,
             deshed: addOns.includes("De-shed treatment"),
+            waterless: addOns.includes("Waterless"),
             creativeTier,
             addOnNames,
             packageTier,

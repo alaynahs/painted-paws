@@ -22,7 +22,15 @@ function mergeWithDefaults(
   return {
     dog: { ...d.dog, ...partial.dog },
     puppy: { ...d.puppy, ...partial.puppy },
-    cat: { ...d.cat, ...partial.cat },
+    cat: {
+      ...d.cat,
+      ...partial.cat,
+      // Nested one level deeper than the rest of `cat` — a shallow merge
+      // here would silently drop any newly-added kitten field (like
+      // waterless pricing) the moment the admin saves the form once with
+      // only the older fields present.
+      kitten: { ...d.cat.kitten, ...partial.cat?.kitten },
+    },
     flatFees: { ...d.flatFees, ...partial.flatFees },
     addOns: {
       dog: padAddOns(d.addOns.dog, partial.addOns?.dog),

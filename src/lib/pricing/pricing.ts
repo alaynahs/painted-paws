@@ -193,11 +193,18 @@ export function calculateCatPrice(
 
   // Flat rate by service, no weight/coat table — kittens don't vary in
   // size nearly as much as puppy breeds do, so a weight-banded matrix
-  // (like puppies get) isn't worth the added complexity.
+  // (like puppies get) isn't worth the added complexity. Waterless only
+  // applies to bath/lightTrim — a "waterless flea bath" isn't a real thing.
   if (input.isKitten) {
+    const waterlessKey =
+      input.waterless && input.service === "bath"
+        ? "waterlessBath"
+        : input.waterless && input.service === "lightTrim"
+          ? "waterlessLightTrim"
+          : null;
     lines.push({
-      label: `Kitten ${CAT_SERVICE_LABELS[input.service]}`,
-      amount: config.cat.kitten[input.service],
+      label: `Kitten ${waterlessKey ? "Waterless " : ""}${CAT_SERVICE_LABELS[input.service]}`,
+      amount: waterlessKey ? config.cat.kitten[waterlessKey] : config.cat.kitten[input.service],
     });
     if (input.deshed) {
       lines.push({ label: "De-shed treatment", amount: config.flatFees.deshed });
@@ -217,8 +224,8 @@ export function calculateCatPrice(
     return { total: lines.reduce((sum, l) => sum + l.amount, 0), lines };
   }
 
-  const weightClass = catWeightClass(input.weightLb);
-
+  // Flat rate by coat length only — cats don't get a weight-based matrix
+  // like dogs do.
   const table = input.waterless
     ? input.service === "bath"
       ? config.cat.waterlessBath
@@ -227,10 +234,9 @@ export function calculateCatPrice(
       ? config.cat.bath
       : config.cat.lightTrim;
 
-  const base = table[weightClass][input.coat];
-  const weightLabel = weightClass === "over20" ? "over 20 lb" : "under 20 lb";
+  const base = table[input.coat];
   lines.push({
-    label: `${input.waterless ? "Waterless " : ""}${CAT_SERVICE_LABELS[input.service]} (${weightLabel})`,
+    label: `${input.waterless ? "Waterless " : ""}${CAT_SERVICE_LABELS[input.service]}`,
     amount: base,
   });
 
@@ -435,17 +441,23 @@ export interface PricingConfig {
     introPrice: number;
   };
   cat: {
-    bath: Record<CatWeightClass, WeightCoatPrice>;
-    lightTrim: Record<CatWeightClass, WeightCoatPrice>;
-    waterlessBath: Record<CatWeightClass, WeightCoatPrice>;
-    waterlessLightTrim: Record<CatWeightClass, WeightCoatPrice>;
+    // Flat rate by coat length — unlike dogs, cat pricing doesn't vary by
+    // weight (weight still affects appointment duration/scheduling buffer,
+    // just not price — see catWeightClass/bufferHoursFor).
+    bath: WeightCoatPrice;
+    lightTrim: WeightCoatPrice;
+    waterlessBath: WeightCoatPrice;
+    waterlessLightTrim: WeightCoatPrice;
     // Flat rate, unlike the other cat services — same price regardless of
     // weight or coat length.
     fleaBath: number;
     fleaBathTidy: number;
     // Flat rate per service for kittens — takes priority over everything
     // above (including the flea rates) whenever isKitten is true.
-    kitten: Record<CatServiceLevel, number>;
+    kitten: Record<CatServiceLevel, number> & {
+      waterlessBath: number;
+      waterlessLightTrim: number;
+    };
   };
   flatFees: {
     deshed: number;
@@ -512,13 +524,20 @@ export const DEFAULT_PRICING_CONFIG: PricingConfig = {
     introPrice: 25,
   },
   cat: {
-    bath: { under20: byCoat(105, 125), over20: byCoat(120, 135) },
-    lightTrim: { under20: byCoat(115, 130), over20: byCoat(125, 140) },
-    waterlessBath: { under20: byCoat(95, 115), over20: byCoat(105, 125) },
-    waterlessLightTrim: { under20: byCoat(105, 120), over20: byCoat(115, 130) },
-    fleaBath: 100,
-    fleaBathTidy: 115,
-    kitten: { bath: 40, lightTrim: 55, fleaBath: 60, fleaBathTidy: 70 },
+    bath: byCoat(60, 65),
+    lightTrim: byCoat(75, 85),
+    waterlessBath: byCoat(50, 60),
+    waterlessLightTrim: byCoat(70, 80),
+    fleaBath: 70,
+    fleaBathTidy: 90,
+    kitten: {
+      bath: 40,
+      lightTrim: 55,
+      fleaBath: 60,
+      fleaBathTidy: 70,
+      waterlessBath: 30,
+      waterlessLightTrim: 40,
+    },
   },
   flatFees: { deshed: 15, pickupDropoff: 25 },
   addOns: {

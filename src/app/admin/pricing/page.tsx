@@ -7,7 +7,6 @@ import {
   PUPPY_WEIGHT_LABELS,
   type DogWeightClass,
   type PuppyWeightBand,
-  type CatWeightClass,
 } from "@/lib/pricing/pricing";
 import {
   updateDogMatrix,
@@ -31,11 +30,6 @@ import {
 
 const DOG_WEIGHT_CLASSES: DogWeightClass[] = ["small", "medium", "large", "xlarge"];
 const PUPPY_BANDS: PuppyWeightBand[] = ["under5", "under10", "under20", "over20"];
-const CAT_WEIGHT_CLASSES: CatWeightClass[] = ["under20", "over20"];
-const CAT_WEIGHT_LABELS: Record<CatWeightClass, string> = {
-  under20: "Under 20 lb",
-  over20: "Over 20 lb",
-};
 
 function NumberField({
   name,
@@ -229,7 +223,7 @@ export default async function AdminPricingPage({
 
         <Section
           title="Cat Grooming Prices"
-          description="Regular and waterless options, by weight and coat length."
+          description="Flat rate by coat length — cat pricing doesn't vary by weight."
         >
           <form action={updateCatMatrix}>
             <div className="mt-4 space-y-6 overflow-x-auto">
@@ -243,24 +237,17 @@ export default async function AdminPricingPage({
               ).map(([service, label]) => (
                 <div key={service}>
                   <p className="text-sm font-medium text-foreground">{label}</p>
-                  <div className="mt-2 grid min-w-[400px] grid-cols-2 gap-3">
-                    {CAT_WEIGHT_CLASSES.map((wc) => (
-                      <div key={wc} className="space-y-2">
-                        <p className="text-xs font-medium text-foreground/80">
-                          {CAT_WEIGHT_LABELS[wc]}
-                        </p>
-                        <NumberField
-                          name={`cat-${service}-${wc}-short`}
-                          label="Short coat"
-                          defaultValue={config.cat[service][wc].short}
-                        />
-                        <NumberField
-                          name={`cat-${service}-${wc}-long`}
-                          label="Long coat"
-                          defaultValue={config.cat[service][wc].long}
-                        />
-                      </div>
-                    ))}
+                  <div className="mt-2 grid max-w-md grid-cols-2 gap-3">
+                    <NumberField
+                      name={`cat-${service}-short`}
+                      label="Short coat"
+                      defaultValue={config.cat[service].short}
+                    />
+                    <NumberField
+                      name={`cat-${service}-long`}
+                      label="Long coat"
+                      defaultValue={config.cat[service].long}
+                    />
                   </div>
                 </div>
               ))}
@@ -293,7 +280,7 @@ export default async function AdminPricingPage({
                   overrides everything above (including flea rates) when the
                   pet is marked a kitten.
                 </p>
-                <div className="mt-2 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="mt-2 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-3">
                   <NumberField
                     name="cat-kitten-bath"
                     label="Bath"
@@ -308,6 +295,16 @@ export default async function AdminPricingPage({
                     name="cat-kitten-fleaBath"
                     label="Flea Bath"
                     defaultValue={config.cat.kitten.fleaBath}
+                  />
+                  <NumberField
+                    name="cat-kitten-waterlessBath"
+                    label="Waterless Bath"
+                    defaultValue={config.cat.kitten.waterlessBath}
+                  />
+                  <NumberField
+                    name="cat-kitten-waterlessLightTrim"
+                    label="Waterless Bath & Tidy"
+                    defaultValue={config.cat.kitten.waterlessLightTrim}
                   />
                   <NumberField
                     name="cat-kitten-fleaBathTidy"
