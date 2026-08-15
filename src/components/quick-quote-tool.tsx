@@ -12,6 +12,10 @@ import {
 import {
   calculateDogPrice,
   calculateCatPrice,
+  dogAddOns,
+  catAddOns,
+  DOG_ADD_ONS_INCLUDED_WITH_SERVICE,
+  CAT_ADD_ONS_INCLUDED_WITH_SERVICE,
   DOG_SERVICE_LABELS,
   DOG_SERVICE_DESCRIPTIONS,
   CAT_SERVICE_LABELS,
@@ -67,6 +71,7 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
   const [weightLb, setWeightLb] = useState("");
   const [dogService, setDogService] = useState<DogBookingService>("bath");
   const [catService, setCatService] = useState<CatServiceLevel>("bath");
+  const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
 
   const breedOptions = species === "dog" ? DOG_BREEDS : CAT_BREEDS;
   const matchedBreed = useMemo(
@@ -109,6 +114,24 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
     );
   }, [species, weight, hasWeight, coat, dogService, catService, isPuppy, fullBreedName, config]);
 
+  // Already included free with the selected service (ear cleaning, nail
+  // trim, etc.) — same rule the real booking flow uses — so they never show
+  // as a paid add-on choice here either.
+  const includedWithService =
+    species === "dog" ? DOG_ADD_ONS_INCLUDED_WITH_SERVICE : CAT_ADD_ONS_INCLUDED_WITH_SERVICE;
+  const addOnCatalog = [...(species === "dog" ? dogAddOns(config) : catAddOns(config))]
+    .filter((a) => !includedWithService.includes(a.name))
+    .sort((a, b) => a.price - b.price);
+  const addOnsTotal = addOnCatalog
+    .filter((a) => selectedAddOns.includes(a.name))
+    .reduce((sum, a) => sum + a.price, 0);
+
+  function toggleAddOn(name: string) {
+    setSelectedAddOns((prev) =>
+      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name],
+    );
+  }
+
   const serviceLabel =
     species === "dog" ? DOG_SERVICE_LABELS[dogService] : CAT_SERVICE_LABELS[catService];
   const serviceDescription =
@@ -129,6 +152,7 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
                 setSpecies(s);
                 setDogService("bath");
                 setCatService("bath");
+                setSelectedAddOns([]);
                 if (s === "cat") setIsPuppy(false);
               }}
               className={`rounded-full border px-4 py-2 text-sm transition-colors ${
@@ -259,6 +283,31 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
         </div>
       </div>
 
+      <div>
+        <span className="text-sm font-medium text-foreground">
+          Add-ons <span className="font-normal text-muted">(optional)</span>
+        </span>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          {addOnCatalog.map((addOn) => (
+            <label
+              key={addOn.name}
+              className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm text-foreground/90"
+            >
+              <span className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={selectedAddOns.includes(addOn.name)}
+                  onChange={() => toggleAddOn(addOn.name)}
+                  className="h-4 w-4 rounded border-border accent-accent"
+                />
+                {addOn.name}
+              </span>
+              <span className="shrink-0 text-xs text-muted">${addOn.price}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
       {result ? (
         <div className="rounded-2xl border-2 border-accent bg-card p-6">
           <p className="text-xs font-medium uppercase tracking-wide text-accent-dark">
@@ -269,12 +318,25 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
             {fullBreedName || (species === "dog" ? "Dog" : "Cat")} · {weightLb} lb
             {species === "dog" ? ` · ${isPuppy ? "Puppy" : "Adult"}` : ""}
           </p>
-          <p className="mt-4 font-serif text-4xl text-accent-dark">${result.total}</p>
+          <p className="mt-4 font-serif text-4xl text-accent-dark">
+            ${(result.total + addOnsTotal).toFixed(2).replace(/\.00$/, "")}
+          </p>
           <div className="mt-4 border-t border-border pt-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted">
               Includes
             </p>
             <p className="mt-1 text-sm text-foreground/90">{serviceDescription}</p>
+            {selectedAddOns.length > 0 && (
+              <ul className="mt-2 space-y-0.5 text-sm text-foreground/90">
+                {addOnCatalog
+                  .filter((a) => selectedAddOns.includes(a.name))
+                  .map((a) => (
+                    <li key={a.name}>
+                      + {a.name} (${a.price})
+                    </li>
+                  ))}
+              </ul>
+            )}
           </div>
         </div>
       ) : (
