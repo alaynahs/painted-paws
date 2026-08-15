@@ -6,7 +6,7 @@ const dogCore = [
   {
     name: "Bath",
     blurb: "A refreshing wash and blow-dry.",
-    includes: "Bath, 15-min brush-out, nail trim, and ear cleaning. Anal gland expression, paw pad trim, and sanitary trim available upon request.",
+    includes: "Bath, 15-min brush-out, nail trim, ear cleaning, and cologne. Anal gland expression, paw pad trim, and sanitary trim available upon request.",
   },
   {
     name: "De-Shed Bath",
@@ -84,7 +84,7 @@ const packages = [
   {
     name: "Fresh Start",
     altName: "Refresh",
-    body: "Teeth brushing, cologne, bandana or bow, and deep coat conditioner.",
+    body: "Teeth brushing, bandana or bow, and deep coat conditioner.",
   },
   {
     name: "Pampered",

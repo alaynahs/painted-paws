@@ -51,7 +51,7 @@ export const DOG_SERVICE_LABELS: Record<DogBookingService, string> = {
 };
 
 export const DOG_SERVICE_DESCRIPTIONS: Record<DogBookingService, string> = {
-  bath: "Bath, 15-min brush-out, nail trim, ear cleaning. Anal gland expression, paw pad trim, and sanitary trim available upon request.",
+  bath: "Bath, 15-min brush-out, nail trim, ear cleaning, and cologne. Anal gland expression, paw pad trim, and sanitary trim available upon request.",
   trim: "All Bath inclusions, plus a face, feet, and sanitary trim.",
   haircut:
     "All Bath inclusions, plus a full body contour or breed-standard cut.",
@@ -309,7 +309,7 @@ export const PACKAGE_LABELS: Record<PackageTier, string> = {
 
 export const PACKAGE_DESCRIPTIONS: Record<PackageTier, string> = {
   freshStart:
-    "Teeth brushing, cologne, bandana or bow, and a deep coat conditioner.",
+    "Teeth brushing, bandana or bow, and a deep coat conditioner.",
   pampered: "Everything in Fresh Start, plus nail grinding.",
   vip: "Everything in Pampered, plus a paw & nose balm, massage, VIP shampoo & conditioner, and a discount on your next visit.",
 };
