@@ -319,6 +319,7 @@ export async function sendQuickMessage(formData: FormData) {
 interface AppointmentEmailContact {
   id: string;
   customer_id: string;
+  pickup_dropoff: boolean;
   pets: { id: string; name: string } | { id: string; name: string }[] | null;
   profiles:
     | { full_name: string | null; email: string | null }
@@ -335,7 +336,7 @@ export async function markAppointmentComplete(
   const { data } = await supabase
     .from("appointments")
     .select(
-      "id, customer_id, pets(id, name), profiles:customer_id(full_name, email)",
+      "id, customer_id, pickup_dropoff, pets(id, name), profiles:customer_id(full_name, email)",
     )
     .eq("id", appointmentId)
     .single();
@@ -357,6 +358,7 @@ export async function markAppointmentComplete(
       firstName: (profile.full_name || "there").split(" ")[0],
       petName: pet?.name ?? "Your pet",
       reviewUrl: `${origin}/leave-a-review/${appt.id}${includeTip ? "" : "?notip=1"}`,
+      pickupDropoff: appt.pickup_dropoff,
     };
     await notifyEmail(
       supabase,

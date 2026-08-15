@@ -538,6 +538,15 @@ export function postVisitThankYouSms(vars: { petName: string }) {
 ${BUSINESS_NAME}`;
 }
 
+// Only relevant for a standard curbside visit — a pickup & drop-off
+// appointment ends with the groomer driving the pet back, so there's
+// nothing for the customer to go pick up.
+function pickupUrgencyLine(pickupDropoff: boolean): string {
+  return pickupDropoff
+    ? ""
+    : "\n\nIf you haven't already picked up, please do so as soon as possible — we're a kennel-free facility, so a late pickup can affect the appointments scheduled after yours.";
+}
+
 // Sent when the admin marks an appointment complete/sent home — links to our
 // own tip + review page (leave-a-review/[id]), not straight to Google, since
 // it offers the tip option too.
@@ -545,12 +554,13 @@ export function postVisitThankYouEmail(vars: {
   firstName: string;
   petName: string;
   reviewUrl: string;
+  pickupDropoff: boolean;
 }): EmailContent {
   return {
-    subject: `${vars.petName} is all set! 🐾`,
+    subject: `${vars.petName} is ready! 🐾`,
     body: `Hi ${vars.firstName},
 
-${vars.petName} is all fresh, clean, and ready to head home! Thank you so much for trusting us with them today.
+${vars.petName} is all fresh, clean, and ready to head home!${pickupUrgencyLine(vars.pickupDropoff)}
 
 If you'd like to leave a review or add a tip for your groomer, you can do both here:
 [Leave a review or tip here](${vars.reviewUrl})
@@ -568,12 +578,13 @@ export function postVisitReviewOnlyEmail(vars: {
   firstName: string;
   petName: string;
   reviewUrl: string;
+  pickupDropoff: boolean;
 }): EmailContent {
   return {
-    subject: `${vars.petName} is all set! 🐾`,
+    subject: `${vars.petName} is ready! 🐾`,
     body: `Hi ${vars.firstName},
 
-${vars.petName} is all fresh, clean, and ready to head home! Thank you so much for trusting us with them today.
+${vars.petName} is all fresh, clean, and ready to head home!${pickupUrgencyLine(vars.pickupDropoff)}
 
 If you have a moment, we'd love to hear how it went:
 [Leave a review here](${vars.reviewUrl})
