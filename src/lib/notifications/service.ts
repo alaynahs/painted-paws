@@ -29,7 +29,8 @@ export type NotificationType =
   | "dropoff_on_way"
   | "no_response_warning"
   | "no_call_no_show_warning"
-  | "tip_received";
+  | "tip_received"
+  | "leave_review_or_tip";
 
 interface NotifyTarget {
   customerId: string;

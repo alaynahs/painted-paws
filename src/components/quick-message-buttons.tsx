@@ -35,6 +35,10 @@ const QUICK_MESSAGES: {
     type: "no_response_warning",
     label: QUICK_MESSAGE_LABELS.no_response_warning,
   },
+  {
+    type: "leave_review_or_tip",
+    label: QUICK_MESSAGE_LABELS.leave_review_or_tip,
+  },
 ];
 
 export default function QuickMessageButtons({

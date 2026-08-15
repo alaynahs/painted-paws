@@ -8,6 +8,7 @@ export const QUICK_MESSAGE_TYPES = [
   "pickup_ready",
   "dropoff_on_way",
   "no_response_warning",
+  "leave_review_or_tip",
 ] as const;
 
 export type QuickMessageType = (typeof QUICK_MESSAGE_TYPES)[number];
@@ -20,4 +21,5 @@ export const QUICK_MESSAGE_LABELS: Record<QuickMessageType, string> = {
   pickup_ready: "Ready for pickup",
   dropoff_on_way: "Drop-off on my way",
   no_response_warning: "Unable to contact — need a response",
+  leave_review_or_tip: "Leave a Review or Tip",
 };

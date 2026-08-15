@@ -583,6 +583,27 @@ ${BUSINESS_NAME}`,
   };
 }
 
+// A one-off "Quick email" the admin can fire manually any time after a
+// visit — separate from the automatic Mark Complete email and the 2-day
+// rebooking-nudge review request, for whenever she just wants to send this
+// on its own.
+export function leaveReviewOrTipEmail(vars: {
+  firstName: string;
+  petName: string;
+  reviewUrl: string;
+}): EmailContent {
+  return {
+    subject: "Leave a Review or Tip",
+    body: `Hi ${vars.firstName},
+
+Thank you again for trusting us with ${vars.petName}! If you have a moment, we'd love it if you left a review, and you're welcome to add a tip for your groomer too — you can do both here:
+[Leave a review or tip here](${vars.reviewUrl})
+
+Thank you!
+${BUSINESS_NAME}`,
+  };
+}
+
 export function reviewRequestSms(vars: { firstName: string; petName: string }) {
   return `Hi ${vars.firstName}! 💛
 

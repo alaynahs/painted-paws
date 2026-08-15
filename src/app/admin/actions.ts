@@ -7,8 +7,10 @@ import { headers } from "next/headers";
 import { requireAdmin } from "@/lib/supabase/admin";
 import { getPricingConfig } from "@/lib/pricing/config";
 import { notifyEmail, type NotificationType } from "@/lib/notifications/service";
+import type { QuickMessageType } from "@/lib/notifications/quick-message-labels";
 import {
   cantReachClientEmail,
+  leaveReviewOrTipEmail,
   mobileDropoffOnWayEmail,
   mobilePickupArrivedEmail,
   mobilePickupOnWayEmail,
@@ -209,15 +211,6 @@ export async function deleteGroomPhoto(photoId: string, petId: string) {
   revalidatePath(`/account/pets/${petId}`);
 }
 
-type QuickMessageType =
-  | "pickup_15min"
-  | "pickup_ready"
-  | "pickup_on_way"
-  | "pickup_arrived"
-  | "pickup_cant_reach"
-  | "dropoff_on_way"
-  | "no_response_warning";
-
 interface AppointmentContact {
   id: string;
   customer_id: string;
@@ -304,6 +297,14 @@ export async function sendQuickMessage(formData: FormData) {
         time: formatHour(appt.appointment_hour, appt.appointment_minute),
       });
       break;
+    case "leave_review_or_tip": {
+      const origin = (await headers()).get("origin");
+      content = leaveReviewOrTipEmail({
+        ...vars,
+        reviewUrl: `${origin}/leave-a-review/${appt.id}`,
+      });
+      break;
+    }
     default:
       return;
   }
