@@ -93,37 +93,37 @@ export default async function AdminDashboardPage({
       <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
         <Link
           href="/admin/pricing"
-          className="rounded-xl border border-border bg-card p-4 text-center text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+          className="rounded-xl border border-border bg-card p-4 text-center text-sm font-medium whitespace-nowrap text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
         >
           Pricing
         </Link>
         <Link
           href="/admin/quick-quote"
-          className="rounded-xl border border-border bg-card p-4 text-center text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+          className="rounded-xl border border-border bg-card p-4 text-center text-sm font-medium whitespace-nowrap text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
         >
           Quick Quote
         </Link>
         <Link
           href="/admin/photos"
-          className="rounded-xl border border-border bg-card p-4 text-center text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+          className="rounded-xl border border-border bg-card p-4 text-center text-sm font-medium whitespace-nowrap text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
         >
           Manage Photos
         </Link>
         <Link
           href="/admin/coupons"
-          className="rounded-xl border border-border bg-card p-4 text-center text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+          className="rounded-xl border border-border bg-card p-4 text-center text-sm font-medium whitespace-nowrap text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
         >
           Coupons
         </Link>
         <Link
           href="/admin/follow-ups"
-          className="rounded-xl border border-border bg-card p-4 text-center text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+          className="rounded-xl border border-border bg-card p-4 text-center text-sm font-medium whitespace-nowrap text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
         >
           Follow-Up Log
         </Link>
         <Link
           href="/admin/revenue"
-          className="rounded-xl border border-border bg-card p-4 text-center text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+          className="rounded-xl border border-border bg-card p-4 text-center text-sm font-medium whitespace-nowrap text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
         >
           Revenue
         </Link>
