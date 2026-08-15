@@ -18,10 +18,11 @@ function readPetFields(formData: FormData) {
     color: (formData.get("color") as string) || null,
     health_concerns: (formData.get("healthConcerns") as string) || null,
     birth_date: birthDate,
-    // Server-derived, never trust a client-submitted puppy flag directly.
-    // Puppy pricing only exists for dogs — a cat's birth date shouldn't
-    // ever flip this on.
+    // Server-derived, never trust a client-submitted puppy/kitten flag
+    // directly. Puppy pricing is dog-only and kitten pricing is cat-only —
+    // the other species' birth date should never flip the wrong one on.
     is_puppy: species === "dog" && birthDate !== null && monthsSince(birthDate) < 6,
+    is_kitten: species === "cat" && birthDate !== null && monthsSince(birthDate) < 6,
   };
 }
 

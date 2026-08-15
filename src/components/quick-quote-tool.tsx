@@ -68,6 +68,7 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
   const [isMixed, setIsMixed] = useState(false);
   const [manualCoat, setManualCoat] = useState<CoatLength>("short");
   const [isPuppy, setIsPuppy] = useState(false);
+  const [isKitten, setIsKitten] = useState(false);
   const [weightLb, setWeightLb] = useState("");
   const [dogService, setDogService] = useState<DogBookingService>("bath");
   const [catService, setCatService] = useState<CatServiceLevel>("bath");
@@ -109,10 +110,28 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
       );
     }
     return calculateCatPrice(
-      { weightLb: weight, coat, service: catService, waterless: false, deshed: false },
+      {
+        weightLb: weight,
+        coat,
+        service: catService,
+        waterless: false,
+        deshed: false,
+        isKitten,
+      },
       config,
     );
-  }, [species, weight, hasWeight, coat, dogService, catService, isPuppy, fullBreedName, config]);
+  }, [
+    species,
+    weight,
+    hasWeight,
+    coat,
+    dogService,
+    catService,
+    isPuppy,
+    isKitten,
+    fullBreedName,
+    config,
+  ]);
 
   // Already included free with the selected service (ear cleaning, nail
   // trim, etc.) — same rule the real booking flow uses — so they never show
@@ -154,6 +173,7 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
                 setCatService("bath");
                 setSelectedAddOns([]);
                 if (s === "cat") setIsPuppy(false);
+                if (s === "dog") setIsKitten(false);
               }}
               className={`rounded-full border px-4 py-2 text-sm transition-colors ${
                 species === s
@@ -262,6 +282,33 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
         </div>
       )}
 
+      {species === "cat" && (
+        <div>
+          <span className="text-sm font-medium text-foreground">Age</span>
+          <div className="mt-2 flex gap-2">
+            {(
+              [
+                { value: false, label: "Adult" },
+                { value: true, label: "Kitten" },
+              ] as const
+            ).map((opt) => (
+              <button
+                key={String(opt.value)}
+                type="button"
+                onClick={() => setIsKitten(opt.value)}
+                className={`rounded-full border px-4 py-2 text-sm transition-colors ${
+                  isKitten === opt.value
+                    ? "border-accent bg-accent text-white"
+                    : "border-border bg-card text-foreground/80 hover:border-accent-dark"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div>
         <span className="text-sm font-medium text-foreground">Service</span>
         <div className="mt-2">
@@ -316,7 +363,9 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
           <h2 className="mt-1 font-serif text-2xl text-foreground">{serviceLabel}</h2>
           <p className="mt-1 text-sm text-muted">
             {fullBreedName || (species === "dog" ? "Dog" : "Cat")} · {weightLb} lb
-            {species === "dog" ? ` · ${isPuppy ? "Puppy" : "Adult"}` : ""}
+            {species === "dog"
+              ? ` · ${isPuppy ? "Puppy" : "Adult"}`
+              : ` · ${isKitten ? "Kitten" : "Adult"}`}
           </p>
           <p className="mt-4 font-serif text-4xl text-accent-dark">
             ${(result.total + addOnsTotal).toFixed(2).replace(/\.00$/, "")}

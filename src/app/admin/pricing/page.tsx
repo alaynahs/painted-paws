@@ -284,6 +284,38 @@ export default async function AdminPricingPage({
                   />
                 </div>
               </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  Kitten Pricing
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                  Flat rate per service, any weight or coat length —
+                  overrides everything above (including flea rates) when the
+                  pet is marked a kitten.
+                </p>
+                <div className="mt-2 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
+                  <NumberField
+                    name="cat-kitten-bath"
+                    label="Bath"
+                    defaultValue={config.cat.kitten.bath}
+                  />
+                  <NumberField
+                    name="cat-kitten-lightTrim"
+                    label="Bath & Tidy"
+                    defaultValue={config.cat.kitten.lightTrim}
+                  />
+                  <NumberField
+                    name="cat-kitten-fleaBath"
+                    label="Flea Bath"
+                    defaultValue={config.cat.kitten.fleaBath}
+                  />
+                  <NumberField
+                    name="cat-kitten-fleaBathTidy"
+                    label="Flea Bath & Tidy"
+                    defaultValue={config.cat.kitten.fleaBathTidy}
+                  />
+                </div>
+              </div>
             </div>
             <SaveButton />
           </form>

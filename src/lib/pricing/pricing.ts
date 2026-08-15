@@ -182,6 +182,7 @@ export interface CatPriceInput {
   service: CatServiceLevel;
   waterless: boolean;
   deshed: boolean;
+  isKitten: boolean;
 }
 
 export function calculateCatPrice(
@@ -189,6 +190,20 @@ export function calculateCatPrice(
   config: PricingConfig,
 ): PriceResult {
   const lines: PriceBreakdownLine[] = [];
+
+  // Flat rate by service, no weight/coat table — kittens don't vary in
+  // size nearly as much as puppy breeds do, so a weight-banded matrix
+  // (like puppies get) isn't worth the added complexity.
+  if (input.isKitten) {
+    lines.push({
+      label: `Kitten ${CAT_SERVICE_LABELS[input.service]}`,
+      amount: config.cat.kitten[input.service],
+    });
+    if (input.deshed) {
+      lines.push({ label: "De-shed treatment", amount: config.flatFees.deshed });
+    }
+    return { total: lines.reduce((sum, l) => sum + l.amount, 0), lines };
+  }
 
   // Flat rate, no weight/coat table lookup — unlike bath and lightTrim.
   if (input.service === "fleaBath" || input.service === "fleaBathTidy") {
@@ -428,6 +443,9 @@ export interface PricingConfig {
     // weight or coat length.
     fleaBath: number;
     fleaBathTidy: number;
+    // Flat rate per service for kittens — takes priority over everything
+    // above (including the flea rates) whenever isKitten is true.
+    kitten: Record<CatServiceLevel, number>;
   };
   flatFees: {
     deshed: number;
@@ -500,6 +518,7 @@ export const DEFAULT_PRICING_CONFIG: PricingConfig = {
     waterlessLightTrim: { under20: byCoat(105, 120), over20: byCoat(115, 130) },
     fleaBath: 100,
     fleaBathTidy: 115,
+    kitten: { bath: 65, lightTrim: 75, fleaBath: 70, fleaBathTidy: 80 },
   },
   flatFees: { deshed: 15, pickupDropoff: 25 },
   addOns: {

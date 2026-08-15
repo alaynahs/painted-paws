@@ -49,6 +49,8 @@ export default function PetForm({
   const [birthDate, setBirthDate] = useState(defaultValues?.birthDate ?? "");
   const isPuppy =
     species === "dog" && birthDate !== "" && monthsSince(birthDate) < 6;
+  const isKitten =
+    species === "cat" && birthDate !== "" && monthsSince(birthDate) < 6;
   const breedOptions = species === "dog" ? DOG_BREEDS : CAT_BREEDS;
 
   const matchedBreed = useMemo(
@@ -191,6 +193,13 @@ export default function PetForm({
             {isPuppy
               ? "🐶 Under 6 months. This pet will be booked with puppy pricing and the Puppy Intro to Grooming option."
               : "Under 6 months automatically unlocks puppy pricing and the Puppy Intro to Grooming option at booking."}
+          </p>
+        )}
+        {species === "cat" && (
+          <p className="mt-1.5 px-1 text-xs text-muted">
+            {isKitten
+              ? "🐱 Under 6 months. This pet will be booked with kitten pricing."
+              : "Under 6 months automatically unlocks kitten pricing at booking."}
           </p>
         )}
       </div>

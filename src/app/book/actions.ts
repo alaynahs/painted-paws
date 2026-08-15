@@ -68,6 +68,7 @@ interface PetRow {
   coat: "short" | "long";
   weight_lb: number;
   is_puppy?: boolean;
+  is_kitten?: boolean;
 }
 
 function computeAppointmentPrice(
@@ -129,6 +130,7 @@ function computeAppointmentPrice(
             service: service as CatServiceLevel,
             waterless: false,
             deshed,
+            isKitten: pet.is_kitten ?? false,
           },
           config,
         ).total;

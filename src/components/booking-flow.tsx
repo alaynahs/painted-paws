@@ -64,6 +64,7 @@ interface Pet {
   coat: CoatLength;
   weight_lb: number;
   is_puppy?: boolean;
+  is_kitten?: boolean;
   birth_date?: string | null;
   rabies_vaccine_path?: string | null;
 }
@@ -515,6 +516,7 @@ export default function BookingFlow({
         service: catService,
         waterless: false,
         deshed,
+        isKitten: pet.is_kitten ?? false,
       },
       config,
     );
