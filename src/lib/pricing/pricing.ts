@@ -518,7 +518,7 @@ export const DEFAULT_PRICING_CONFIG: PricingConfig = {
     waterlessLightTrim: { under20: byCoat(105, 120), over20: byCoat(115, 130) },
     fleaBath: 100,
     fleaBathTidy: 115,
-    kitten: { bath: 65, lightTrim: 75, fleaBath: 70, fleaBathTidy: 80 },
+    kitten: { bath: 40, lightTrim: 55, fleaBath: 60, fleaBathTidy: 70 },
   },
   flatFees: { deshed: 15, pickupDropoff: 25 },
   addOns: {
