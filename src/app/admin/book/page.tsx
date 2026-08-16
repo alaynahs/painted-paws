@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireAdmin } from "@/lib/supabase/admin";
 import AdminBookingSearch from "@/components/admin-booking-search";
 
@@ -14,9 +15,17 @@ export default async function AdminBookPage({
       <p className="text-sm font-medium tracking-wide text-accent-dark uppercase">
         Admin
       </p>
-      <h1 className="mt-3 font-serif text-3xl text-foreground">
-        Book for a Customer
-      </h1>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
+        <h1 className="font-serif text-3xl text-foreground">
+          Book for a Customer
+        </h1>
+        <Link
+          href="/admin/customers/new"
+          className="rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+        >
+          + Add New Customer
+        </Link>
+      </div>
       <p className="mt-3 text-sm text-muted">
         Look up a customer by phone number, then pick which pet. You&apos;ll
         land on their profile, where you can book, view membership status,

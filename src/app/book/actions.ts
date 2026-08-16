@@ -1564,12 +1564,18 @@ export async function adminCreateAppointment(formData: FormData) {
     config,
     fields.waterless,
   );
-  const subtotal = Math.max(
-    0,
-    Math.round(
-      (priceBeforeDiscountAmount - adminDiscountAmount - advanceDiscount) * 100,
-    ) / 100,
-  );
+  // "Set exact price" bypasses all the computed-price math entirely — the
+  // admin is directly asserting the total, not discounting off a computed
+  // number.
+  const subtotal =
+    fields.adminDiscountType === "exact"
+      ? Math.max(0, fields.adminDiscountValue)
+      : Math.max(
+          0,
+          Math.round(
+            (priceBeforeDiscountAmount - adminDiscountAmount - advanceDiscount) * 100,
+          ) / 100,
+        );
   const salesTax = calculateSalesTax(subtotal);
   const price = subtotal + salesTax;
 

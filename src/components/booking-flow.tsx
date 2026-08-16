@@ -312,7 +312,9 @@ export default function BookingFlow({
   // Admin bookings don't draw from the sitewide promo or a customer's saved
   // coupon — instead the admin can just type in whatever one-off discount
   // they want for this booking, e.g. to match a phone-quoted price.
-  const [adminDiscountType, setAdminDiscountType] = useState<"none" | "percent" | "amount">("none");
+  const [adminDiscountType, setAdminDiscountType] = useState<
+    "none" | "percent" | "amount" | "exact"
+  >("none");
   const [adminDiscountValue, setAdminDiscountValue] = useState("");
   const adminDiscountPercent =
     isAdmin && adminDiscountType === "percent" ? Number(adminDiscountValue) || 0 : 0;
@@ -579,10 +581,15 @@ export default function BookingFlow({
     : baseServicePrice + creativeAddOnPrice + addOnsTotal + packagePrice;
 
   const totalBeforeCouponAmount = promoAdjust(groomSubtotal) + pickupDropoffFee;
-  const total = Math.max(
-    0,
-    Math.round((totalBeforeCouponAmount - flatDiscountAmount) * 100) / 100,
-  );
+  // "Set exact price" is a hard override, not a discount off the computed
+  // total — the admin is directly asserting what to charge.
+  const total =
+    adminDiscountType === "exact"
+      ? Math.max(0, Number(adminDiscountValue) || 0)
+      : Math.max(
+          0,
+          Math.round((totalBeforeCouponAmount - flatDiscountAmount) * 100) / 100,
+        );
   const originalTotal = groomSubtotal + pickupDropoffFee;
   const salesTax = calculateSalesTax(total);
   const grandTotal = total + salesTax;
@@ -1201,13 +1208,16 @@ export default function BookingFlow({
               <select
                 value={adminDiscountType}
                 onChange={(e) =>
-                  setAdminDiscountType(e.target.value as "none" | "percent" | "amount")
+                  setAdminDiscountType(
+                    e.target.value as "none" | "percent" | "amount" | "exact",
+                  )
                 }
                 className="rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-accent-dark"
               >
                 <option value="none">No discount</option>
                 <option value="percent">% off</option>
                 <option value="amount">$ off</option>
+                <option value="exact">Set exact price</option>
               </select>
               {adminDiscountType !== "none" && (
                 <input
@@ -1216,7 +1226,7 @@ export default function BookingFlow({
                   step={1}
                   value={adminDiscountValue}
                   onChange={(e) => setAdminDiscountValue(e.target.value)}
-                  placeholder="Amount"
+                  placeholder={adminDiscountType === "exact" ? "Total price" : "Amount"}
                   className="w-28 rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-accent-dark"
                 />
               )}
@@ -1316,15 +1326,22 @@ export default function BookingFlow({
             coupon — you&apos;re saving ${couponSavings.toFixed(2)}
           </div>
         )}
-        {adminDiscountType !== "none" && adminDiscountSavings > 0 && (
+        {adminDiscountType === "exact" && Number(adminDiscountValue) > 0 && (
           <div className="mt-3 rounded-xl bg-accent px-4 py-2.5 text-center text-sm font-medium text-white">
-            Applying a{" "}
-            {adminDiscountType === "percent"
-              ? `${adminDiscountPercent}% off`
-              : `$${adminDiscountAmount} off`}{" "}
-            discount — saving ${adminDiscountSavings.toFixed(2)}
+            Charging an exact price of ${Number(adminDiscountValue).toFixed(2)}
           </div>
         )}
+        {adminDiscountType !== "none" &&
+          adminDiscountType !== "exact" &&
+          adminDiscountSavings > 0 && (
+            <div className="mt-3 rounded-xl bg-accent px-4 py-2.5 text-center text-sm font-medium text-white">
+              Applying a{" "}
+              {adminDiscountType === "percent"
+                ? `${adminDiscountPercent}% off`
+                : `$${adminDiscountAmount} off`}{" "}
+              discount — saving ${adminDiscountSavings.toFixed(2)}
+            </div>
+          )}
       </div>
 
       <button

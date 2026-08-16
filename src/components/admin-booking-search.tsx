@@ -57,9 +57,17 @@ export default function AdminBookingSearch() {
       </div>
 
       {results && results.length === 0 && (
-        <p className="mt-4 text-sm text-muted">
-          No customers found matching that name, phone, email, or pet name.
-        </p>
+        <div className="mt-4">
+          <p className="text-sm text-muted">
+            No customers found matching that name, phone, email, or pet name.
+          </p>
+          <Link
+            href={`/admin/customers/new?${/\d/.test(query) ? `phone=${encodeURIComponent(query)}` : `name=${encodeURIComponent(query)}`}`}
+            className="mt-3 inline-block rounded-full bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-dark"
+          >
+            + Add New Customer
+          </Link>
+        </div>
       )}
 
       {results && results.length > 0 && (
