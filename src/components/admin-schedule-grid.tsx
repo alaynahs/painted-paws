@@ -41,12 +41,13 @@ function FlagBadge({ flagKey, sizeClass }: { flagKey: ScheduleFlagKey; sizeClass
   );
 }
 
-// Bumped up from the original 64px/100px so each day column has real room
-// to breathe — the grid scrolls sideways to fit, trading "see the whole
-// week at once" for "nothing inside is cramped."
-const PX_PER_HOUR = 96;
-const DAY_COL_WIDTH = 190;
-const TIME_COL_WIDTH = 64;
+// Zoomed out so more of the week is visible without scrolling — the
+// tradeoff is handled by letting an opened appointment grow as tall as it
+// needs (height: "auto" below) rather than by giving every block more
+// width up front.
+const PX_PER_HOUR = 44;
+const DAY_COL_MIN_WIDTH = 72;
+const TIME_COL_WIDTH = 44;
 
 function hourLabel(hour: number) {
   const period = hour >= 12 ? "PM" : "AM";
@@ -121,7 +122,7 @@ function Block({
 }) {
   const [open, setOpen] = useState(false);
   const top = (appt.hour + appt.minute / 60 - startHour) * PX_PER_HOUR;
-  const height = Math.max(34, (appt.durationMinutes / 60) * PX_PER_HOUR - 2);
+  const height = Math.max(24, (appt.durationMinutes / 60) * PX_PER_HOUR - 2);
   const laneWidthPct = 100 / appt.laneCount;
 
   const paymentLabel =
@@ -135,7 +136,7 @@ function Block({
 
   return (
     <div
-      className={`absolute z-10 overflow-hidden rounded-lg bg-card pl-2 text-left shadow-sm transition-shadow ${
+      className={`absolute z-10 overflow-hidden rounded-lg bg-card pl-1.5 text-left shadow-sm transition-shadow ${
         open ? "z-20 shadow-lg" : "hover:shadow-md"
       }`}
       style={
@@ -149,7 +150,7 @@ function Block({
             }
       }
     >
-      <div className="absolute inset-y-0 left-0 flex w-2 flex-col">
+      <div className="absolute inset-y-0 left-0 flex w-1.5 flex-col">
         {appt.flags.length > 0 ? (
           appt.flags.map((flagKey) => {
             const flag = SCHEDULE_FLAGS.find((f) => f.key === flagKey);
@@ -160,14 +161,25 @@ function Block({
           <div className="flex-1 bg-border" />
         )}
       </div>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="block w-full px-2.5 py-1.5 text-left"
-      >
-        <div className="flex items-start justify-between gap-1">
-          <div className="flex min-w-0 flex-1 items-center gap-1.5">
-            <p className="min-w-0 truncate text-sm font-medium text-foreground">
+
+      {!open && (
+        // Covers the whole block, including the area over the color
+        // stripe (which sits underneath in DOM order), so tapping
+        // anywhere on the block opens it — not just the text itself.
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setOpen(true)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setOpen(true);
+            }
+          }}
+          className="absolute inset-0 cursor-pointer py-1 pr-2 pl-2.5 text-left"
+        >
+          <div className="flex min-w-0 items-center gap-1">
+            <p className="min-w-0 truncate text-[11px] font-medium text-foreground">
               {appt.petName}
             </p>
             {appt.status === "requested" && (
@@ -177,42 +189,52 @@ function Block({
             )}
           </div>
           {appt.flags.length > 0 && (
-            <div className="flex shrink-0 flex-wrap justify-end gap-0.5">
+            <div className="mt-0.5 flex items-center justify-between">
               {appt.flags.map((flagKey) => (
                 <FlagBadge key={flagKey} flagKey={flagKey} sizeClass="h-3.5 w-3.5" />
               ))}
             </div>
           )}
+          <p className="truncate text-[10px] text-muted">
+            {formatHour(appt.hour, appt.minute)} · {formatServiceLabel(appt.service)}
+          </p>
+          {height > 50 && (
+            <p className="truncate text-[10px] text-muted">{appt.ownerName}</p>
+          )}
         </div>
-        <p className="truncate text-xs text-muted">
-          {formatHour(appt.hour, appt.minute)} · {formatServiceLabel(appt.service)}
-        </p>
-        {height > 50 && (
-          <p className="truncate text-xs text-muted">{appt.ownerName}</p>
-        )}
-      </button>
+      )}
 
       {open && (
         <div className="border-t border-border bg-background px-2.5 py-2.5 text-xs">
-          <p className="font-serif text-sm text-foreground">
-            {appt.petId ? (
+          <div className="flex items-start justify-between gap-2">
+            <p className="font-serif text-sm text-foreground">
+              {appt.petId ? (
+                <Link
+                  href={`/admin/pets/${appt.petId}`}
+                  className="hover:text-accent-dark hover:underline"
+                >
+                  {appt.petName}
+                </Link>
+              ) : (
+                appt.petName
+              )}{" "}
+              ·{" "}
               <Link
-                href={`/admin/pets/${appt.petId}`}
+                href={`/admin/customers/${appt.ownerId}`}
                 className="hover:text-accent-dark hover:underline"
               >
-                {appt.petName}
+                {appt.ownerName}
               </Link>
-            ) : (
-              appt.petName
-            )}{" "}
-            ·{" "}
-            <Link
-              href={`/admin/customers/${appt.ownerId}`}
-              className="hover:text-accent-dark hover:underline"
+            </p>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              aria-label="Close"
+              className="shrink-0 rounded-full px-1.5 text-sm text-muted hover:text-foreground"
             >
-              {appt.ownerName}
-            </Link>
-          </p>
+              ✕
+            </button>
+          </div>
           {appt.ownerPhone && <p className="mt-0.5 text-muted">{appt.ownerPhone}</p>}
           {appt.flags.length > 0 && (
             <div className="mt-1.5 flex flex-wrap gap-1">
@@ -242,7 +264,7 @@ function Block({
 
           <div
             className={
-              "mt-2 grid grid-cols-2 gap-1.5 " +
+              "mt-2 grid grid-cols-1 gap-1.5 " +
               // These action buttons come from several separate components
               // (some with their own dropdown/modal markup nested inside),
               // so a blanket "every button" selector would also stretch
@@ -257,7 +279,7 @@ function Block({
             }
           >
             {appt.status === "requested" && (
-              <form action={confirmAction.bind(null, appt.id)} className="col-span-2">
+              <form action={confirmAction.bind(null, appt.id)}>
                 <button
                   type="submit"
                   className="rounded-full bg-accent px-2 py-1 text-[10px] font-medium text-white transition-colors hover:bg-accent-dark"
@@ -268,10 +290,7 @@ function Block({
             )}
             {appt.paymentMethod === "in_person" &&
               appt.paymentStatus === "unpaid" && (
-                <form
-                  action={setOnlinePaymentAction.bind(null, appt.id)}
-                  className="col-span-2"
-                >
+                <form action={setOnlinePaymentAction.bind(null, appt.id)}>
                   <button
                     type="submit"
                     className="rounded-full border border-border px-2 py-1 text-[10px] font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
@@ -326,7 +345,7 @@ export default function AdminScheduleGrid({
 
   const hours = Array.from({ length: endHour - startHour }, (_, i) => startHour + i);
   const gridHeight = hours.length * PX_PER_HOUR;
-  const totalWidth = TIME_COL_WIDTH + days.length * DAY_COL_WIDTH;
+  const totalWidth = TIME_COL_WIDTH + days.length * DAY_COL_MIN_WIDTH;
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-border bg-card">
@@ -335,12 +354,12 @@ export default function AdminScheduleGrid({
           className="shrink-0 border-r border-border"
           style={{ width: TIME_COL_WIDTH }}
         >
-          <div className="h-11 border-b border-border" />
+          <div className="h-9 border-b border-border" />
           <div style={{ height: gridHeight }} className="relative">
             {hours.map((h) => (
               <div
                 key={h}
-                className="absolute right-2 -translate-y-1/2 text-xs text-muted"
+                className="absolute right-1.5 -translate-y-1/2 text-[10px] text-muted"
                 style={{ top: (h - startHour) * PX_PER_HOUR }}
               >
                 {hourLabel(h)}
@@ -352,11 +371,11 @@ export default function AdminScheduleGrid({
         {days.map((day, i) => (
           <div
             key={day}
-            className="shrink-0 border-r border-border last:border-r-0"
-            style={{ width: DAY_COL_WIDTH }}
+            className="flex-1 border-r border-border last:border-r-0"
+            style={{ minWidth: DAY_COL_MIN_WIDTH }}
           >
-            <div className="flex h-11 flex-col items-center justify-center border-b border-border px-1 text-center">
-              <p className="text-sm font-medium text-foreground">{dayLabels[i]}</p>
+            <div className="flex h-9 flex-col items-center justify-center border-b border-border px-1 text-center">
+              <p className="text-[11px] font-medium text-foreground">{dayLabels[i]}</p>
             </div>
             <div className="relative" style={{ height: gridHeight }}>
               {hours.map((h) => (
