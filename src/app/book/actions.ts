@@ -1165,6 +1165,22 @@ export async function confirmAppointment(appointmentId: string) {
   );
 }
 
+// One-click switch from the admin schedule for an appointment that was
+// booked "pay in person" (the admin-booking default) — flips it to online
+// so the customer gets the "pay now" prompt the next time they log into
+// their account. Only touches still-unpaid appointments, so it can't
+// re-open something already settled.
+export async function setAppointmentOnlinePayment(appointmentId: string) {
+  const { supabase } = await requireAdmin();
+  await supabase
+    .from("appointments")
+    .update({ payment_method: "online" })
+    .eq("id", appointmentId)
+    .eq("payment_status", "unpaid");
+
+  redirect("/admin?message=Switched+to+pay+online.");
+}
+
 // Shared by payAppointmentNow (pay later from the account page) and
 // createAppointment (pay-at-booking, now the only option for online
 // bookings) so both go through the exact same Stripe Checkout setup.

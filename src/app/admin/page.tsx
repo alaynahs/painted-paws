@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/supabase/admin";
-import { confirmAppointment } from "@/app/book/actions";
+import { confirmAppointment, setAppointmentOnlinePayment } from "@/app/book/actions";
 import CancelAppointmentButton from "@/components/cancel-appointment-button";
 import QuickMessageButtons from "@/components/quick-message-buttons";
 import MarkCompleteButton from "@/components/mark-complete-button";
@@ -202,7 +202,11 @@ export default async function AdminDashboardPage({
                         ` · ${appt.add_ons.join(", ")}`}
                       {" · "}
                       {appt.payment_method === "online"
-                        ? "Paid online"
+                        ? appt.payment_status === "paid"
+                          ? "Paid online"
+                          : appt.payment_status === "refunded"
+                            ? "Refunded"
+                            : "Pay online (unpaid)"
                         : "Pay in person"}
                     </p>
                     {appt.pickup_dropoff && appt.pickup_address && (
@@ -235,6 +239,22 @@ export default async function AdminDashboardPage({
                       {appt.status !== "completed" && (
                         <MarkCompleteButton appointmentId={appt.id} compact />
                       )}
+                      {appt.payment_method === "in_person" &&
+                        appt.payment_status === "unpaid" && (
+                          <form
+                            action={setAppointmentOnlinePayment.bind(
+                              null,
+                              appt.id,
+                            )}
+                          >
+                            <button
+                              type="submit"
+                              className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+                            >
+                              Pay Online
+                            </button>
+                          </form>
+                        )}
                       <Link
                         href={`/admin/appointments/${appt.id}`}
                         className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"

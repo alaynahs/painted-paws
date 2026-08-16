@@ -39,11 +39,8 @@ export default function UnpaidAppointmentsPopup({
             onClick={(e) => e.stopPropagation()}
           >
             <p className="font-serif text-lg text-foreground">
-              Pay for your upcoming services?
-            </p>
-            <p className="mt-2 text-sm text-muted">
-              You have {appointments.length} unpaid upcoming appointment
-              {appointments.length === 1 ? "" : "s"} set to pay online.
+              You have {appointments.length} upcoming appointment
+              {appointments.length === 1 ? "" : "s"} — pay now?
             </p>
 
             <div className="mt-4 space-y-2">
