@@ -86,6 +86,8 @@ export interface BookingInitialValues {
   pickupAddress?: string;
   promoDiscountPercent?: number | null;
   advanceBookingDiscount?: number;
+  adminDiscountType?: "none" | "percent" | "amount" | "exact";
+  adminDiscountValue?: string;
 }
 
 
@@ -314,8 +316,10 @@ export default function BookingFlow({
   // they want for this booking, e.g. to match a phone-quoted price.
   const [adminDiscountType, setAdminDiscountType] = useState<
     "none" | "percent" | "amount" | "exact"
-  >("none");
-  const [adminDiscountValue, setAdminDiscountValue] = useState("");
+  >(initial?.adminDiscountType ?? "none");
+  const [adminDiscountValue, setAdminDiscountValue] = useState(
+    initial?.adminDiscountValue ?? "",
+  );
   const adminDiscountPercent =
     isAdmin && adminDiscountType === "percent" ? Number(adminDiscountValue) || 0 : 0;
   const adminDiscountAmount =

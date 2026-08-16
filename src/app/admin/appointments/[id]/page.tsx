@@ -180,6 +180,15 @@ export default async function AdminEditAppointmentPage({
             pickupAddress: appointment.pickup_address ?? "",
             promoDiscountPercent,
             advanceBookingDiscount: appointment.advance_booking_discount ?? 0,
+            // Reopening this page always used to reset the price editor to
+            // "No discount," so it silently recomputed the standard price
+            // out from under any one-off amount the admin had set on save —
+            // pre-filling "exact" with whatever's actually stored keeps a
+            // re-save a no-op unless the admin deliberately changes it.
+            adminDiscountType: "exact",
+            adminDiscountValue: String(
+              Math.round((appointment.price - (appointment.sales_tax ?? 0)) * 100) / 100,
+            ),
           }}
           config={config}
           isAdmin
