@@ -90,6 +90,7 @@ export default async function AdminScheduleGridPage({
     const addOns: string[] = appt.add_ons ?? [];
 
     const flags: ScheduleFlagKey[] = [];
+    if (appt.status === "requested") flags.push("requested");
     if (pet?.species === "cat") flags.push("cat");
     if ((apptCountByCustomer.get(appt.customer_id) ?? 0) <= 1) {
       flags.push("newCustomer");

@@ -161,14 +161,16 @@ function Block({
         className="block w-full px-2 py-1 text-left"
       >
         <div className="flex items-start justify-between gap-1">
-          <p className="truncate text-[11px] font-medium text-foreground">
-            {appt.petName}
+          <div className="flex min-w-0 flex-1 items-center gap-1">
+            <p className="min-w-0 truncate text-[11px] font-medium text-foreground">
+              {appt.petName}
+            </p>
             {appt.status === "requested" && (
-              <span className="ml-1 rounded-full bg-accent-tint px-1.5 py-0.5 text-[9px] font-medium tracking-wide text-accent-dark uppercase">
+              <span className="shrink-0 rounded-full bg-accent-tint px-1.5 py-0.5 text-[9px] font-medium tracking-wide text-accent-dark uppercase">
                 Req
               </span>
             )}
-          </p>
+          </div>
           {appt.flags.length > 0 && (
             <div className="flex shrink-0 flex-wrap justify-end gap-0.5">
               {appt.flags.map((flagKey) => (
@@ -235,11 +237,11 @@ function Block({
 
           <div
             className={
-              "mt-2.5 grid grid-cols-1 gap-1.5 " +
+              "mt-2.5 grid grid-cols-2 gap-1.5 " +
               // These action buttons come from several separate components
               // (some with their own dropdown/modal markup nested inside),
               // so a blanket "every button" selector would also stretch
-              // things like the Cancel confirmation modal's side-by-side
+              // things like the Cancel confirmation modal's own side-by-side
               // buttons. Direct-child selectors reach only each item's own
               // top-level trigger, one or two levels down depending on
               // whether that component wraps its trigger in a div.
@@ -250,7 +252,7 @@ function Block({
             }
           >
             {appt.status === "requested" && (
-              <form action={confirmAction.bind(null, appt.id)}>
+              <form action={confirmAction.bind(null, appt.id)} className="col-span-2">
                 <button
                   type="submit"
                   className="rounded-full bg-accent px-3 py-1 text-[11px] font-medium text-white transition-colors hover:bg-accent-dark"
@@ -259,12 +261,12 @@ function Block({
                 </button>
               </form>
             )}
-            {appt.status !== "completed" && (
-              <MarkCompleteButton appointmentId={appt.id} compact />
-            )}
             {appt.paymentMethod === "in_person" &&
               appt.paymentStatus === "unpaid" && (
-                <form action={setOnlinePaymentAction.bind(null, appt.id)}>
+                <form
+                  action={setOnlinePaymentAction.bind(null, appt.id)}
+                  className="col-span-2"
+                >
                   <button
                     type="submit"
                     className="rounded-full border border-border px-3 py-1 text-[11px] font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
@@ -273,14 +275,17 @@ function Block({
                   </button>
                 </form>
               )}
+            {appt.status !== "completed" && (
+              <MarkCompleteButton appointmentId={appt.id} compact />
+            )}
+            <QuickMessageButtons appointmentId={appt.id} />
+            <CancelAppointmentButton appointmentId={appt.id} isAdmin />
             <Link
               href={`/admin/appointments/${appt.id}`}
               className="rounded-full border border-border px-3 py-1 text-[11px] font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
             >
               Edit
             </Link>
-            <CancelAppointmentButton appointmentId={appt.id} isAdmin />
-            <QuickMessageButtons appointmentId={appt.id} />
           </div>
         </div>
       )}
