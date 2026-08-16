@@ -233,7 +233,22 @@ function Block({
             <span className="font-medium text-accent-dark">${appt.price}</span>
           </p>
 
-          <div className="mt-2.5 flex flex-wrap gap-1.5">
+          <div
+            className={
+              "mt-2.5 grid grid-cols-1 gap-1.5 " +
+              // These action buttons come from several separate components
+              // (some with their own dropdown/modal markup nested inside),
+              // so a blanket "every button" selector would also stretch
+              // things like the Cancel confirmation modal's side-by-side
+              // buttons. Direct-child selectors reach only each item's own
+              // top-level trigger, one or two levels down depending on
+              // whether that component wraps its trigger in a div.
+              "[&>form]:w-full [&>form>button]:w-full " +
+              "[&>a]:block [&>a]:w-full [&>a]:text-center " +
+              "[&>button]:w-full " +
+              "[&>div]:w-full [&>div>button]:w-full"
+            }
+          >
             {appt.status === "requested" && (
               <form action={confirmAction.bind(null, appt.id)}>
                 <button
