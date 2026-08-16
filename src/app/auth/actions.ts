@@ -19,11 +19,47 @@ export async function login(formData: FormData) {
 
 export async function signup(formData: FormData) {
   const supabase = await createClient();
-  const email = formData.get("email") as string;
+  const email = (formData.get("email") as string).trim();
   const password = formData.get("password") as string;
   const fullName = formData.get("fullName") as string;
-  const phone = formData.get("phone") as string;
+  const phone = (formData.get("phone") as string).trim();
   const smsConsent = formData.get("smsConsent") === "on";
+  const origin = (await headers()).get("origin");
+
+  // Someone the admin already created an account for (e.g. a walk-in
+  // booked by phone) shouldn't hit a dead-end signing up with the same
+  // email or phone — recognize the existing account and send them into the
+  // same "set a password" flow as Forgot Password, instead of erroring or
+  // creating a duplicate profile with no pet history attached.
+  const serviceClient = createServiceClient();
+  const phoneDigits = phone.replace(/\D/g, "");
+  const { data: emailMatch } = await serviceClient
+    .from("profiles")
+    .select("email")
+    .ilike("email", email)
+    .maybeSingle();
+  let existingEmail = emailMatch?.email ?? null;
+
+  if (!existingEmail && phoneDigits) {
+    const { data: withPhone } = await serviceClient
+      .from("profiles")
+      .select("email, phone")
+      .not("phone", "is", null);
+    existingEmail =
+      (withPhone ?? []).find((p) => p.phone?.replace(/\D/g, "") === phoneDigits)
+        ?.email ?? null;
+  }
+
+  if (existingEmail) {
+    await supabase.auth.resetPasswordForEmail(existingEmail, {
+      redirectTo: `${origin}/auth/callback?next=/auth/reset-password`,
+    });
+    redirect(
+      `/login?message=${encodeURIComponent(
+        `We found an existing account for you — check ${existingEmail} for a link to set your password and log in.`,
+      )}`,
+    );
+  }
 
   if (!smsConsent) {
     redirect(
