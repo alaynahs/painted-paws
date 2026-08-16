@@ -2,9 +2,13 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/supabase/admin";
 import { confirmAppointment, setAppointmentOnlinePayment } from "@/app/book/actions";
 import { estimateDurationMinutes } from "@/lib/schedule-duration";
+import { monthsSince } from "@/lib/pricing/pricing";
 import AdminScheduleGrid, {
   type GridAppointment,
 } from "@/components/admin-schedule-grid";
+import { SCHEDULE_FLAGS, type ScheduleFlagKey } from "@/components/schedule-flag-icons";
+
+const SENIOR_AGE_YEARS = 7;
 
 function parseISO(s: string) {
   const [y, m, d] = s.split("-").map(Number);
@@ -55,13 +59,27 @@ export default async function AdminScheduleGridPage({
   const { data: appointments } = await supabase
     .from("appointments")
     .select(
-      "id, appointment_date, appointment_hour, appointment_minute, service, add_ons, price, status, payment_method, payment_status, pet_id, customer_id, pets(id, name), profiles:customer_id(full_name, phone)",
+      "id, appointment_date, appointment_hour, appointment_minute, service, add_ons, price, status, payment_method, payment_status, pet_id, customer_id, pets(id, name, species, birth_date, health_concerns, rabies_vaccine_path), profiles:customer_id(full_name, phone)",
     )
     .neq("status", "cancelled")
     .gte("appointment_date", start)
     .lte("appointment_date", end)
     .order("appointment_hour", { ascending: true })
     .order("appointment_minute", { ascending: true });
+
+  // "New customer" needs a lifetime count, not just this week's — one bulk
+  // fetch of just the customer_id column is far cheaper than a separate
+  // count query per appointment.
+  const { data: allCustomerAppts } = await supabase
+    .from("appointments")
+    .select("customer_id");
+  const apptCountByCustomer = new Map<string, number>();
+  for (const a of allCustomerAppts ?? []) {
+    apptCountByCustomer.set(
+      a.customer_id,
+      (apptCountByCustomer.get(a.customer_id) ?? 0) + 1,
+    );
+  }
 
   const appointmentsByDay: Record<string, GridAppointment[]> = {};
   for (const day of days) appointmentsByDay[day] = [];
@@ -70,6 +88,18 @@ export default async function AdminScheduleGridPage({
     const pet = Array.isArray(appt.pets) ? appt.pets[0] : appt.pets;
     const profile = Array.isArray(appt.profiles) ? appt.profiles[0] : appt.profiles;
     const addOns: string[] = appt.add_ons ?? [];
+
+    const flags: ScheduleFlagKey[] = [];
+    if (pet?.species === "cat") flags.push("cat");
+    if ((apptCountByCustomer.get(appt.customer_id) ?? 0) <= 1) {
+      flags.push("newCustomer");
+    }
+    if (pet?.birth_date && monthsSince(pet.birth_date) / 12 >= SENIOR_AGE_YEARS) {
+      flags.push("senior");
+    }
+    if (pet?.health_concerns?.trim()) flags.push("healthConcerns");
+    if (!pet?.rabies_vaccine_path) flags.push("vaccineNeeded");
+
     appointmentsByDay[appt.appointment_date].push({
       id: appt.id,
       hour: appt.appointment_hour,
@@ -86,6 +116,7 @@ export default async function AdminScheduleGridPage({
       status: appt.status,
       paymentMethod: appt.payment_method,
       paymentStatus: appt.payment_status,
+      flags,
     });
   }
 
@@ -148,6 +179,31 @@ export default async function AdminScheduleGridPage({
         tap a block for details and quick actions. Scroll sideways on a
         smaller screen to see the full week.
       </p>
+
+      <div className="mt-6 rounded-2xl border border-border bg-card p-5">
+        <h2 className="text-sm font-medium text-foreground">Key</h2>
+        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2.5">
+          <div className="flex items-center gap-1.5 text-xs text-foreground/90">
+            <span className="rounded-full bg-accent-tint px-1.5 py-0.5 text-[9px] font-medium tracking-wide text-accent-dark uppercase">
+              Req
+            </span>
+            Requested, needs confirming
+          </div>
+          {SCHEDULE_FLAGS.map(({ key, label, Icon, text, bg }) => (
+            <div key={key} className="flex items-center gap-1.5 text-xs text-foreground/90">
+              <span className={`flex h-4 w-4 items-center justify-center rounded-full ${bg}`}>
+                <Icon className={`h-2.5 w-2.5 ${text}`} />
+              </span>
+              {label}
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-[11px] text-muted">
+          Icons stack — an appointment can show more than one at a time.
+          Flags come from what&apos;s on file for the pet, so an empty
+          field just won&apos;t show anything (not a guarantee it doesn&apos;t apply).
+        </p>
+      </div>
     </div>
   );
 }

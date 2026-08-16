@@ -7,6 +7,7 @@ import { formatServiceLabel } from "@/lib/pricing/pricing";
 import CancelAppointmentButton from "@/components/cancel-appointment-button";
 import QuickMessageButtons from "@/components/quick-message-buttons";
 import MarkCompleteButton from "@/components/mark-complete-button";
+import { SCHEDULE_FLAGS, type ScheduleFlagKey } from "@/components/schedule-flag-icons";
 
 export interface GridAppointment {
   id: string;
@@ -24,6 +25,20 @@ export interface GridAppointment {
   status: string;
   paymentMethod: "online" | "in_person";
   paymentStatus: string;
+  flags: ScheduleFlagKey[];
+}
+
+function FlagBadge({ flagKey, sizeClass }: { flagKey: ScheduleFlagKey; sizeClass: string }) {
+  const flag = SCHEDULE_FLAGS.find((f) => f.key === flagKey);
+  if (!flag) return null;
+  return (
+    <span
+      title={flag.label}
+      className={`flex shrink-0 items-center justify-center rounded-full ${flag.bg} ${sizeClass}`}
+    >
+      <flag.Icon className={flag.text} style={{ width: "62%", height: "62%" }} />
+    </span>
+  );
 }
 
 const PX_PER_HOUR = 64;
@@ -115,7 +130,7 @@ function Block({
 
   return (
     <div
-      className={`absolute z-10 overflow-hidden rounded-lg border-l-4 border-accent bg-card text-left shadow-sm transition-shadow ${
+      className={`absolute z-10 overflow-hidden rounded-lg border-l-4 border-border bg-card text-left shadow-sm transition-shadow ${
         open ? "z-20 shadow-lg" : "hover:shadow-md"
       }`}
       style={
@@ -134,14 +149,23 @@ function Block({
         onClick={() => setOpen((v) => !v)}
         className="block w-full px-2 py-1 text-left"
       >
-        <p className="truncate text-[11px] font-medium text-foreground">
-          {appt.petName}
-          {appt.status === "requested" && (
-            <span className="ml-1 rounded-full bg-accent-tint px-1.5 py-0.5 text-[9px] font-medium tracking-wide text-accent-dark uppercase">
-              Req
-            </span>
+        <div className="flex items-start justify-between gap-1">
+          <p className="truncate text-[11px] font-medium text-foreground">
+            {appt.petName}
+            {appt.status === "requested" && (
+              <span className="ml-1 rounded-full bg-accent-tint px-1.5 py-0.5 text-[9px] font-medium tracking-wide text-accent-dark uppercase">
+                Req
+              </span>
+            )}
+          </p>
+          {appt.flags.length > 0 && (
+            <div className="flex shrink-0 flex-wrap justify-end gap-0.5">
+              {appt.flags.map((flagKey) => (
+                <FlagBadge key={flagKey} flagKey={flagKey} sizeClass="h-3 w-3" />
+              ))}
+            </div>
           )}
-        </p>
+        </div>
         <p className="truncate text-[10px] text-muted">
           {formatHour(appt.hour, appt.minute)} · {formatServiceLabel(appt.service)}
         </p>
@@ -172,6 +196,23 @@ function Block({
             </Link>
           </p>
           {appt.ownerPhone && <p className="mt-0.5 text-muted">{appt.ownerPhone}</p>}
+          {appt.flags.length > 0 && (
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {appt.flags.map((flagKey) => {
+                const flag = SCHEDULE_FLAGS.find((f) => f.key === flagKey);
+                if (!flag) return null;
+                return (
+                  <span
+                    key={flagKey}
+                    className={`flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${flag.bg} ${flag.text}`}
+                  >
+                    <flag.Icon className="h-2.5 w-2.5" />
+                    {flag.label}
+                  </span>
+                );
+              })}
+            </div>
+          )}
           <p className="mt-1.5 text-foreground/90">
             {formatServiceLabel(appt.service)}
             {appt.addOns.length > 0 && ` · ${appt.addOns.join(", ")}`}
