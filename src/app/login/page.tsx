@@ -36,19 +36,20 @@ export default async function LoginPage({
 
       <div className="mt-6 flex items-center gap-3 text-xs text-muted">
         <span className="h-px flex-1 bg-border" />
-        or log in with email
+        or log in with email or phone
         <span className="h-px flex-1 bg-border" />
       </div>
 
       <form action={login} className="mt-6 space-y-4">
         <div>
           <label className="text-sm font-medium text-foreground" htmlFor="email">
-            Email
+            Email or phone number
           </label>
           <input
             id="email"
             name="email"
-            type="email"
+            type="text"
+            autoComplete="username"
             required
             className="mt-2 w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground outline-none focus:border-accent-dark"
           />
@@ -79,7 +80,11 @@ export default async function LoginPage({
         </Link>
       </p>
 
-      <div className="mt-3 flex justify-center text-center">
+      <p className="mt-4 text-center text-xs text-muted">
+        Booked with us by phone or text? Use the same phone number or email
+        you gave us, then create a password below.
+      </p>
+      <div className="mt-2 flex justify-center text-center">
         <FirstTimePasswordPrompt action={checkPasswordStatus} />
       </div>
 

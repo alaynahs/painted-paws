@@ -7,8 +7,39 @@ import { createServiceClient } from "@/lib/supabase/service";
 
 export async function login(formData: FormData) {
   const supabase = await createClient();
-  const email = formData.get("email") as string;
+  const identifier = ((formData.get("email") as string) || "").trim();
   const password = formData.get("password") as string;
+
+  // Supabase Auth identities here are all email-based (see signup below) —
+  // phone is just a profiles column, not a verified auth identity — so a
+  // phone-number login resolves to that profile's real email first, then
+  // signs in with that, same as if they'd typed the email directly.
+  let email = identifier;
+  if (!identifier.includes("@")) {
+    const digits = identifier.replace(/\D/g, "");
+    if (!digits) {
+      redirect(
+        `/login?error=${encodeURIComponent("Enter your email or phone number.")}`,
+      );
+    }
+
+    const { data: withPhone } = await createServiceClient()
+      .from("profiles")
+      .select("email, phone")
+      .not("phone", "is", null);
+    const match = (withPhone ?? []).find(
+      (p) => p.phone?.replace(/\D/g, "") === digits,
+    );
+
+    if (!match || !match.email) {
+      redirect(
+        `/login?error=${encodeURIComponent(
+          "We couldn't find an account with that phone number.",
+        )}`,
+      );
+    }
+    email = match.email;
+  }
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
