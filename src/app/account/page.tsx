@@ -1,16 +1,22 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { updateProfile, updateEmail } from "@/app/account/actions";
+import { updateProfile, updateEmail, addPaymentMethod } from "@/app/account/actions";
 import { logout } from "@/app/auth/actions";
 import ThemeToggle from "@/components/theme-toggle";
 import ContactInfoCard from "@/components/contact-info-card";
 import CancelAppointmentButton from "@/components/cancel-appointment-button";
-import { confirmAppointment, payAppointmentNow } from "@/app/book/actions";
+import UnpaidAppointmentsPopup from "@/components/unpaid-appointments-popup";
+import {
+  confirmAppointment,
+  payAppointmentNow,
+  payAllUnpaidAppointmentsNow,
+} from "@/app/book/actions";
 import { updatePasswordFromAccount } from "@/app/auth/actions";
 import MembershipCard from "@/components/membership-card";
 import PastAppointmentsList from "@/components/past-appointments-list";
 import { formatDate, formatHour, todayInCentral } from "@/lib/format";
+import { stripe } from "@/lib/stripe/client";
 import {
   formatServiceLabel,
   GROOM_PACK_SERVICE_LABELS,
@@ -100,6 +106,31 @@ export default async function AccountPage({
     .eq("customer_id", user.id)
     .order("created_at", { ascending: false });
 
+  const unpaidOnlineAppointments = upcomingAppointments
+    .filter(
+      (a) =>
+        a.payment_method === "online" &&
+        a.payment_status !== "paid" &&
+        a.payment_status !== "refunded",
+    )
+    .map((a) => ({
+      id: a.id,
+      petName: a.pets?.name ?? "Pet",
+      date: a.appointment_date,
+      hour: a.appointment_hour,
+      minute: a.appointment_minute,
+      price: a.price,
+    }));
+
+  let hasSavedCard = false;
+  if (stripe && profile?.stripe_customer_id) {
+    const paymentMethods = await stripe.paymentMethods.list({
+      customer: profile.stripe_customer_id,
+      type: "card",
+    });
+    hasSavedCard = paymentMethods.data.length > 0;
+  }
+
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
       <p className="text-sm font-medium tracking-wide text-accent-dark uppercase">
@@ -129,6 +160,11 @@ export default async function AccountPage({
           {error}
         </p>
       )}
+
+      <UnpaidAppointmentsPopup
+        appointments={unpaidOnlineAppointments}
+        payAction={payAllUnpaidAppointmentsNow}
+      />
 
       <section className="mt-10 rounded-2xl border border-border bg-card p-6">
         <div className="flex items-center justify-between">
@@ -322,6 +358,28 @@ export default async function AccountPage({
             </p>
           )}
         </div>
+      </section>
+
+      <section className="mt-8 rounded-2xl border border-border bg-card p-6">
+        <h2 className="font-serif text-lg text-foreground">Payment Method</h2>
+        {hasSavedCard ? (
+          <p className="mt-2 text-sm text-muted">
+            A card is on file. You can replace it at any time.
+          </p>
+        ) : (
+          <p className="mt-2 text-sm text-muted">
+            Save a card so you&apos;re ready to pay online for appointments
+            booked with online payment.
+          </p>
+        )}
+        <form action={addPaymentMethod} className="mt-4">
+          <button
+            type="submit"
+            className="rounded-full border border-border px-6 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+          >
+            {hasSavedCard ? "Update Payment Method" : "Add Payment Method"}
+          </button>
+        </form>
       </section>
 
       <section className="mt-8 rounded-2xl border border-border bg-card p-6">

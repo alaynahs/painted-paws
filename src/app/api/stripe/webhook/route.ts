@@ -5,6 +5,54 @@ import { sendBookingNotifications, notifyAdminCheckoutAbandoned } from "@/app/bo
 import { notifyEmail } from "@/lib/notifications/service";
 import { BUSINESS_EMAIL, tipReceivedEmail } from "@/lib/notifications/templates";
 
+// Shared by the single-appointment "Pay Now" flow and the "pay for all
+// upcoming services" bulk flow — both land here paying one appointment at a
+// time so a partial failure part-way through a bulk checkout still marks
+// whatever it reached.
+async function markAppointmentPaid(
+  supabase: ReturnType<typeof createServiceClient>,
+  appointmentId: string,
+  paymentIntentId: string | null,
+) {
+  await supabase
+    .from("appointments")
+    .update({ payment_status: "paid", stripe_payment_intent_id: paymentIntentId })
+    .eq("id", appointmentId);
+
+  const { data: appt } = await supabase
+    .from("appointments")
+    .select(
+      "customer_id, pet_id, appointment_date, appointment_hour, appointment_minute, service, price, coupon_id, pets(name, rabies_vaccine_path)",
+    )
+    .eq("id", appointmentId)
+    .single();
+
+  if (!appt) return;
+
+  const pet = Array.isArray(appt.pets) ? appt.pets[0] : appt.pets;
+  await sendBookingNotifications(supabase, {
+    customerId: appt.customer_id,
+    petId: appt.pet_id,
+    petName: pet?.name ?? "Pet",
+    appointmentId,
+    date: appt.appointment_date,
+    hour: appt.appointment_hour,
+    minute: appt.appointment_minute,
+    rabiesVaccinePath: pet?.rabies_vaccine_path ?? null,
+    service: appt.service,
+    price: appt.price,
+  });
+
+  // Only burn the coupon once payment actually confirms — an
+  // abandoned checkout leaves it available to try again.
+  if (appt.coupon_id) {
+    await supabase
+      .from("coupons")
+      .update({ used_at: new Date().toISOString(), redeemed_appointment_id: appointmentId })
+      .eq("id", appt.coupon_id);
+  }
+}
+
 // Stripe is the source of truth for whether money actually changed hands —
 // the success_url redirect alone can't be trusted (a customer could visit it
 // without paying), so payment_status only flips to "paid" here, once Stripe
@@ -75,46 +123,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
+    const paymentIntentId =
+      typeof session.payment_intent === "string" ? session.payment_intent : null;
+
     if (appointmentId) {
+      await markAppointmentPaid(createServiceClient(), appointmentId, paymentIntentId);
+    }
+
+    // The "pay for all upcoming services" bulk checkout from the account
+    // page carries every appointment it covers as one comma-separated list,
+    // since Stripe metadata values are flat strings — there's no per-line-item
+    // metadata to key off instead.
+    const appointmentIdsRaw = session.metadata?.appointmentIds;
+    if (appointmentIdsRaw) {
       const supabase = createServiceClient();
-      const paymentIntentId =
-        typeof session.payment_intent === "string" ? session.payment_intent : null;
-      await supabase
-        .from("appointments")
-        .update({ payment_status: "paid", stripe_payment_intent_id: paymentIntentId })
-        .eq("id", appointmentId);
-
-      const { data: appt } = await supabase
-        .from("appointments")
-        .select(
-          "customer_id, pet_id, appointment_date, appointment_hour, appointment_minute, service, price, coupon_id, pets(name, rabies_vaccine_path)",
-        )
-        .eq("id", appointmentId)
-        .single();
-
-      if (appt) {
-        const pet = Array.isArray(appt.pets) ? appt.pets[0] : appt.pets;
-        await sendBookingNotifications(supabase, {
-          customerId: appt.customer_id,
-          petId: appt.pet_id,
-          petName: pet?.name ?? "Pet",
-          appointmentId,
-          date: appt.appointment_date,
-          hour: appt.appointment_hour,
-          minute: appt.appointment_minute,
-          rabiesVaccinePath: pet?.rabies_vaccine_path ?? null,
-          service: appt.service,
-          price: appt.price,
-        });
-
-        // Only burn the coupon once payment actually confirms — an
-        // abandoned checkout leaves it available to try again.
-        if (appt.coupon_id) {
-          await supabase
-            .from("coupons")
-            .update({ used_at: new Date().toISOString(), redeemed_appointment_id: appointmentId })
-            .eq("id", appt.coupon_id);
-        }
+      for (const id of appointmentIdsRaw.split(",").filter(Boolean)) {
+        await markAppointmentPaid(supabase, id, paymentIntentId);
       }
     }
 

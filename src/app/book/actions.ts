@@ -45,7 +45,12 @@ import {
   MAX_NO_SHOWS,
   PICKUP_MIN_LEAD_HOURS,
 } from "@/lib/booking-hours";
-import { centralWallClockToInstant, formatDate, formatHour } from "@/lib/format";
+import {
+  centralWallClockToInstant,
+  formatDate,
+  formatHour,
+  todayInCentral,
+} from "@/lib/format";
 import { checkPickupEligibility } from "@/lib/geocoding";
 import { notifyEmail, notifyText } from "@/lib/notifications/service";
 import {
@@ -1261,6 +1266,86 @@ export async function payAppointmentNow(appointmentId: string) {
     appt.sales_tax,
     "/account?message=Payment+received.+Thank+you!",
     `/api/book/checkout-cancelled?appointmentId=${appt.id}`,
+  );
+
+  if (!checkoutUrl) redirect("/account?error=Could%20not%20start%20checkout");
+  redirect(checkoutUrl);
+}
+
+// One Checkout Session covering every unpaid upcoming appointment at once —
+// used by the "Pay for your upcoming services?" account-page prompt, so a
+// customer with several unpaid visits doesn't have to check out separately
+// for each one. Each appointment's own (tax-inclusive) price becomes its own
+// line item so the receipt still itemizes per pet/visit.
+async function createBulkAppointmentCheckoutSession(
+  origin: string | null,
+  appointments: { id: string; petName: string; service: string; price: number }[],
+  successPath: string,
+  cancelPath: string,
+): Promise<string | null> {
+  if (!stripe) return null;
+  const session = await stripe.checkout.sessions.create({
+    mode: "payment",
+    payment_method_types: ["card"],
+    line_items: appointments.map((appt) => ({
+      price_data: {
+        currency: "usd",
+        product_data: {
+          name: `${appt.petName} · ${formatServiceLabel(appt.service)}`,
+          images: [`${origin}/logo.png`],
+        },
+        unit_amount: Math.round(appt.price * 100),
+      },
+      quantity: 1,
+    })),
+    // Comma-separated since Stripe metadata values are flat strings — see
+    // the webhook's appointmentIdsRaw handling.
+    metadata: { appointmentIds: appointments.map((a) => a.id).join(","), kind: "bulk_payment" },
+    success_url: `${origin}${successPath}`,
+    cancel_url: `${origin}${cancelPath}`,
+    expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
+  });
+  return session.url;
+}
+
+export async function payAllUnpaidAppointmentsNow() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const todayStr = todayInCentral();
+  const { data: appts } = await supabase
+    .from("appointments")
+    .select("id, price, service, payment_status, appointment_date, pets(name)")
+    .eq("customer_id", user.id)
+    .eq("payment_method", "online")
+    .neq("status", "cancelled")
+    .neq("payment_status", "paid")
+    .neq("payment_status", "refunded")
+    .gte("appointment_date", todayStr);
+
+  const unpaid = appts ?? [];
+  if (unpaid.length === 0) redirect("/account");
+
+  if (!stripe) {
+    redirect(
+      "/account?error=Online+payment+isn%27t+set+up+yet+%E2%80%94+please+pay+in+person.",
+    );
+  }
+
+  const origin = (await headers()).get("origin");
+  const checkoutUrl = await createBulkAppointmentCheckoutSession(
+    origin,
+    unpaid.map((appt) => ({
+      id: appt.id,
+      petName: (Array.isArray(appt.pets) ? appt.pets[0] : appt.pets)?.name ?? "Pet",
+      service: appt.service,
+      price: appt.price,
+    })),
+    "/account?message=Payment+received.+Thank+you!",
+    "/account",
   );
 
   if (!checkoutUrl) redirect("/account?error=Could%20not%20start%20checkout");
