@@ -41,7 +41,12 @@ function FlagBadge({ flagKey, sizeClass }: { flagKey: ScheduleFlagKey; sizeClass
   );
 }
 
-const PX_PER_HOUR = 64;
+// Bumped up from the original 64px/100px so each day column has real room
+// to breathe — the grid scrolls sideways to fit, trading "see the whole
+// week at once" for "nothing inside is cramped."
+const PX_PER_HOUR = 96;
+const DAY_COL_WIDTH = 190;
+const TIME_COL_WIDTH = 64;
 
 function hourLabel(hour: number) {
   const period = hour >= 12 ? "PM" : "AM";
@@ -116,7 +121,7 @@ function Block({
 }) {
   const [open, setOpen] = useState(false);
   const top = (appt.hour + appt.minute / 60 - startHour) * PX_PER_HOUR;
-  const height = Math.max(26, (appt.durationMinutes / 60) * PX_PER_HOUR - 2);
+  const height = Math.max(34, (appt.durationMinutes / 60) * PX_PER_HOUR - 2);
   const laneWidthPct = 100 / appt.laneCount;
 
   const paymentLabel =
@@ -129,187 +134,167 @@ function Block({
       : "Pay in person";
 
   return (
-    <>
-      <div
-        className={`absolute z-10 overflow-hidden rounded-lg bg-card pl-1.5 text-left shadow-sm transition-shadow ${
-          open ? "z-20 shadow-lg" : "hover:shadow-md"
-        }`}
-        style={{
-          top,
-          height,
-          left: `calc(${appt.lane * laneWidthPct}% + 2px)`,
-          width: `calc(${laneWidthPct}% - 4px)`,
-        }}
+    <div
+      className={`absolute z-10 overflow-hidden rounded-lg bg-card pl-2 text-left shadow-sm transition-shadow ${
+        open ? "z-20 shadow-lg" : "hover:shadow-md"
+      }`}
+      style={
+        open
+          ? { top, height: "auto", minHeight: height, left: 2, right: 2 }
+          : {
+              top,
+              height,
+              left: `calc(${appt.lane * laneWidthPct}% + 2px)`,
+              width: `calc(${laneWidthPct}% - 4px)`,
+            }
+      }
+    >
+      <div className="absolute inset-y-0 left-0 flex w-2 flex-col">
+        {appt.flags.length > 0 ? (
+          appt.flags.map((flagKey) => {
+            const flag = SCHEDULE_FLAGS.find((f) => f.key === flagKey);
+            if (!flag) return null;
+            return <div key={flagKey} className={`flex-1 ${flag.stripe}`} />;
+          })
+        ) : (
+          <div className="flex-1 bg-border" />
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="block w-full px-2.5 py-1.5 text-left"
       >
-        <div className="absolute inset-y-0 left-0 flex w-1.5 flex-col">
-          {appt.flags.length > 0 ? (
-            appt.flags.map((flagKey) => {
-              const flag = SCHEDULE_FLAGS.find((f) => f.key === flagKey);
-              if (!flag) return null;
-              return <div key={flagKey} className={`flex-1 ${flag.stripe}`} />;
-            })
-          ) : (
-            <div className="flex-1 bg-border" />
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="block h-full w-full px-2 py-1 text-left"
-        >
-          <div className="flex items-start justify-between gap-1">
-            <div className="flex min-w-0 flex-1 items-center gap-1">
-              <p className="min-w-0 truncate text-[11px] font-medium text-foreground">
-                {appt.petName}
-              </p>
-              {appt.status === "requested" && (
-                <span className="shrink-0 rounded-full bg-accent-tint px-1.5 py-0.5 text-[9px] font-medium tracking-wide text-accent-dark uppercase">
-                  Req
-                </span>
-              )}
-            </div>
-            {appt.flags.length > 0 && (
-              <div className="flex shrink-0 flex-wrap justify-end gap-0.5">
-                {appt.flags.map((flagKey) => (
-                  <FlagBadge key={flagKey} flagKey={flagKey} sizeClass="h-3 w-3" />
-                ))}
-              </div>
+        <div className="flex items-start justify-between gap-1">
+          <div className="flex min-w-0 flex-1 items-center gap-1.5">
+            <p className="min-w-0 truncate text-sm font-medium text-foreground">
+              {appt.petName}
+            </p>
+            {appt.status === "requested" && (
+              <span className="shrink-0 rounded-full bg-accent-tint px-1.5 py-0.5 text-[9px] font-medium tracking-wide text-accent-dark uppercase">
+                Req
+              </span>
             )}
           </div>
-          <p className="truncate text-[10px] text-muted">
-            {formatHour(appt.hour, appt.minute)} · {formatServiceLabel(appt.service)}
-          </p>
-          {height > 40 && (
-            <p className="truncate text-[10px] text-muted">{appt.ownerName}</p>
+          {appt.flags.length > 0 && (
+            <div className="flex shrink-0 flex-wrap justify-end gap-0.5">
+              {appt.flags.map((flagKey) => (
+                <FlagBadge key={flagKey} flagKey={flagKey} sizeClass="h-3.5 w-3.5" />
+              ))}
+            </div>
           )}
-        </button>
-      </div>
+        </div>
+        <p className="truncate text-xs text-muted">
+          {formatHour(appt.hour, appt.minute)} · {formatServiceLabel(appt.service)}
+        </p>
+        {height > 50 && (
+          <p className="truncate text-xs text-muted">{appt.ownerName}</p>
+        )}
+      </button>
 
-      {/* Full-size modal instead of expanding in place — the day column
-          itself can be as narrow as ~100px once the week is split into
-          lanes, nowhere near enough room for the action buttons at a
-          readable size. */}
       {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          onClick={() => setOpen(false)}
-        >
-          <div
-            className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 text-sm shadow-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p className="font-serif text-lg text-foreground">
-              {appt.petId ? (
-                <Link
-                  href={`/admin/pets/${appt.petId}`}
-                  className="hover:text-accent-dark hover:underline"
-                >
-                  {appt.petName}
-                </Link>
-              ) : (
-                appt.petName
-              )}{" "}
-              ·{" "}
+        <div className="border-t border-border bg-background px-3 py-3 text-sm">
+          <p className="font-serif text-base text-foreground">
+            {appt.petId ? (
               <Link
-                href={`/admin/customers/${appt.ownerId}`}
+                href={`/admin/pets/${appt.petId}`}
                 className="hover:text-accent-dark hover:underline"
               >
-                {appt.ownerName}
+                {appt.petName}
               </Link>
-            </p>
-            {appt.ownerPhone && (
-              <p className="mt-0.5 text-muted">{appt.ownerPhone}</p>
-            )}
-            {appt.flags.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {appt.flags.map((flagKey) => {
-                  const flag = SCHEDULE_FLAGS.find((f) => f.key === flagKey);
-                  if (!flag) return null;
-                  return (
-                    <span
-                      key={flagKey}
-                      className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${flag.bg} ${flag.text}`}
-                    >
-                      <flag.Icon className="h-3 w-3 shrink-0" />
-                      {flag.label}
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-            <p className="mt-2 text-foreground/90">
-              {formatHour(appt.hour, appt.minute)} · {formatServiceLabel(appt.service)}
-              {appt.addOns.length > 0 && ` · ${appt.addOns.join(", ")}`}
-            </p>
-            <p className="mt-1 flex items-center justify-between gap-2">
-              <span className="text-muted">{paymentLabel}</span>
-              <span className="font-medium text-accent-dark">${appt.price}</span>
-            </p>
-
-            <div
-              className={
-                "mt-4 grid grid-cols-2 gap-2 " +
-                // These action buttons come from several separate components
-                // (some with their own dropdown/modal markup nested inside),
-                // so a blanket "every button" selector would also stretch
-                // things like the Cancel confirmation modal's own side-by-side
-                // buttons. Direct-child selectors reach only each item's own
-                // top-level trigger, one or two levels down depending on
-                // whether that component wraps its trigger in a div.
-                "[&>form]:w-full [&>form>button]:w-full " +
-                "[&>a]:block [&>a]:w-full [&>a]:text-center " +
-                "[&>button]:w-full " +
-                "[&>div]:w-full [&>div>button]:w-full"
-              }
+            ) : (
+              appt.petName
+            )}{" "}
+            ·{" "}
+            <Link
+              href={`/admin/customers/${appt.ownerId}`}
+              className="hover:text-accent-dark hover:underline"
             >
-              {appt.status === "requested" && (
-                <form action={confirmAction.bind(null, appt.id)} className="col-span-2">
+              {appt.ownerName}
+            </Link>
+          </p>
+          {appt.ownerPhone && <p className="mt-0.5 text-muted">{appt.ownerPhone}</p>}
+          {appt.flags.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {appt.flags.map((flagKey) => {
+                const flag = SCHEDULE_FLAGS.find((f) => f.key === flagKey);
+                if (!flag) return null;
+                return (
+                  <span
+                    key={flagKey}
+                    className={`flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${flag.bg} ${flag.text}`}
+                  >
+                    <flag.Icon className="h-3 w-3 shrink-0" />
+                    {flag.label}
+                  </span>
+                );
+              })}
+            </div>
+          )}
+          <p className="mt-2 text-foreground/90">
+            {formatServiceLabel(appt.service)}
+            {appt.addOns.length > 0 && ` · ${appt.addOns.join(", ")}`}
+          </p>
+          <p className="mt-1 flex items-center justify-between gap-2">
+            <span className="text-muted">{paymentLabel}</span>
+            <span className="font-medium text-accent-dark">${appt.price}</span>
+          </p>
+
+          <div
+            className={
+              "mt-3 grid grid-cols-2 gap-2 " +
+              // These action buttons come from several separate components
+              // (some with their own dropdown/modal markup nested inside),
+              // so a blanket "every button" selector would also stretch
+              // things like the Cancel confirmation modal's own side-by-side
+              // buttons. Direct-child selectors reach only each item's own
+              // top-level trigger, one or two levels down depending on
+              // whether that component wraps its trigger in a div.
+              "[&>form]:w-full [&>form>button]:w-full " +
+              "[&>a]:block [&>a]:w-full [&>a]:text-center " +
+              "[&>button]:w-full " +
+              "[&>div]:w-full [&>div>button]:w-full"
+            }
+          >
+            {appt.status === "requested" && (
+              <form action={confirmAction.bind(null, appt.id)} className="col-span-2">
+                <button
+                  type="submit"
+                  className="rounded-full bg-accent px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-dark"
+                >
+                  Confirm
+                </button>
+              </form>
+            )}
+            {appt.paymentMethod === "in_person" &&
+              appt.paymentStatus === "unpaid" && (
+                <form
+                  action={setOnlinePaymentAction.bind(null, appt.id)}
+                  className="col-span-2"
+                >
                   <button
                     type="submit"
-                    className="rounded-full bg-accent px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-dark"
+                    className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
                   >
-                    Confirm
+                    Pay Online
                   </button>
                 </form>
               )}
-              {appt.paymentMethod === "in_person" &&
-                appt.paymentStatus === "unpaid" && (
-                  <form
-                    action={setOnlinePaymentAction.bind(null, appt.id)}
-                    className="col-span-2"
-                  >
-                    <button
-                      type="submit"
-                      className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
-                    >
-                      Pay Online
-                    </button>
-                  </form>
-                )}
-              {appt.status !== "completed" && (
-                <MarkCompleteButton appointmentId={appt.id} compact />
-              )}
-              <QuickMessageButtons appointmentId={appt.id} />
-              <CancelAppointmentButton appointmentId={appt.id} isAdmin />
-              <Link
-                href={`/admin/appointments/${appt.id}`}
-                className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
-              >
-                Edit
-              </Link>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="mt-4 w-full text-center text-xs text-muted hover:text-foreground"
+            {appt.status !== "completed" && (
+              <MarkCompleteButton appointmentId={appt.id} compact />
+            )}
+            <QuickMessageButtons appointmentId={appt.id} />
+            <CancelAppointmentButton appointmentId={appt.id} isAdmin />
+            <Link
+              href={`/admin/appointments/${appt.id}`}
+              className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
             >
-              Close
-            </button>
+              Edit
+            </Link>
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
 
@@ -341,17 +326,21 @@ export default function AdminScheduleGrid({
 
   const hours = Array.from({ length: endHour - startHour }, (_, i) => startHour + i);
   const gridHeight = hours.length * PX_PER_HOUR;
+  const totalWidth = TIME_COL_WIDTH + days.length * DAY_COL_WIDTH;
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-border bg-card">
-      <div className="flex min-w-[760px]">
-        <div className="w-14 shrink-0 border-r border-border">
-          <div className="h-10 border-b border-border" />
+      <div className="flex" style={{ minWidth: totalWidth }}>
+        <div
+          className="shrink-0 border-r border-border"
+          style={{ width: TIME_COL_WIDTH }}
+        >
+          <div className="h-11 border-b border-border" />
           <div style={{ height: gridHeight }} className="relative">
             {hours.map((h) => (
               <div
                 key={h}
-                className="absolute right-1.5 -translate-y-1/2 text-[10px] text-muted"
+                className="absolute right-2 -translate-y-1/2 text-xs text-muted"
                 style={{ top: (h - startHour) * PX_PER_HOUR }}
               >
                 {hourLabel(h)}
@@ -361,9 +350,13 @@ export default function AdminScheduleGrid({
         </div>
 
         {days.map((day, i) => (
-          <div key={day} className="min-w-[100px] flex-1 border-r border-border last:border-r-0">
-            <div className="flex h-10 flex-col items-center justify-center border-b border-border px-1 text-center">
-              <p className="text-[11px] font-medium text-foreground">{dayLabels[i]}</p>
+          <div
+            key={day}
+            className="shrink-0 border-r border-border last:border-r-0"
+            style={{ width: DAY_COL_WIDTH }}
+          >
+            <div className="flex h-11 flex-col items-center justify-center border-b border-border px-1 text-center">
+              <p className="text-sm font-medium text-foreground">{dayLabels[i]}</p>
             </div>
             <div className="relative" style={{ height: gridHeight }}>
               {hours.map((h) => (
