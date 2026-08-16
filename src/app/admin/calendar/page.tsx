@@ -96,12 +96,20 @@ export default async function AdminCalendarPage({
       </p>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="font-serif text-3xl text-foreground">Calendar</h1>
-        <Link
-          href="/admin"
-          className="rounded-full border border-border px-5 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
-        >
-          Week view
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          <Link
+            href="/admin"
+            className="rounded-full border border-border px-5 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+          >
+            List view
+          </Link>
+          <Link
+            href="/admin/grid"
+            className="rounded-full border border-border px-5 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+          >
+            Grid view
+          </Link>
+        </div>
       </div>
 
       <div className="mt-6 flex items-center justify-between gap-4">

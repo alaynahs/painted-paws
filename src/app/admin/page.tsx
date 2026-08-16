@@ -76,6 +76,12 @@ export default async function AdminDashboardPage({
         <h1 className="font-serif text-3xl text-foreground">Schedule</h1>
         <div className="flex flex-wrap gap-3">
           <Link
+            href="/admin/grid"
+            className="rounded-full border border-border px-5 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+          >
+            Grid view
+          </Link>
+          <Link
             href="/admin/calendar"
             className="rounded-full border border-border px-5 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
           >
