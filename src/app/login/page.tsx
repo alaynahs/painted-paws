@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { login } from "@/app/auth/actions";
+import { login, checkPasswordStatus } from "@/app/auth/actions";
 import GoogleSignInButton from "@/components/google-signin-button";
+import FirstTimePasswordPrompt from "@/components/first-time-password-prompt";
 
 export default async function LoginPage({
   searchParams,
@@ -77,6 +78,10 @@ export default async function LoginPage({
           Forgot your password?
         </Link>
       </p>
+
+      <div className="mt-3 flex justify-center text-center">
+        <FirstTimePasswordPrompt action={checkPasswordStatus} />
+      </div>
 
       <p className="mt-4 text-center text-sm text-muted">
         New here?{" "}

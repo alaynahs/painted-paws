@@ -84,7 +84,11 @@ export async function signup(formData: FormData) {
     // confirmation is required), so RLS would otherwise silently block this.
     await createServiceClient()
       .from("profiles")
-      .update({ sms_consent: true, sms_consent_at: new Date().toISOString() })
+      .update({
+        sms_consent: true,
+        sms_consent_at: new Date().toISOString(),
+        password_set: true,
+      })
       .eq("id", data.user.id);
   }
 
@@ -147,6 +151,51 @@ export async function requestPasswordReset(formData: FormData) {
   );
 }
 
+// Powers the "Haven't created a password yet?" prompt right on the login
+// page — for a customer whose account the admin created by phone, so they
+// were never actually handed a password. Unlike requestPasswordReset above,
+// this deliberately *does* say whether an account exists and already has a
+// password, since the point is to tell someone "you're already set up, just
+// log in" instead of quietly emailing a redundant link.
+export async function checkPasswordStatus(formData: FormData) {
+  const email = ((formData.get("email") as string) || "").trim();
+  const origin = (await headers()).get("origin");
+
+  const serviceClient = createServiceClient();
+  const { data: profile } = await serviceClient
+    .from("profiles")
+    .select("email, password_set")
+    .ilike("email", email)
+    .maybeSingle();
+
+  if (!profile) {
+    redirect(
+      `/login?error=${encodeURIComponent(
+        "We don't have an account with that email yet — sign up instead.",
+      )}`,
+    );
+  }
+
+  if (profile.password_set) {
+    redirect(
+      `/login?message=${encodeURIComponent(
+        "Looks like you already have a password set for this account — log in above, or use Forgot Password if you don't remember it.",
+      )}`,
+    );
+  }
+
+  const supabase = await createClient();
+  await supabase.auth.resetPasswordForEmail(profile.email, {
+    redirectTo: `${origin}/auth/callback?next=/auth/reset-password`,
+  });
+
+  redirect(
+    `/login?message=${encodeURIComponent(
+      `We found your account — check ${profile.email} for a link to create your password.`,
+    )}`,
+  );
+}
+
 export async function updatePassword(formData: FormData) {
   const supabase = await createClient();
   const password = formData.get("password") as string;
@@ -158,9 +207,16 @@ export async function updatePassword(formData: FormData) {
     );
   }
 
-  const { error } = await supabase.auth.updateUser({ password });
+  const { data, error } = await supabase.auth.updateUser({ password });
   if (error) {
     redirect(`/auth/reset-password?error=${encodeURIComponent(error.message)}`);
+  }
+
+  if (data.user) {
+    await supabase
+      .from("profiles")
+      .update({ password_set: true })
+      .eq("id", data.user.id);
   }
 
   redirect(
@@ -207,6 +263,11 @@ export async function updatePasswordFromAccount(formData: FormData) {
   if (error) {
     redirect(`/account?error=${encodeURIComponent(error.message)}`);
   }
+
+  await supabase
+    .from("profiles")
+    .update({ password_set: true })
+    .eq("id", user.id);
 
   redirect(`/account?message=${encodeURIComponent("Password updated.")}`);
 }
