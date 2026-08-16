@@ -1199,7 +1199,7 @@ export default function BookingFlow({
       )}
 
       <div className="rounded-2xl bg-accent-tint p-6">
-        {isAdmin && mode === "create" && (
+        {isAdmin && (
           <div className="mb-4 rounded-xl border border-accent-dark/40 bg-card px-3.5 py-2.5">
             <p className="text-sm font-medium text-foreground/90">
               Discount for this booking (optional)

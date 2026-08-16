@@ -60,14 +60,11 @@ export async function createPet(formData: FormData) {
 export async function adminCreatePet(customerId: string, formData: FormData) {
   const { supabase } = await requireAdmin();
 
+  // Unlike the customer-facing form, birth date is optional here — the
+  // admin may be booking someone on the spot without that info handy. A
+  // missing birth date just means puppy/kitten pricing won't auto-apply
+  // until it's added later.
   const fields = readPetFields(formData);
-  if (!fields.birth_date) {
-    redirect(
-      `/admin/pets/new?customerId=${customerId}&error=${encodeURIComponent(
-        "Please enter the pet's date of birth.",
-      )}`,
-    );
-  }
 
   // Defensive: guarantee a profile row exists so the pet's owner_id
   // foreign key can't fail if the signup trigger didn't create one.

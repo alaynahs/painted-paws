@@ -950,6 +950,12 @@ export async function updateAppointment(formData: FormData) {
     ? await findRedeemablePack(supabase, fields.petId, fields.service)
     : null;
   const config = await getPricingConfig();
+  // Only an admin editing can override price — same one-off adjustment
+  // available when creating a booking, now also usable after the fact.
+  const adminDiscountPercent =
+    admin && fields.adminDiscountType === "percent" ? fields.adminDiscountValue : 0;
+  const adminDiscountAmount =
+    admin && fields.adminDiscountType === "amount" ? fields.adminDiscountValue : 0;
   const { price: priceBeforeDiscountAmount, addOns } = computeAppointmentPrice(
     pet,
     fields.service,
@@ -961,14 +967,19 @@ export async function updateAppointment(formData: FormData) {
     fields.pickupDropoff,
     hasMembership,
     !!redeemablePack,
-    promoDiscountPercent,
+    (promoDiscountPercent ?? 0) + adminDiscountPercent || null,
     config,
     fields.waterless,
   );
-  const subtotal = Math.max(
-    0,
-    Math.round((priceBeforeDiscountAmount - advanceDiscount) * 100) / 100,
-  );
+  const subtotal =
+    admin && fields.adminDiscountType === "exact"
+      ? Math.max(0, fields.adminDiscountValue)
+      : Math.max(
+          0,
+          Math.round(
+            (priceBeforeDiscountAmount - adminDiscountAmount - advanceDiscount) * 100,
+          ) / 100,
+        );
   const salesTax = calculateSalesTax(subtotal);
   const price = subtotal + salesTax;
 

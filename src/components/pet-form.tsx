@@ -29,10 +29,12 @@ export default function PetForm({
   action,
   defaultValues,
   submitLabel,
+  requireBirthDate = true,
 }: {
   action: (formData: FormData) => void;
   defaultValues?: Partial<PetFormValues>;
   submitLabel: string;
+  requireBirthDate?: boolean;
 }) {
   const [species, setSpecies] = useState<Species>(
     defaultValues?.species ?? "dog",
@@ -184,7 +186,10 @@ export default function PetForm({
 
       <div>
         <span className="text-sm font-medium text-foreground">
-          Date of birth
+          Date of birth{" "}
+          {!requireBirthDate && (
+            <span className="font-normal text-muted">(optional)</span>
+          )}
         </span>
         <BirthdatePicker value={birthDate} onChange={setBirthDate} />
         <input type="hidden" name="birthDate" value={birthDate} />
@@ -237,10 +242,10 @@ export default function PetForm({
 
       <button
         type="submit"
-        disabled={!birthDate}
+        disabled={requireBirthDate && !birthDate}
         className="rounded-full bg-accent px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-dark disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {!birthDate ? "Add date of birth to continue" : submitLabel}
+        {requireBirthDate && !birthDate ? "Add date of birth to continue" : submitLabel}
       </button>
     </form>
   );

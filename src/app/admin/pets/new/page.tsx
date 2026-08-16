@@ -44,7 +44,11 @@ export default async function AdminNewPetPage({
       )}
 
       <div className="mt-8">
-        <PetForm action={createForCustomer} submitLabel="Add Pet" />
+        <PetForm
+          action={createForCustomer}
+          submitLabel="Add Pet"
+          requireBirthDate={false}
+        />
       </div>
     </div>
   );
