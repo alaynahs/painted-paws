@@ -8,7 +8,9 @@ export const BOOKING_HOURS = [8, 9, 10, 11, 12, 13, 14, 15, 16];
 // stay unaffected. 17 = 5 PM, 18 = 6 PM.
 export const ADMIN_EXTRA_HOURS = [17, 18];
 
-export const MAX_APPOINTMENTS_PER_DAY = 3;
+// The daily appointment cap now lives in pricing_config (see
+// PricingConfig.maxAppointmentsPerDay) so it's admin-editable from
+// /admin/pricing, instead of a hardcoded constant here.
 
 // Pickup & drop-off requires enough notice to actually plan the trip, so it
 // can't be booked for a slot starting less than this many hours from now.

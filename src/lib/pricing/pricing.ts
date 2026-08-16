@@ -492,6 +492,12 @@ export interface PricingConfig {
     amount: number;
     minLeadWeeks: number;
   };
+  // Not really "pricing," but this JSONB row is the site's one admin-
+  // editable settings singleton — a whole new table/RLS policy/config
+  // loader for one integer isn't worth it. Only ever applies to customer
+  // self-booking (createAppointment); admin bookings (adminCreateAppointment)
+  // have never gone through this check at all.
+  maxAppointmentsPerDay: number;
 }
 
 const byCoat = (short: number, long: number): WeightCoatPrice => ({ short, long });
@@ -557,6 +563,7 @@ export const DEFAULT_PRICING_CONFIG: PricingConfig = {
   },
   doodleMix: { bath45Plus: 70, trim45Plus: 85, haircut45Plus: 105 },
   advanceBookingDiscount: { active: true, amount: 5, minLeadWeeks: 4 },
+  maxAppointmentsPerDay: 3,
 };
 
 // Single source of truth for whether a booking qualifies for the advance

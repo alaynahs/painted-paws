@@ -50,6 +50,8 @@ function mergeWithDefaults(
       ...d.advanceBookingDiscount,
       ...partial.advanceBookingDiscount,
     },
+    maxAppointmentsPerDay:
+      partial.maxAppointmentsPerDay ?? d.maxAppointmentsPerDay,
   };
 }
 

@@ -198,3 +198,11 @@ export async function updateGroomPackTiers(formData: FormData) {
   }));
   redirect("/admin/pricing?saved=groomPacks");
 }
+
+export async function updateBookingLimits(formData: FormData) {
+  await saveConfigPatch((c) => ({
+    ...c,
+    maxAppointmentsPerDay: Math.max(1, num(formData, "maxAppointmentsPerDay")),
+  }));
+  redirect("/admin/pricing?saved=bookingLimits");
+}

@@ -20,6 +20,7 @@ import {
   updatePackagesAndMemberDiscount,
   updateCreativeTiers,
   updateGroomPackTiers,
+  updateBookingLimits,
 } from "./actions";
 import {
   createPromotion,
@@ -361,6 +362,22 @@ export default async function AdminPricingPage({
                 name="advanceBookingDiscount-minLeadWeeks"
                 label="Minimum lead time (weeks)"
                 defaultValue={config.advanceBookingDiscount.minLeadWeeks}
+              />
+            </div>
+            <SaveButton />
+          </form>
+        </Section>
+
+        <Section
+          title="Booking Limits"
+          description="The most appointments a customer can book online in a single day. This never applies to appointments you book yourself."
+        >
+          <form action={updateBookingLimits}>
+            <div className="mt-4 max-w-[220px]">
+              <NumberField
+                name="maxAppointmentsPerDay"
+                label="Max appointments per day"
+                defaultValue={config.maxAppointmentsPerDay}
               />
             </div>
             <SaveButton />

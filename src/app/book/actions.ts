@@ -41,7 +41,6 @@ import {
 } from "@/lib/cancellation-reasons";
 import {
   BOOKING_HOURS,
-  MAX_APPOINTMENTS_PER_DAY,
   MAX_NO_SHOWS,
   PICKUP_MIN_LEAD_HOURS,
 } from "@/lib/booking-hours";
@@ -525,16 +524,17 @@ export async function getBookedHours(
     query = query.neq("id", excludeAppointmentId);
   }
 
-  const [{ data: appts }, { data: blocks }] = await Promise.all([
+  const [{ data: appts }, { data: blocks }, config] = await Promise.all([
     query,
     supabase
       .from("blocked_slots")
       .select("blocked_hour")
       .eq("blocked_date", date),
+    getPricingConfig(),
   ]);
 
   const rows = appts ?? [];
-  const dayFull = rows.length >= MAX_APPOINTMENTS_PER_DAY;
+  const dayFull = rows.length >= config.maxAppointmentsPerDay;
 
   const bookedHours = new Set<number>();
   for (const row of rows) {
@@ -572,7 +572,7 @@ export async function getUnavailableDates(
 ): Promise<string[]> {
   const supabase = await createClient();
 
-  const [{ data: blocks }, { data: appts }] = await Promise.all([
+  const [{ data: blocks }, { data: appts }, config] = await Promise.all([
     supabase
       .from("blocked_slots")
       .select("blocked_date")
@@ -585,6 +585,7 @@ export async function getUnavailableDates(
       .neq("status", "cancelled")
       .gte("appointment_date", startDate)
       .lte("appointment_date", endDate),
+    getPricingConfig(),
   ]);
 
   const unavailable = new Set((blocks ?? []).map((b) => b.blocked_date as string));
@@ -595,7 +596,7 @@ export async function getUnavailableDates(
     countByDate.set(date, (countByDate.get(date) ?? 0) + 1);
   }
   for (const [date, count] of countByDate) {
-    if (count >= MAX_APPOINTMENTS_PER_DAY) unavailable.add(date);
+    if (count >= config.maxAppointmentsPerDay) unavailable.add(date);
   }
 
   return Array.from(unavailable);
@@ -785,6 +786,23 @@ export async function createAppointment(formData: FormData) {
   const couponAmount = couponApplied ? (coupon!.discountAmount ?? 0) : 0;
   const totalDiscountPercent = (promoDiscountPercent ?? 0) + couponPercent || null;
   const config = await getPricingConfig();
+
+  // The UI already disables full days in the calendar/hour picker, but
+  // that's advisory only — this is the actual hard stop, so a customer
+  // can't slip past the daily cap by racing another booking or just
+  // POSTing directly. Admin bookings (adminCreateAppointment) never call
+  // this function at all, so they're unaffected by this limit.
+  const { count: dayCount } = await supabase
+    .from("appointments")
+    .select("id", { count: "exact", head: true })
+    .eq("appointment_date", fields.date)
+    .neq("status", "cancelled");
+  if ((dayCount ?? 0) >= config.maxAppointmentsPerDay) {
+    redirect(
+      `/book?error=${encodeURIComponent("That day is fully booked. Please pick another day.")}`,
+    );
+  }
+
   const advanceDiscount = advanceBookingDiscountAmount(config, fields.date);
   const { price: priceBeforeCouponAmount, addOns } = computeAppointmentPrice(
     pet,

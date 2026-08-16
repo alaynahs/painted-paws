@@ -970,7 +970,9 @@ export default function BookingFlow({
         )}
         {!loadingHours && !dayBlocked && dayFull && (
           <p className="mt-2 rounded-lg bg-accent-tint px-3 py-2 text-xs text-foreground">
-            This day is fully booked. Please pick another day.
+            {isAdmin
+              ? "This day is already at the customer booking limit — that cap doesn't apply to you, so you can still book here."
+              : "This day is fully booked. Please pick another day."}
           </p>
         )}
         <div className="mt-3 grid grid-cols-3 gap-2.5 sm:grid-cols-4">
