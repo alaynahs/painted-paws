@@ -70,6 +70,9 @@ export const SCHEDULE_FLAGS: {
   Icon: (props: SVGProps<SVGSVGElement>) => React.JSX.Element;
   text: string;
   bg: string;
+  // Saturated fill for the block's left-edge stripe — the pale `bg` tint
+  // above reads fine behind a small icon, but disappears as a thin line.
+  stripe: string;
 }[] = [
   {
     key: "cat",
@@ -77,6 +80,7 @@ export const SCHEDULE_FLAGS: {
     Icon: CatIcon,
     text: "text-teal-600",
     bg: "bg-teal-100",
+    stripe: "bg-teal-500",
   },
   {
     key: "newCustomer",
@@ -84,6 +88,7 @@ export const SCHEDULE_FLAGS: {
     Icon: SparkleIcon,
     text: "text-amber-600",
     bg: "bg-amber-100",
+    stripe: "bg-amber-500",
   },
   {
     key: "senior",
@@ -91,6 +96,7 @@ export const SCHEDULE_FLAGS: {
     Icon: HeartIcon,
     text: "text-purple-600",
     bg: "bg-purple-100",
+    stripe: "bg-purple-500",
   },
   {
     key: "healthConcerns",
@@ -98,6 +104,7 @@ export const SCHEDULE_FLAGS: {
     Icon: HealthCrossIcon,
     text: "text-orange-600",
     bg: "bg-orange-100",
+    stripe: "bg-orange-500",
   },
   {
     key: "vaccineNeeded",
@@ -105,5 +112,6 @@ export const SCHEDULE_FLAGS: {
     Icon: SyringeIcon,
     text: "text-red-600",
     bg: "bg-red-100",
+    stripe: "bg-red-500",
   },
 ];

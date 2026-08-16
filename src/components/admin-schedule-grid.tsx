@@ -130,7 +130,7 @@ function Block({
 
   return (
     <div
-      className={`absolute z-10 overflow-hidden rounded-lg border-l-4 border-border bg-card text-left shadow-sm transition-shadow ${
+      className={`absolute z-10 overflow-hidden rounded-lg bg-card pl-1.5 text-left shadow-sm transition-shadow ${
         open ? "z-20 shadow-lg" : "hover:shadow-md"
       }`}
       style={
@@ -144,6 +144,17 @@ function Block({
             }
       }
     >
+      <div className="absolute inset-y-0 left-0 flex w-1.5 flex-col">
+        {appt.flags.length > 0 ? (
+          appt.flags.map((flagKey) => {
+            const flag = SCHEDULE_FLAGS.find((f) => f.key === flagKey);
+            if (!flag) return null;
+            return <div key={flagKey} className={`flex-1 ${flag.stripe}`} />;
+          })
+        ) : (
+          <div className="flex-1 bg-border" />
+        )}
+      </div>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
