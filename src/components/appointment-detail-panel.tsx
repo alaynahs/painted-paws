@@ -177,7 +177,7 @@ export default function AppointmentDetailPanel({
         <QuickMessageButtons appointmentId={appt.id} />
         {hasStarted && (
           <Link
-            href={`/admin/appointments/${appt.id}#before-after`}
+            href={`/admin/appointments/${appt.id}/photos`}
             className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
           >
             Before &amp; After Photos

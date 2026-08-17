@@ -179,7 +179,10 @@ export async function uploadGroomPhoto(formData: FormData) {
 
   revalidatePath(`/admin/pets/${petId}`);
   revalidatePath(`/account/pets/${petId}`);
-  if (appointmentId) revalidatePath(`/admin/appointments/${appointmentId}`);
+  if (appointmentId) {
+    revalidatePath(`/admin/appointments/${appointmentId}`);
+    revalidatePath(`/admin/appointments/${appointmentId}/photos`);
+  }
   redirect(`${returnPath}?message=Photo+uploaded.`);
 }
 
@@ -261,7 +264,10 @@ export async function deleteGroomPhoto(
 
   revalidatePath(`/admin/pets/${petId}`);
   revalidatePath(`/account/pets/${petId}`);
-  if (appointmentId) revalidatePath(`/admin/appointments/${appointmentId}`);
+  if (appointmentId) {
+    revalidatePath(`/admin/appointments/${appointmentId}`);
+    revalidatePath(`/admin/appointments/${appointmentId}/photos`);
+  }
 }
 
 interface AppointmentContact {

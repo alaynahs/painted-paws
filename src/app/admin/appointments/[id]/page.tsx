@@ -1,12 +1,8 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/supabase/admin";
 import { sendPaymentLinkEmail } from "@/app/book/actions";
-import {
-  deleteGroomPhoto,
-  markAppointmentPaid,
-  setAppointmentDuration,
-  uploadGroomPhoto,
-} from "@/app/admin/actions";
+import { markAppointmentPaid, setAppointmentDuration } from "@/app/admin/actions";
 import BookingFlow from "@/components/booking-flow";
 import CancelAppointmentButton from "@/components/cancel-appointment-button";
 import QuickMessageButtons from "@/components/quick-message-buttons";
@@ -55,24 +51,6 @@ export default async function AdminEditAppointmentPage({
       .single();
     promoDiscountPercent = promo?.discount_percent ?? null;
   }
-
-  const { data: beforeAfterPhotos } = await supabase
-    .from("groom_photos")
-    .select("id, storage_path, photo_type, created_at")
-    .eq("appointment_id", appointment.id)
-    .in("photo_type", ["before", "after"])
-    .order("created_at", { ascending: false });
-
-  const beforeAfterUrls = await Promise.all(
-    (beforeAfterPhotos ?? []).map(async (p) => {
-      const { data: signed } = await supabase.storage
-        .from("groom-photos")
-        .createSignedUrl(p.storage_path, 60 * 10);
-      return { ...p, url: signed?.signedUrl ?? null };
-    }),
-  );
-  const beforePhotos = beforeAfterUrls.filter((p) => p.photo_type === "before");
-  const afterPhotos = beforeAfterUrls.filter((p) => p.photo_type === "after");
 
   const addOns: string[] = appointment.add_ons ?? [];
   const catalog =
@@ -225,93 +203,21 @@ export default async function AdminEditAppointmentPage({
         </form>
       </div>
 
-      <div id="before-after" className="mt-4 scroll-mt-6 rounded-xl border border-border bg-card p-4">
-        <p className="text-sm font-medium text-foreground">
-          Before &amp; After Photos
-        </p>
-        <p className="mt-1 text-xs text-muted">
-          Uploaded here show up on the review/tip page linked from the
-          &quot;Before and After Pictures&quot; email once you mark this
-          appointment complete.
-        </p>
-        <div className="mt-3 grid gap-4 sm:grid-cols-2">
-          {(["before", "after"] as const).map((type) => {
-            const photos = type === "before" ? beforePhotos : afterPhotos;
-            return (
-              <div key={type}>
-                <p className="text-xs font-medium tracking-wide text-accent-dark uppercase">
-                  {type}
-                </p>
-                <form
-                  action={uploadGroomPhoto}
-                  className="mt-2 space-y-2 border-b border-border pb-3"
-                >
-                  <input type="hidden" name="petId" value={appointment.pets.id} />
-                  <input type="hidden" name="appointmentId" value={appointment.id} />
-                  <input type="hidden" name="photoType" value={type} />
-                  <input
-                    type="hidden"
-                    name="returnPath"
-                    value={`/admin/appointments/${appointment.id}`}
-                  />
-                  <input
-                    type="file"
-                    name="file"
-                    accept="image/*"
-                    required
-                    className="block w-full text-xs text-foreground/80"
-                  />
-                  <button
-                    type="submit"
-                    className="w-full rounded-full bg-accent px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-dark"
-                  >
-                    + Upload {type}
-                  </button>
-                </form>
-                {photos.length > 0 ? (
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    {photos.map((photo) =>
-                      photo.url ? (
-                        <div key={photo.id} className="space-y-1">
-                          <a
-                            href={photo.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            {/* eslint-disable-next-line @next/next/no-img-element -- signed URLs from private storage, not an optimizable static asset */}
-                            <img
-                              src={photo.url}
-                              alt={`${type} photo`}
-                              className="aspect-square w-full rounded-lg object-cover"
-                            />
-                          </a>
-                          <form
-                            action={deleteGroomPhoto.bind(
-                              null,
-                              photo.id,
-                              appointment.pets.id,
-                              appointment.id,
-                            )}
-                          >
-                            <button
-                              type="submit"
-                              className="text-[10px] text-muted hover:text-accent-dark"
-                            >
-                              Delete
-                            </button>
-                          </form>
-                        </div>
-                      ) : null,
-                    )}
-                  </div>
-                ) : (
-                  <p className="mt-2 text-xs text-muted">No {type} photo yet.</p>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <Link
+        href={`/admin/appointments/${appointment.id}/photos`}
+        className="mt-4 flex items-center justify-between rounded-xl border border-border bg-card p-4 transition-colors hover:border-accent-dark"
+      >
+        <span>
+          <span className="block text-sm font-medium text-foreground">
+            Before &amp; After Photos
+          </span>
+          <span className="mt-1 block text-xs text-muted">
+            Upload what goes on the review/tip page linked from the
+            &quot;Before and After Pictures&quot; email.
+          </span>
+        </span>
+        <span className="text-accent-dark">→</span>
+      </Link>
 
       <div className="mt-8">
         <BookingFlow
