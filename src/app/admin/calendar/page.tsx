@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/supabase/admin";
+import { confirmAppointment, setAppointmentOnlinePayment } from "@/app/book/actions";
+import { estimateDurationMinutes } from "@/lib/schedule-duration";
+import { buildScheduleContext, computeScheduleFlags } from "@/lib/schedule-flags";
 import PawIcon from "@/components/paw-icon";
 import CalendarDayCell from "@/components/calendar-day-cell";
+import ScheduleLegend from "@/components/schedule-legend";
+import type { ScheduleAppointment } from "@/components/appointment-detail-panel";
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -59,25 +64,41 @@ export default async function AdminCalendarPage({
 
   const { data: appointments } = await supabase
     .from("appointments")
-    .select("id, appointment_date, appointment_hour, appointment_minute, pets(name)")
+    .select(
+      "id, appointment_date, appointment_hour, appointment_minute, service, add_ons, price, status, payment_method, payment_status, pet_id, customer_id, duration_minutes, pets(id, name, species, birth_date, health_concerns, rabies_vaccine_path), profiles:customer_id(full_name, phone)",
+    )
     .neq("status", "cancelled")
     .gte("appointment_date", gridStart)
     .lte("appointment_date", gridEnd)
     .order("appointment_hour", { ascending: true })
     .order("appointment_minute", { ascending: true });
 
-  const appointmentsByDay: Record<
-    string,
-    { id: string; hour: number; minute: number; petName: string }[]
-  > = {};
+  const scheduleContext = await buildScheduleContext(supabase);
+
+  const appointmentsByDay: Record<string, ScheduleAppointment[]> = {};
   for (const appt of appointments ?? []) {
     const list = appointmentsByDay[appt.appointment_date] ?? [];
     const pet = Array.isArray(appt.pets) ? appt.pets[0] : appt.pets;
+    const profile = Array.isArray(appt.profiles) ? appt.profiles[0] : appt.profiles;
+    const addOns: string[] = appt.add_ons ?? [];
     list.push({
       id: appt.id,
       hour: appt.appointment_hour,
       minute: appt.appointment_minute,
+      durationMinutes:
+        appt.duration_minutes ?? estimateDurationMinutes(appt.service, addOns),
+      petId: pet?.id ?? null,
       petName: pet?.name ?? "Unknown pet",
+      ownerId: appt.customer_id,
+      ownerName: profile?.full_name ?? "Unknown owner",
+      ownerPhone: profile?.phone ?? null,
+      service: appt.service,
+      addOns,
+      price: appt.price,
+      status: appt.status,
+      paymentMethod: appt.payment_method,
+      paymentStatus: appt.payment_status,
+      flags: computeScheduleFlags(appt, pet, scheduleContext),
     });
     appointmentsByDay[appt.appointment_date] = list;
   }
@@ -146,15 +167,19 @@ export default async function AdminCalendarPage({
             inMonth={cell.inMonth}
             isToday={cell.iso === today}
             appointments={appointmentsByDay[cell.iso] ?? []}
+            confirmAction={confirmAppointment}
+            setOnlinePaymentAction={setAppointmentOnlinePayment}
           />
         ))}
       </div>
 
       <p className="mt-6 text-xs text-muted">
         Each paw print is one scheduled appointment. Hover or tap a day to
-        preview times and pets, click a booking to open it directly, or jump
-        to its week in the schedule.
+        preview times and pets, tap a booking to see full details and quick
+        actions, or jump to its week in the grid.
       </p>
+
+      <ScheduleLegend />
     </div>
   );
 }

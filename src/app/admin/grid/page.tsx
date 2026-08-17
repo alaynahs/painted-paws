@@ -2,13 +2,10 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/supabase/admin";
 import { confirmAppointment, setAppointmentOnlinePayment } from "@/app/book/actions";
 import { estimateDurationMinutes } from "@/lib/schedule-duration";
-import { monthsSince } from "@/lib/pricing/pricing";
-import AdminScheduleGrid, {
-  type GridAppointment,
-} from "@/components/admin-schedule-grid";
-import { SCHEDULE_FLAGS, type ScheduleFlagKey } from "@/components/schedule-flag-icons";
-
-const SENIOR_AGE_YEARS = 7;
+import AdminScheduleGrid from "@/components/admin-schedule-grid";
+import type { ScheduleAppointment } from "@/components/appointment-detail-panel";
+import ScheduleLegend from "@/components/schedule-legend";
+import { buildScheduleContext, computeScheduleFlags } from "@/lib/schedule-flags";
 
 function parseISO(s: string) {
   const [y, m, d] = s.split("-").map(Number);
@@ -67,51 +64,16 @@ export default async function AdminScheduleGridPage({
     .order("appointment_hour", { ascending: true })
     .order("appointment_minute", { ascending: true });
 
-  // "New customer" means this is their first visit — NOT "they only have
-  // one appointment total," since a first-time customer booking two pets
-  // at once (like two dogs from the same household) already has 2. Track
-  // the earliest appointment_date per customer instead, and flag anything
-  // that falls on that date.
-  const { data: allCustomerAppts } = await supabase
-    .from("appointments")
-    .select("customer_id, appointment_date");
-  const earliestDateByCustomer = new Map<string, string>();
-  for (const a of allCustomerAppts ?? []) {
-    const current = earliestDateByCustomer.get(a.customer_id);
-    if (!current || a.appointment_date < current) {
-      earliestDateByCustomer.set(a.customer_id, a.appointment_date);
-    }
-  }
+  const scheduleContext = await buildScheduleContext(supabase);
 
-  // Any pet with a note flagged "caution" shows that flag on every future
-  // appointment, not just the visit the note was written about — the whole
-  // point is surfacing a past issue before it repeats.
-  const { data: cautionNotes } = await supabase
-    .from("groom_notes")
-    .select("pet_id")
-    .eq("rating", "caution");
-  const cautionPetIds = new Set((cautionNotes ?? []).map((n) => n.pet_id));
-
-  const appointmentsByDay: Record<string, GridAppointment[]> = {};
+  const appointmentsByDay: Record<string, ScheduleAppointment[]> = {};
   for (const day of days) appointmentsByDay[day] = [];
   for (const appt of appointments ?? []) {
     if (!appointmentsByDay[appt.appointment_date]) continue;
     const pet = Array.isArray(appt.pets) ? appt.pets[0] : appt.pets;
     const profile = Array.isArray(appt.profiles) ? appt.profiles[0] : appt.profiles;
     const addOns: string[] = appt.add_ons ?? [];
-
-    const flags: ScheduleFlagKey[] = [];
-    if (appt.pet_id && cautionPetIds.has(appt.pet_id)) flags.push("caution");
-    if (appt.status === "requested") flags.push("requested");
-    if (pet?.species === "cat") flags.push("cat");
-    if (earliestDateByCustomer.get(appt.customer_id) === appt.appointment_date) {
-      flags.push("newCustomer");
-    }
-    if (pet?.birth_date && monthsSince(pet.birth_date) / 12 >= SENIOR_AGE_YEARS) {
-      flags.push("senior");
-    }
-    if (pet?.health_concerns?.trim()) flags.push("healthConcerns");
-    if (!pet?.rabies_vaccine_path) flags.push("vaccineNeeded");
+    const flags = computeScheduleFlags(appt, pet, scheduleContext);
 
     appointmentsByDay[appt.appointment_date].push({
       id: appt.id,
@@ -194,30 +156,7 @@ export default async function AdminScheduleGridPage({
         smaller screen to see the full week.
       </p>
 
-      <div className="mt-6 rounded-2xl border border-border bg-card p-5">
-        <h2 className="text-sm font-medium text-foreground">Key</h2>
-        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2.5">
-          <div className="flex items-center gap-1.5 text-xs text-foreground/90">
-            <span className="rounded-full bg-accent-tint px-1.5 py-0.5 text-[9px] font-medium tracking-wide text-accent-dark uppercase">
-              Req
-            </span>
-            Requested, needs confirming
-          </div>
-          {SCHEDULE_FLAGS.map(({ key, label, Icon, text, bg }) => (
-            <div key={key} className="flex items-center gap-1.5 text-xs text-foreground/90">
-              <span className={`flex h-4 w-4 items-center justify-center rounded-full ${bg}`}>
-                <Icon className={`h-2.5 w-2.5 ${text}`} />
-              </span>
-              {label}
-            </div>
-          ))}
-        </div>
-        <p className="mt-3 text-[11px] text-muted">
-          Icons stack — an appointment can show more than one at a time.
-          Flags come from what&apos;s on file for the pet, so an empty
-          field just won&apos;t show anything (not a guarantee it doesn&apos;t apply).
-        </p>
-      </div>
+      <ScheduleLegend />
     </div>
   );
 }
