@@ -207,6 +207,13 @@ function Block({
         role="button"
         tabIndex={0}
         onClick={togglePinned}
+        // Focusing a tabIndex element on tap/click makes some browsers
+        // (iOS Safari in particular) auto-scroll it into view on their
+        // own, entirely outside the scrollIntoView call above — this is
+        // what was actually causing the jolt on hover/tap. Blocking the
+        // mousedown-triggered focus grab stops that native behavior while
+        // still leaving it reachable and activatable via keyboard Tab.
+        onMouseDown={(e) => e.preventDefault()}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
