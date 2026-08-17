@@ -3,16 +3,14 @@ import { requireAdmin } from "@/lib/supabase/admin";
 import { confirmAppointment, setAppointmentOnlinePayment } from "@/app/book/actions";
 import { estimateDurationMinutes } from "@/lib/schedule-duration";
 import { buildScheduleContext, computeScheduleFlags } from "@/lib/schedule-flags";
-import PawIcon from "@/components/paw-icon";
-import CalendarDayCell from "@/components/calendar-day-cell";
-import ScheduleLegend from "@/components/schedule-legend";
+import AdminScheduleGrid from "@/components/admin-schedule-grid";
 import type { ScheduleAppointment } from "@/components/appointment-detail-panel";
+import ScheduleLegend from "@/components/schedule-legend";
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ];
-const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function pad(n: number) {
   return String(n).padStart(2, "0");
@@ -22,11 +20,19 @@ function toISO(year: number, month: number, day: number) {
   return `${year}-${pad(month + 1)}-${pad(day)}`;
 }
 
-function todayISO() {
-  const d = new Date();
-  return toISO(d.getFullYear(), d.getMonth(), d.getDate());
+function formatDayLabel(dateStr: string) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "numeric",
+    day: "numeric",
+  });
 }
 
+// Literally the same time-grid as the week view (/admin/grid) — this page
+// just feeds it every day in a calendar month instead of 7. Not a
+// day-cell/paw-icon summary; the whole point is that it's the identical
+// component and interaction, just a longer date range.
 export default async function AdminCalendarPage({
   searchParams,
 }: {
@@ -44,23 +50,10 @@ export default async function AdminCalendarPage({
     month = m - 1;
   }
 
-  const startWeekday = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const totalCells = Math.ceil((startWeekday + daysInMonth) / 7) * 7;
-
-  const cells: { iso: string; day: number; inMonth: boolean }[] = [];
-  for (let i = 0; i < totalCells; i++) {
-    const dayNum = i - startWeekday + 1;
-    const cellDate = new Date(year, month, dayNum);
-    cells.push({
-      iso: toISO(cellDate.getFullYear(), cellDate.getMonth(), cellDate.getDate()),
-      day: cellDate.getDate(),
-      inMonth: cellDate.getMonth() === month,
-    });
-  }
-
-  const gridStart = cells[0].iso;
-  const gridEnd = cells[cells.length - 1].iso;
+  const days = Array.from({ length: daysInMonth }, (_, i) => toISO(year, month, i + 1));
+  const start = days[0];
+  const end = days[days.length - 1];
 
   const { data: appointments } = await supabase
     .from("appointments")
@@ -68,20 +61,23 @@ export default async function AdminCalendarPage({
       "id, appointment_date, appointment_hour, appointment_minute, service, add_ons, price, status, payment_method, payment_status, pet_id, customer_id, duration_minutes, pets(id, name, species, birth_date, health_concerns, rabies_vaccine_path), profiles:customer_id(full_name, phone)",
     )
     .neq("status", "cancelled")
-    .gte("appointment_date", gridStart)
-    .lte("appointment_date", gridEnd)
+    .gte("appointment_date", start)
+    .lte("appointment_date", end)
     .order("appointment_hour", { ascending: true })
     .order("appointment_minute", { ascending: true });
 
   const scheduleContext = await buildScheduleContext(supabase);
 
   const appointmentsByDay: Record<string, ScheduleAppointment[]> = {};
+  for (const day of days) appointmentsByDay[day] = [];
   for (const appt of appointments ?? []) {
-    const list = appointmentsByDay[appt.appointment_date] ?? [];
+    if (!appointmentsByDay[appt.appointment_date]) continue;
     const pet = Array.isArray(appt.pets) ? appt.pets[0] : appt.pets;
     const profile = Array.isArray(appt.profiles) ? appt.profiles[0] : appt.profiles;
     const addOns: string[] = appt.add_ons ?? [];
-    list.push({
+    const flags = computeScheduleFlags(appt, pet, scheduleContext);
+
+    appointmentsByDay[appt.appointment_date].push({
       id: appt.id,
       hour: appt.appointment_hour,
       minute: appt.appointment_minute,
@@ -98,9 +94,8 @@ export default async function AdminCalendarPage({
       status: appt.status,
       paymentMethod: appt.payment_method,
       paymentStatus: appt.payment_status,
-      flags: computeScheduleFlags(appt, pet, scheduleContext),
+      flags,
     });
-    appointmentsByDay[appt.appointment_date] = list;
   }
 
   const prevMonth = month === 0 ? 11 : month - 1;
@@ -108,15 +103,13 @@ export default async function AdminCalendarPage({
   const nextMonth = month === 11 ? 0 : month + 1;
   const nextYear = month === 11 ? year + 1 : year;
 
-  const today = todayISO();
-
   return (
-    <div className="mx-auto max-w-4xl px-6 py-16">
+    <div className="mx-auto max-w-5xl px-6 py-16">
       <p className="text-sm font-medium tracking-wide text-accent-dark uppercase">
         Admin
       </p>
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="font-serif text-3xl text-foreground">Calendar</h1>
+        <h1 className="font-serif text-3xl text-foreground">Schedule Grid</h1>
         <div className="flex flex-wrap gap-3">
           <Link
             href="/admin"
@@ -128,7 +121,7 @@ export default async function AdminCalendarPage({
             href="/admin/grid"
             className="rounded-full border border-border px-5 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
           >
-            Grid view
+            Week view
           </Link>
         </div>
       </div>
@@ -136,47 +129,35 @@ export default async function AdminCalendarPage({
       <div className="mt-6 flex items-center justify-between gap-4">
         <Link
           href={`/admin/calendar?month=${prevYear}-${pad(prevMonth + 1)}`}
-          className="rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+          className="shrink-0 rounded-full border border-border px-5 py-2.5 text-sm whitespace-nowrap font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
         >
           ← Previous month
         </Link>
-        <p className="flex items-center gap-2 text-center font-serif text-lg text-foreground">
-          <PawIcon className="h-4 w-4 text-accent-dark" />
+        <p className="text-center text-sm text-muted">
           {MONTH_NAMES[month]} {year}
         </p>
         <Link
           href={`/admin/calendar?month=${nextYear}-${pad(nextMonth + 1)}`}
-          className="rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+          className="shrink-0 rounded-full border border-border px-5 py-2.5 text-sm whitespace-nowrap font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
         >
           Next month →
         </Link>
       </div>
 
-      <div className="mt-8 grid grid-cols-7 gap-1.5 text-center text-xs font-medium text-muted sm:gap-2">
-        {DAY_LABELS.map((d) => (
-          <div key={d}>{d}</div>
-        ))}
+      <div className="mt-8">
+        <AdminScheduleGrid
+          days={days}
+          dayLabels={days.map(formatDayLabel)}
+          appointmentsByDay={appointmentsByDay}
+          confirmAction={confirmAppointment}
+          setOnlinePaymentAction={setAppointmentOnlinePayment}
+        />
       </div>
 
-      <div className="mt-1.5 grid grid-cols-7 gap-1.5 sm:gap-2">
-        {cells.map((cell) => (
-          <CalendarDayCell
-            key={cell.iso}
-            iso={cell.iso}
-            day={cell.day}
-            inMonth={cell.inMonth}
-            isToday={cell.iso === today}
-            appointments={appointmentsByDay[cell.iso] ?? []}
-            confirmAction={confirmAppointment}
-            setOnlinePaymentAction={setAppointmentOnlinePayment}
-          />
-        ))}
-      </div>
-
-      <p className="mt-6 text-xs text-muted">
-        Each paw print is one scheduled appointment. Hover or tap a day to
-        preview times and pets, tap a booking to see full details and quick
-        actions, or jump to its week in the grid.
+      <p className="mt-4 text-xs text-muted">
+        Block heights are estimated by service type, not an exact end time —
+        tap a block for details and quick actions. Scroll sideways to see
+        the rest of the month.
       </p>
 
       <ScheduleLegend />
