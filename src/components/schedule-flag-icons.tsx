@@ -115,9 +115,9 @@ export const SCHEDULE_FLAGS: {
     key: "newCustomer",
     label: "New customer",
     Icon: SparkleIcon,
-    text: "text-amber-600",
-    bg: "bg-amber-100",
-    stripe: "bg-amber-500",
+    text: "text-pink-600",
+    bg: "bg-pink-100",
+    stripe: "bg-pink-500",
   },
   {
     key: "senior",
