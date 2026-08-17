@@ -67,8 +67,11 @@ export async function addGroomNote(formData: FormData) {
   const note = ((formData.get("note") as string) || "").trim();
   const file = formData.get("photo") as File | null;
   const hasPhoto = !!file && file.size > 0;
+  const editPath = `/admin/pets/${petId}`;
 
-  if (!note && !hasPhoto) return;
+  if (!note && !hasPhoto) {
+    redirect(`${editPath}?error=${encodeURIComponent("Enter a note or attach a photo first.")}`);
+  }
 
   let photoPath: string | null = null;
   if (hasPhoto) {
@@ -76,17 +79,26 @@ export async function addGroomNote(formData: FormData) {
     const { error: uploadError } = await supabase.storage
       .from("groom-note-photos")
       .upload(storagePath, file!, { contentType: file!.type });
-    if (!uploadError) photoPath = storagePath;
+    if (uploadError) {
+      redirect(
+        `${editPath}?error=${encodeURIComponent(`Photo didn't upload: ${uploadError.message}`)}`,
+      );
+    }
+    photoPath = storagePath;
   }
 
-  await supabase.from("groom_notes").insert({
+  const { error: insertError } = await supabase.from("groom_notes").insert({
     pet_id: petId,
     note_type: noteType,
     note,
     photo_path: photoPath,
   });
+  if (insertError) {
+    redirect(`${editPath}?error=${encodeURIComponent(`Note didn't save: ${insertError.message}`)}`);
+  }
 
-  revalidatePath(`/admin/pets/${petId}`);
+  revalidatePath(editPath);
+  redirect(`${editPath}?message=Note+saved.`);
 }
 
 // Photos taken during/after a groom, uploaded by the admin, visible to the

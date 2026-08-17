@@ -31,10 +31,10 @@ export default async function AdminPetDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; message?: string }>;
 }) {
   const { id } = await params;
-  const { error } = await searchParams;
+  const { error, message } = await searchParams;
   const { supabase } = await requireAdmin();
 
   const { data: pet } = await supabase
@@ -173,6 +173,11 @@ export default async function AdminPetDetailPage({
         {pet.profiles?.phone ? ` · ${pet.profiles.phone}` : ""}
         {pet.profiles?.email ? ` · ${pet.profiles.email}` : ""}
       </p>
+      {message && (
+        <p className="mt-4 rounded-xl border border-accent/40 bg-accent-tint px-4 py-3 text-sm text-foreground">
+          {message}
+        </p>
+      )}
       {error && (
         <p className="mt-4 rounded-xl border border-border bg-accent-tint px-4 py-3 text-sm text-foreground">
           {error}
