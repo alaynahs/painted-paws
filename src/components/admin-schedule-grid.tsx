@@ -179,7 +179,7 @@ function Block({
           )}
         </div>
         {appt.flags.length > 0 && (
-          <div className="mt-0.5 flex items-center justify-between">
+          <div className="mt-0.5 flex flex-wrap items-center gap-0.5">
             {appt.flags.map((flagKey) => (
               <FlagBadge key={flagKey} flagKey={flagKey} sizeClass="h-3.5 w-3.5" />
             ))}
