@@ -77,6 +77,7 @@ export default async function AdminScheduleGridPage({
 
     appointmentsByDay[appt.appointment_date].push({
       id: appt.id,
+      date: appt.appointment_date,
       hour: appt.appointment_hour,
       minute: appt.appointment_minute,
       durationMinutes:

@@ -225,7 +225,7 @@ export default async function AdminEditAppointmentPage({
         </form>
       </div>
 
-      <div className="mt-4 rounded-xl border border-border bg-card p-4">
+      <div id="before-after" className="mt-4 scroll-mt-6 rounded-xl border border-border bg-card p-4">
         <p className="text-sm font-medium text-foreground">
           Before &amp; After Photos
         </p>

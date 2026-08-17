@@ -14,6 +14,7 @@ import { SCHEDULE_FLAGS, type ScheduleFlagKey } from "@/components/schedule-flag
 // functionally in sync instead of drifting into two half-features.
 export interface ScheduleAppointment {
   id: string;
+  date: string;
   hour: number;
   minute: number;
   durationMinutes: number;
@@ -74,6 +75,14 @@ export default function AppointmentDetailPanel({
           ? "Refunded"
           : "Pay online (unpaid)"
       : "Pay in person";
+
+  // Uploading before/after shots only makes sense once the groom has
+  // actually started — this button stays hidden until 1 minute past the
+  // booked time, rather than showing up hours early with nothing to upload
+  // yet.
+  const [apptYear, apptMonth, apptDay] = appt.date.split("-").map(Number);
+  const apptStart = new Date(apptYear, apptMonth - 1, apptDay, appt.hour, appt.minute);
+  const hasStarted = new Date() >= apptStart;
 
   return (
     <div className="text-sm">
@@ -166,6 +175,14 @@ export default function AppointmentDetailPanel({
           <MarkCompleteButton appointmentId={appt.id} compact />
         )}
         <QuickMessageButtons appointmentId={appt.id} />
+        {hasStarted && (
+          <Link
+            href={`/admin/appointments/${appt.id}#before-after`}
+            className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+          >
+            Before &amp; After Photos
+          </Link>
+        )}
         <CancelAppointmentButton appointmentId={appt.id} isAdmin />
         <Link
           href={`/admin/appointments/${appt.id}`}
