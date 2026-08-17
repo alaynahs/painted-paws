@@ -65,6 +65,7 @@ export async function addGroomNote(formData: FormData) {
   const petId = formData.get("petId") as string;
   const noteType = formData.get("noteType") as string;
   const note = ((formData.get("note") as string) || "").trim();
+  const rating = formData.get("rating") === "caution" ? "caution" : null;
   const file = formData.get("photo") as File | null;
   const hasPhoto = !!file && file.size > 0;
   const editPath = `/admin/pets/${petId}`;
@@ -92,13 +93,42 @@ export async function addGroomNote(formData: FormData) {
     note_type: noteType,
     note,
     photo_path: photoPath,
+    rating,
   });
   if (insertError) {
     redirect(`${editPath}?error=${encodeURIComponent(`Note didn't save: ${insertError.message}`)}`);
   }
 
   revalidatePath(editPath);
+  revalidatePath("/admin/grid");
   redirect(`${editPath}?message=Note+saved.`);
+}
+
+// The photo (if any) is deleted from storage first, best-effort — if that
+// fails the note itself still gets deleted rather than leaving an orphaned
+// note the admin can't get rid of over a storage hiccup.
+export async function deleteGroomNote(noteId: string, petId: string) {
+  const { supabase } = await requireAdmin();
+  const editPath = `/admin/pets/${petId}`;
+
+  const { data: note } = await supabase
+    .from("groom_notes")
+    .select("photo_path")
+    .eq("id", noteId)
+    .single();
+
+  if (note?.photo_path) {
+    await supabase.storage.from("groom-note-photos").remove([note.photo_path]);
+  }
+
+  const { error } = await supabase.from("groom_notes").delete().eq("id", noteId);
+  if (error) {
+    redirect(`${editPath}?error=${encodeURIComponent(`Couldn't delete note: ${error.message}`)}`);
+  }
+
+  revalidatePath(editPath);
+  revalidatePath("/admin/grid");
+  redirect(`${editPath}?message=Note+deleted.`);
 }
 
 // Photos taken during/after a groom, uploaded by the admin, visible to the

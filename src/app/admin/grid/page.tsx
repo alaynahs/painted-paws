@@ -83,6 +83,15 @@ export default async function AdminScheduleGridPage({
     }
   }
 
+  // Any pet with a note flagged "caution" shows that flag on every future
+  // appointment, not just the visit the note was written about — the whole
+  // point is surfacing a past issue before it repeats.
+  const { data: cautionNotes } = await supabase
+    .from("groom_notes")
+    .select("pet_id")
+    .eq("rating", "caution");
+  const cautionPetIds = new Set((cautionNotes ?? []).map((n) => n.pet_id));
+
   const appointmentsByDay: Record<string, GridAppointment[]> = {};
   for (const day of days) appointmentsByDay[day] = [];
   for (const appt of appointments ?? []) {
@@ -92,6 +101,7 @@ export default async function AdminScheduleGridPage({
     const addOns: string[] = appt.add_ons ?? [];
 
     const flags: ScheduleFlagKey[] = [];
+    if (appt.pet_id && cautionPetIds.has(appt.pet_id)) flags.push("caution");
     if (appt.status === "requested") flags.push("requested");
     if (pet?.species === "cat") flags.push("cat");
     if (earliestDateByCustomer.get(appt.customer_id) === appt.appointment_date) {

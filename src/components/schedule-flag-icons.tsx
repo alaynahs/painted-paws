@@ -54,6 +54,24 @@ function ClockIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+function WarningTriangleIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="M12 3.5 21.5 20h-19L12 3.5Z" />
+      <path d="M12 9.5v4.5" />
+      <path d="M12 17.2v.1" />
+    </svg>
+  );
+}
+
 function SyringeIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -75,6 +93,7 @@ function SyringeIcon(props: SVGProps<SVGSVGElement>) {
 }
 
 export type ScheduleFlagKey =
+  | "caution"
   | "requested"
   | "cat"
   | "newCustomer"
@@ -92,6 +111,18 @@ export const SCHEDULE_FLAGS: {
   // above reads fine behind a small icon, but disappears as a thin line.
   stripe: string;
 }[] = [
+  {
+    key: "caution",
+    label: "Caution — past issue on file",
+    Icon: WarningTriangleIcon,
+    // A deliberately stronger, darker red than "vaccine needed" below —
+    // this is the one flag meant to read as "stop and check the notes
+    // before this appointment," so it should never blend in as just
+    // another item in the stack.
+    text: "text-red-800",
+    bg: "bg-red-200",
+    stripe: "bg-red-800",
+  },
   {
     key: "requested",
     label: "Awaiting confirmation",

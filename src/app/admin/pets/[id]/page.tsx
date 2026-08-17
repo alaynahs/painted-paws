@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/supabase/admin";
 import { updatePet } from "@/app/account/pets/actions";
 import {
   addGroomNote,
+  deleteGroomNote,
   deleteGroomPhoto,
   setCustomerDoNotBook,
   setPetActive,
@@ -18,6 +19,7 @@ import MembershipCard from "@/components/membership-card";
 import CancelAppointmentButton from "@/components/cancel-appointment-button";
 import MarkCompleteButton from "@/components/mark-complete-button";
 import ShowMoreList from "@/components/show-more-list";
+import DeleteNoteButton from "@/components/delete-note-button";
 import { centralDateOnly, formatDate, formatHour, todayInCentral } from "@/lib/format";
 import {
   formatServiceLabel,
@@ -137,6 +139,7 @@ export default async function AdminPetDetailPage({
 
   const groomingNotes = (notes ?? []).filter((n) => n.note_type === "grooming");
   const behaviorNotes = (notes ?? []).filter((n) => n.note_type === "behavior");
+  const parentNotes = (notes ?? []).filter((n) => n.note_type === "parent");
 
   const todayStr = todayInCentral();
   const isVaccineExpired =
@@ -281,38 +284,12 @@ export default async function AdminPetDetailPage({
                 </span>
               </div>
               <NoteForm petId={pet.id} noteType="grooming" />
-              <div className="mt-4 space-y-2">
-                {groomingNotes.length > 0 ? (
-                  groomingNotes.map((n) => (
-                    <div
-                      key={n.id}
-                      className="rounded-lg border border-border bg-background p-3 text-sm text-foreground/90"
-                    >
-                      {n.note && <p>{n.note}</p>}
-                      {noteUrls[n.id] && (
-                        <a
-                          href={noteUrls[n.id]}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-2 block"
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element -- signed URL from private storage, not an optimizable static asset */}
-                          <img
-                            src={noteUrls[n.id]}
-                            alt="Note photo"
-                            className="max-h-40 rounded-lg object-cover"
-                          />
-                        </a>
-                      )}
-                      <p className="mt-1 text-xs text-muted">
-                        {formatDate(centralDateOnly(n.created_at))}
-                      </p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted">No grooming notes yet.</p>
-                )}
-              </div>
+              <NoteList
+                notes={groomingNotes}
+                noteUrls={noteUrls}
+                petId={pet.id}
+                emptyLabel="No grooming notes yet."
+              />
             </section>
 
             <section className="rounded-2xl border border-border bg-card p-6">
@@ -326,40 +303,36 @@ export default async function AdminPetDetailPage({
                 </span>
               </div>
               <NoteForm petId={pet.id} noteType="behavior" />
-              <div className="mt-4 space-y-2">
-                {behaviorNotes.length > 0 ? (
-                  behaviorNotes.map((n) => (
-                    <div
-                      key={n.id}
-                      className="rounded-lg border border-border bg-background p-3 text-sm text-foreground/90"
-                    >
-                      {n.note && <p>{n.note}</p>}
-                      {noteUrls[n.id] && (
-                        <a
-                          href={noteUrls[n.id]}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-2 block"
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element -- signed URL from private storage, not an optimizable static asset */}
-                          <img
-                            src={noteUrls[n.id]}
-                            alt="Note photo"
-                            className="max-h-40 rounded-lg object-cover"
-                          />
-                        </a>
-                      )}
-                      <p className="mt-1 text-xs text-muted">
-                        {formatDate(centralDateOnly(n.created_at))}
-                      </p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted">No behavior notes yet.</p>
-                )}
-              </div>
+              <NoteList
+                notes={behaviorNotes}
+                noteUrls={noteUrls}
+                petId={pet.id}
+                emptyLabel="No behavior notes yet."
+              />
             </section>
           </div>
+
+          <section className="rounded-2xl border border-border bg-card p-6">
+            <div className="flex items-center justify-between">
+              <h2 className="font-serif text-lg text-foreground">
+                Pet Parent / Service Notes
+              </h2>
+              <span className="text-xs text-muted">
+                {parentNotes.length} note{parentNotes.length === 1 ? "" : "s"}
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-muted">
+              Anything about the pet parent or how the service went — never
+              shown to them, same as the notes above.
+            </p>
+            <NoteForm petId={pet.id} noteType="parent" />
+            <NoteList
+              notes={parentNotes}
+              noteUrls={noteUrls}
+              petId={pet.id}
+              emptyLabel="No pet parent / service notes yet."
+            />
+          </section>
         </div>
 
         <aside className="space-y-6 lg:sticky lg:top-20 lg:self-start">
@@ -722,22 +695,35 @@ function NoteForm({
   noteType,
 }: {
   petId: string;
-  noteType: "grooming" | "behavior";
+  noteType: "grooming" | "behavior" | "parent";
 }) {
+  const placeholder =
+    noteType === "grooming"
+      ? "e.g. Took a size 4 blade on the body, sensitive around the ears…"
+      : noteType === "behavior"
+        ? "e.g. Nervous around the dryer, great with nail trims…"
+        : "e.g. Always 15 min late, great tipper, prefers text over calls…";
+  const isMultiline = noteType === "parent";
+
   return (
     <form action={addGroomNote} className="mt-4 space-y-2">
       <input type="hidden" name="petId" value={petId} />
       <input type="hidden" name="noteType" value={noteType} />
-      <input
-        name="note"
-        type="text"
-        placeholder={
-          noteType === "grooming"
-            ? "e.g. Took a size 4 blade on the body, sensitive around the ears…"
-            : "e.g. Nervous around the dryer, great with nail trims…"
-        }
-        className="w-full rounded-xl border border-border bg-background px-4 py-2 text-sm text-foreground outline-none focus:border-accent-dark"
-      />
+      {isMultiline ? (
+        <textarea
+          name="note"
+          rows={3}
+          placeholder={placeholder}
+          className="w-full rounded-xl border border-border bg-background px-4 py-2 text-sm text-foreground outline-none focus:border-accent-dark"
+        />
+      ) : (
+        <input
+          name="note"
+          type="text"
+          placeholder={placeholder}
+          className="w-full rounded-xl border border-border bg-background px-4 py-2 text-sm text-foreground outline-none focus:border-accent-dark"
+        />
+      )}
       <input
         name="photo"
         type="file"
@@ -747,6 +733,16 @@ function NoteForm({
       <p className="text-[10px] text-muted">
         Photo is just for you — never shown to the pet parent.
       </p>
+      <label className="flex items-center gap-2 text-xs text-foreground/90">
+        <input
+          type="checkbox"
+          name="rating"
+          value="caution"
+          className="h-3.5 w-3.5 rounded border-border accent-red-600"
+        />
+        ⚠ Mark as Caution — shows up automatically next time this pet is on
+        the schedule
+      </label>
       <button
         type="submit"
         className="w-full rounded-full bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-dark"
@@ -754,5 +750,65 @@ function NoteForm({
         + New Note
       </button>
     </form>
+  );
+}
+
+function NoteList({
+  notes,
+  noteUrls,
+  petId,
+  emptyLabel,
+}: {
+  notes: { id: string; note: string; created_at: string; rating: string | null }[];
+  noteUrls: Record<string, string>;
+  petId: string;
+  emptyLabel: string;
+}) {
+  if (notes.length === 0) {
+    return <p className="mt-4 text-sm text-muted">{emptyLabel}</p>;
+  }
+  return (
+    <div className="mt-4 space-y-2">
+      {notes.map((n) => (
+        <div
+          key={n.id}
+          className={`rounded-lg border p-3 text-sm text-foreground/90 ${
+            n.rating === "caution"
+              ? "border-red-300 bg-red-50 dark:border-red-900 dark:bg-red-950/30"
+              : "border-border bg-background"
+          }`}
+        >
+          <div className="flex items-start justify-between gap-3">
+            {n.rating === "caution" ? (
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-900/50 dark:text-red-300">
+                ⚠ Caution
+              </span>
+            ) : (
+              <span />
+            )}
+            <DeleteNoteButton action={deleteGroomNote.bind(null, n.id, petId)} />
+          </div>
+          {n.note && <p className="mt-1 whitespace-pre-wrap">{n.note}</p>}
+          {noteUrls[n.id] && (
+            <a
+              href={noteUrls[n.id]}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 block"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- signed URL from private storage, not an optimizable static asset */}
+              <img
+                src={noteUrls[n.id]}
+                alt="Note photo"
+                className="max-h-40 rounded-lg object-cover"
+              />
+            </a>
+          )}
+          <p className="mt-1 text-xs text-muted">
+            {formatDate(centralDateOnly(n.created_at))}
+          </p>
+        </div>
+      ))}
+    </div>
   );
 }
