@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { formatHour } from "@/lib/format";
 import { formatServiceLabel } from "@/lib/pricing/pricing";
@@ -124,14 +124,15 @@ function Block({
   // over it (desktop only — touch devices never fire these events, so this
   // is a pure bonus there, never the only way in) previews it; actually
   // clicking "pins" it open regardless of the mouse. Either way it
-  // relocates to the top of the day column with a smooth scroll — this
-  // used to cause a jarring jump, but that turned out to be an unrelated
-  // native browser behavior (see the mousedown handler below), not this
-  // scroll itself, so it's safe to do for both once that's blocked.
+  // relocates to the top of the day column — but with no programmatic
+  // scrollIntoView call. Every attempt at auto-scrolling here (even a
+  // "smooth" one) read as a jolt, on top of an earlier, separate native
+  // focus-scroll bug that's now blocked below — so this only repositions,
+  // never forces the page to move on its own. If the grid's top is
+  // scrolled out of view, seeing it now takes a manual scroll.
   const [hovering, setHovering] = useState(false);
   const [pinned, setPinned] = useState(false);
   const open = hovering || pinned;
-  const blockRef = useRef<HTMLDivElement>(null);
 
   const top = (appt.hour + appt.minute / 60 - startHour) * PX_PER_HOUR;
   const height = Math.max(24, (appt.durationMinutes / 60) * PX_PER_HOUR - 2);
@@ -152,25 +153,12 @@ function Block({
   // width the day column happens to have at this zoom level.
   const OPEN_WIDTH = 300;
 
-  // Scroll it into view the moment it opens, from hover or a click alike —
-  // a layout change alone (the block jumping to top: 0) doesn't fire a
-  // mouseleave on its own, so this can't loop: it only re-runs when `open`
-  // actually flips, not on every render while hovering.
-  useEffect(() => {
-    if (!open) return;
-    const raf = requestAnimationFrame(() => {
-      blockRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-    return () => cancelAnimationFrame(raf);
-  }, [open]);
-
   function togglePinned() {
     setPinned((v) => !v);
   }
 
   return (
     <div
-      ref={blockRef}
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
       className={`absolute overflow-hidden rounded-lg bg-card pl-1.5 text-left shadow-sm transition-shadow ${
