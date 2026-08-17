@@ -516,7 +516,7 @@ export async function getBookedHours(
   const supabase = await createClient();
   let query = supabase
     .from("appointments")
-    .select("id, appointment_hour, service, pets(species, weight_lb)")
+    .select("id, appointment_hour, service, duration_minutes, pets(species, weight_lb)")
     .eq("appointment_date", date)
     .neq("status", "cancelled");
 
@@ -541,7 +541,13 @@ export async function getBookedHours(
     bookedHours.add(row.appointment_hour as number);
     const pet = Array.isArray(row.pets) ? row.pets[0] : row.pets;
     if (!pet) continue;
-    const buffer = bufferHoursFor(row.service, pet.species, pet.weight_lb);
+    // A manually-set duration (see setAppointmentDuration) overrides the
+    // usual species/weight estimate entirely — if the admin says a groom
+    // is really going to run 9am-12pm, that blocks the full 3 hours
+    // regardless of what a typical appointment that size would take.
+    const buffer = row.duration_minutes
+      ? Math.ceil(row.duration_minutes / 60) - 1
+      : bufferHoursFor(row.service, pet.species, pet.weight_lb);
     for (let i = 1; i <= buffer; i++) {
       bookedHours.add((row.appointment_hour as number) + i);
     }

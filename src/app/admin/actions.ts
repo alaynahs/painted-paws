@@ -396,6 +396,32 @@ export async function markAppointmentPaid(appointmentId: string) {
   redirect(`/admin/appointments/${appointmentId}?message=Marked+paid.`);
 }
 
+// Overrides the estimated duration used to block off following time slots
+// (see getBookedHours/bufferHoursFor in book/actions.ts) — e.g. the admin
+// knows a particular groom is really going to run 9am-12pm, longer than
+// that service/size would normally take. An empty value clears the
+// override and falls back to the usual estimate.
+export async function setAppointmentDuration(formData: FormData) {
+  const appointmentId = formData.get("appointmentId") as string;
+  const hoursRaw = (formData.get("durationHours") as string) || "";
+  const editPath = `/admin/appointments/${appointmentId}`;
+  const { supabase } = await requireAdmin();
+
+  const hours = hoursRaw.trim() === "" ? null : Number(hoursRaw);
+  if (hours !== null && (!Number.isFinite(hours) || hours <= 0)) {
+    redirect(`${editPath}?error=${encodeURIComponent("Enter a valid number of hours, or leave it blank to use the default.")}`);
+  }
+
+  await supabase
+    .from("appointments")
+    .update({ duration_minutes: hours === null ? null : Math.round(hours * 60) })
+    .eq("id", appointmentId);
+
+  revalidatePath(editPath);
+  revalidatePath("/admin/grid");
+  redirect(`${editPath}?message=${encodeURIComponent(hours === null ? "Duration reset to default." : "Duration updated.")}`);
+}
+
 export async function addBlockedSlot(formData: FormData) {
   const { supabase } = await requireAdmin();
 

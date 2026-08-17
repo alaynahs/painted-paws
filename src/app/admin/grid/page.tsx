@@ -59,7 +59,7 @@ export default async function AdminScheduleGridPage({
   const { data: appointments } = await supabase
     .from("appointments")
     .select(
-      "id, appointment_date, appointment_hour, appointment_minute, service, add_ons, price, status, payment_method, payment_status, pet_id, customer_id, pets(id, name, species, birth_date, health_concerns, rabies_vaccine_path), profiles:customer_id(full_name, phone)",
+      "id, appointment_date, appointment_hour, appointment_minute, service, add_ons, price, status, payment_method, payment_status, pet_id, customer_id, duration_minutes, pets(id, name, species, birth_date, health_concerns, rabies_vaccine_path), profiles:customer_id(full_name, phone)",
     )
     .neq("status", "cancelled")
     .gte("appointment_date", start)
@@ -107,7 +107,8 @@ export default async function AdminScheduleGridPage({
       id: appt.id,
       hour: appt.appointment_hour,
       minute: appt.appointment_minute,
-      durationMinutes: estimateDurationMinutes(appt.service, addOns),
+      durationMinutes:
+        appt.duration_minutes ?? estimateDurationMinutes(appt.service, addOns),
       petId: pet?.id ?? null,
       petName: pet?.name ?? "Unknown pet",
       ownerId: appt.customer_id,

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/supabase/admin";
 import { sendPaymentLinkEmail } from "@/app/book/actions";
-import { markAppointmentPaid } from "@/app/admin/actions";
+import { markAppointmentPaid, setAppointmentDuration } from "@/app/admin/actions";
 import BookingFlow from "@/components/booking-flow";
 import CancelAppointmentButton from "@/components/cancel-appointment-button";
 import QuickMessageButtons from "@/components/quick-message-buttons";
@@ -16,6 +16,7 @@ import {
   type PackageTier,
 } from "@/lib/pricing/pricing";
 import { getPricingConfig } from "@/lib/pricing/config";
+import { estimateDurationMinutes } from "@/lib/schedule-duration";
 
 export default async function AdminEditAppointmentPage({
   params,
@@ -156,6 +157,49 @@ export default async function AdminEditAppointmentPage({
           On my way, ready for pickup, can&apos;t reach client, and other
           quick updates — sent straight to the pet parent&apos;s email.
         </p>
+      </div>
+
+      <div className="mt-4 rounded-xl border border-border bg-card p-4">
+        <p className="text-sm font-medium text-foreground">Blocked Length</p>
+        <p className="mt-1 text-xs text-muted">
+          By default this blocks about{" "}
+          {(
+            (appointment.duration_minutes ??
+              estimateDurationMinutes(appointment.service, addOns)) / 60
+          ).toFixed(1)}{" "}
+          hour(s) on the schedule, starting at its booked time. Set a
+          different length if you know this one will run long (or short) —
+          it&apos;ll block off (or free up) the following time slots to
+          match. Leave blank to go back to the default estimate.
+        </p>
+        <form
+          action={setAppointmentDuration}
+          className="mt-3 flex flex-wrap items-end gap-2"
+        >
+          <input type="hidden" name="appointmentId" value={appointment.id} />
+          <label className="block">
+            <span className="text-xs text-muted">Hours</span>
+            <input
+              type="number"
+              name="durationHours"
+              min={0.5}
+              step={0.5}
+              defaultValue={
+                appointment.duration_minutes
+                  ? appointment.duration_minutes / 60
+                  : undefined
+              }
+              placeholder="Default"
+              className="mt-1 w-28 rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm text-foreground outline-none focus:border-accent-dark"
+            />
+          </label>
+          <button
+            type="submit"
+            className="rounded-full bg-accent px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-accent-dark"
+          >
+            Save
+          </button>
+        </form>
       </div>
 
       <div className="mt-8">
