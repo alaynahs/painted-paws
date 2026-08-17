@@ -354,6 +354,7 @@ export async function sendBookingNotifications(
     rabiesVaccinePath,
     service,
     price,
+    needsWaiver = false,
   }: {
     customerId: string;
     petId: string;
@@ -365,6 +366,10 @@ export async function sendBookingNotifications(
     rabiesVaccinePath: string | null;
     service: string;
     price: number;
+    // True when this booking (an admin phone booking) went through without
+    // the waiver being filled out — the confirmation email then links to a
+    // standalone page for the customer to sign it before their visit.
+    needsWaiver?: boolean;
   },
 ) {
   const { data: profile } = await supabase
@@ -398,7 +403,10 @@ export async function sendBookingNotifications(
     supabase,
     target,
     "booking_confirmation",
-    bookingConfirmationEmail(vars),
+    bookingConfirmationEmail({
+      ...vars,
+      waiverUrl: needsWaiver ? `${origin}/sign-waiver/${appointmentId}` : undefined,
+    }),
   );
 
   await notifyEmail(
@@ -1653,11 +1661,12 @@ export async function adminCreateAppointment(formData: FormData) {
   const errorBase = returnTo ?? "/admin/book";
   const successBase = returnTo ?? "/admin";
 
+  // Unlike a customer's own booking, the waiver is optional here — the
+  // admin is often booking mid-phone-call with no way to have the customer
+  // fill it out live. If it wasn't signed, the confirmation email links to
+  // a standalone page so they can sign it before the visit instead.
   const waiver = readWaiverFields(formData);
-  const waiverIssue = waiverError(waiver);
-  if (waiverIssue) {
-    redirect(`${errorBase}?error=${encodeURIComponent(waiverIssue)}`);
-  }
+  const waiverSigned = waiver.liabilityAccepted && waiver.signedName.trim() !== "";
 
   const rangeIssue = adminTimeRangeError(fields.hour, fields.minute);
   if (rangeIssue) {
@@ -1751,12 +1760,14 @@ export async function adminCreateAppointment(formData: FormData) {
     await redeemPackCredit(supabase, redeemablePack);
   }
 
-  await insertWaiverSigning(supabase, {
-    appointmentId: appointment.id,
-    customerId,
-    petId: fields.petId,
-    waiver,
-  });
+  if (waiverSigned) {
+    await insertWaiverSigning(supabase, {
+      appointmentId: appointment.id,
+      customerId,
+      petId: fields.petId,
+      waiver,
+    });
+  }
 
   await sendBookingNotifications(supabase, {
     customerId,
@@ -1769,7 +1780,44 @@ export async function adminCreateAppointment(formData: FormData) {
     rabiesVaccinePath: pet.rabies_vaccine_path,
     service: fields.service,
     price,
+    needsWaiver: !waiverSigned,
   });
 
   redirect(`${successBase}?booked=${encodeURIComponent(pet.name)}`);
+}
+
+// Reached from the "sign the waiver" link in the booking confirmation
+// email when an admin phone booking went through without one — public, no
+// login, since it's a one-tap link like leave-a-review.
+export async function signAppointmentWaiver(formData: FormData) {
+  const appointmentId = formData.get("appointmentId") as string;
+  const waiver = readWaiverFields(formData);
+  const waiverIssue = waiverError(waiver);
+  if (waiverIssue) {
+    redirect(
+      `/sign-waiver/${appointmentId}?error=${encodeURIComponent(waiverIssue)}`,
+    );
+  }
+
+  const supabase = createServiceClient();
+  const { data: appointment } = await supabase
+    .from("appointments")
+    .select("id, customer_id, pet_id")
+    .eq("id", appointmentId)
+    .single();
+
+  if (!appointment) {
+    redirect(
+      `/sign-waiver/${appointmentId}?error=${encodeURIComponent("Appointment not found.")}`,
+    );
+  }
+
+  await insertWaiverSigning(supabase, {
+    appointmentId: appointment.id,
+    customerId: appointment.customer_id,
+    petId: appointment.pet_id,
+    waiver,
+  });
+
+  redirect(`/sign-waiver/${appointmentId}?signed=1`);
 }

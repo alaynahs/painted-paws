@@ -333,7 +333,11 @@ export default function BookingFlow({
   const [waiver, setWaiver] = useState<WaiverState>(WAIVER_DEFAULTS);
   const updateWaiver = (patch: Partial<WaiverState>) =>
     setWaiver((w) => ({ ...w, ...patch }));
-  const waiverValid = mode === "edit" || isWaiverValid(waiver);
+  // Admin phone bookings don't require the waiver up front — she can fill
+  // it in live if the customer's on the phone for it, but it's not a
+  // blocker; an unsigned one just gets a sign-later link in the booking
+  // email instead.
+  const waiverValid = mode === "edit" || isAdmin || isWaiverValid(waiver);
 
   useEffect(() => {
     if (isAdmin || mode === "edit") return;

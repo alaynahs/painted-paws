@@ -73,9 +73,18 @@ export function bookingConfirmationEmail(vars: {
   petName: string;
   date: string;
   time: string;
+  // Set when this was booked by the admin (e.g. a phone booking) and the
+  // waiver wasn't filled out at booking time — links the customer to a
+  // standalone page to sign it before their visit.
+  waiverUrl?: string;
 }): EmailContent {
+  const waiverLine = vars.waiverUrl
+    ? `\n\nOne last thing — please sign our grooming waiver before your visit:\n[Sign the waiver here](${vars.waiverUrl})\n`
+    : "";
   return {
-    subject: "You're Booked! 🐾",
+    subject: vars.waiverUrl
+      ? "Upcoming Appointment and Waiver 🐾"
+      : "You're Booked! 🐾",
     body: `Hi ${vars.firstName},
 
 Your appointment is confirmed!
@@ -85,7 +94,7 @@ Appointment Details
 • Date: ${vars.date}
 • Time: ${vars.time}
 • Address: ${BUSINESS_ADDRESS}
-
+${waiverLine}
 Please arrive on time and make sure your pup has had a potty break before coming in.
 
 Curbside hand-off: our home workspace is a pet-only zone — no walk-ins. When you arrive, park in the driveway and send a quick text; we'll meet you at your car to bring your pet in, and do the same for pickup once the groom is complete.
