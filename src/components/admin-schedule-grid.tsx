@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { formatHour } from "@/lib/format";
 import { formatServiceLabel } from "@/lib/pricing/pricing";
@@ -122,10 +122,10 @@ function Block({
 }) {
   // Two separate reasons the detail view can be showing: a mouse hovering
   // over it (desktop only — touch devices never fire these events, so this
-  // is a pure bonus there, never the only way in) previews it right where
-  // it naturally sits; actually clicking "pins" it open regardless of the
-  // mouse, relocated to the top of the day column so it's never off-screen
-  // and easy to read/act on without fighting page scroll.
+  // is a pure bonus there, never the only way in) previews it; actually
+  // clicking "pins" it open regardless of the mouse. Either way it's
+  // relocated to the top of the day column so it's never off-screen and
+  // easy to read/act on without fighting page scroll.
   const [hovering, setHovering] = useState(false);
   const [pinned, setPinned] = useState(false);
   const open = hovering || pinned;
@@ -150,19 +150,20 @@ function Block({
   // width the day column happens to have at this zoom level.
   const OPEN_WIDTH = 300;
 
-  function togglePinned() {
-    setPinned((v) => {
-      const next = !v;
-      if (next) {
-        // Scroll after the position actually jumps to the top of the
-        // column, not before — otherwise it scrolls to where the block
-        // used to be.
-        requestAnimationFrame(() => {
-          blockRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-        });
-      }
-      return next;
+  // Scroll it into view the moment it opens, from hover or a click alike —
+  // a layout change alone (the block jumping to top: 0) doesn't fire a
+  // mouseleave on its own, so this can't loop: it only re-runs when `open`
+  // actually flips, not on every render while hovering.
+  useEffect(() => {
+    if (!open) return;
+    const raf = requestAnimationFrame(() => {
+      blockRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
+    return () => cancelAnimationFrame(raf);
+  }, [open]);
+
+  function togglePinned() {
+    setPinned((v) => !v);
   }
 
   return (
@@ -174,16 +175,14 @@ function Block({
         open ? "z-30 shadow-xl" : "z-10 hover:shadow-md"
       }`}
       style={
-        pinned
+        open
           ? { top: 0, height: "auto", minHeight: height, left: 2, width: OPEN_WIDTH }
-          : open
-            ? { top, height: "auto", minHeight: height, left: 2, width: OPEN_WIDTH }
-            : {
-                top,
-                height,
-                left: `calc(${appt.lane * laneWidthPct}% + 2px)`,
-                width: `calc(${laneWidthPct}% - 4px)`,
-              }
+          : {
+              top,
+              height,
+              left: `calc(${appt.lane * laneWidthPct}% + 2px)`,
+              width: `calc(${laneWidthPct}% - 4px)`,
+            }
       }
     >
       <div className="absolute inset-y-0 left-0 flex w-1.5 flex-col">
