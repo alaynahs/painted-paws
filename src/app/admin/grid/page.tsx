@@ -67,18 +67,20 @@ export default async function AdminScheduleGridPage({
     .order("appointment_hour", { ascending: true })
     .order("appointment_minute", { ascending: true });
 
-  // "New customer" needs a lifetime count, not just this week's — one bulk
-  // fetch of just the customer_id column is far cheaper than a separate
-  // count query per appointment.
+  // "New customer" means this is their first visit — NOT "they only have
+  // one appointment total," since a first-time customer booking two pets
+  // at once (like two dogs from the same household) already has 2. Track
+  // the earliest appointment_date per customer instead, and flag anything
+  // that falls on that date.
   const { data: allCustomerAppts } = await supabase
     .from("appointments")
-    .select("customer_id");
-  const apptCountByCustomer = new Map<string, number>();
+    .select("customer_id, appointment_date");
+  const earliestDateByCustomer = new Map<string, string>();
   for (const a of allCustomerAppts ?? []) {
-    apptCountByCustomer.set(
-      a.customer_id,
-      (apptCountByCustomer.get(a.customer_id) ?? 0) + 1,
-    );
+    const current = earliestDateByCustomer.get(a.customer_id);
+    if (!current || a.appointment_date < current) {
+      earliestDateByCustomer.set(a.customer_id, a.appointment_date);
+    }
   }
 
   const appointmentsByDay: Record<string, GridAppointment[]> = {};
@@ -92,7 +94,7 @@ export default async function AdminScheduleGridPage({
     const flags: ScheduleFlagKey[] = [];
     if (appt.status === "requested") flags.push("requested");
     if (pet?.species === "cat") flags.push("cat");
-    if ((apptCountByCustomer.get(appt.customer_id) ?? 0) <= 1) {
+    if (earliestDateByCustomer.get(appt.customer_id) === appt.appointment_date) {
       flags.push("newCustomer");
     }
     if (pet?.birth_date && monthsSince(pet.birth_date) / 12 >= SENIOR_AGE_YEARS) {

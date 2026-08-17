@@ -135,37 +135,33 @@ function Block({
       : "Pay in person";
 
   return (
-    <div
-      className={`absolute z-10 overflow-hidden rounded-lg bg-card pl-1.5 text-left shadow-sm transition-shadow ${
-        open ? "z-20 shadow-lg" : "hover:shadow-md"
-      }`}
-      style={
-        open
-          ? { top, height: "auto", minHeight: height, left: 2, right: 2 }
-          : {
-              top,
-              height,
-              left: `calc(${appt.lane * laneWidthPct}% + 2px)`,
-              width: `calc(${laneWidthPct}% - 4px)`,
-            }
-      }
-    >
-      <div className="absolute inset-y-0 left-0 flex w-1.5 flex-col">
-        {appt.flags.length > 0 ? (
-          appt.flags.map((flagKey) => {
-            const flag = SCHEDULE_FLAGS.find((f) => f.key === flagKey);
-            if (!flag) return null;
-            return <div key={flagKey} className={`flex-1 ${flag.stripe}`} />;
-          })
-        ) : (
-          <div className="flex-1 bg-border" />
-        )}
-      </div>
+    <>
+      <div
+        className={`absolute z-10 overflow-hidden rounded-lg bg-card pl-1.5 text-left shadow-sm transition-shadow ${
+          open ? "z-20 shadow-lg" : "hover:shadow-md"
+        }`}
+        style={{
+          top,
+          height,
+          left: `calc(${appt.lane * laneWidthPct}% + 2px)`,
+          width: `calc(${laneWidthPct}% - 4px)`,
+        }}
+      >
+        <div className="absolute inset-y-0 left-0 flex w-1.5 flex-col">
+          {appt.flags.length > 0 ? (
+            appt.flags.map((flagKey) => {
+              const flag = SCHEDULE_FLAGS.find((f) => f.key === flagKey);
+              if (!flag) return null;
+              return <div key={flagKey} className={`flex-1 ${flag.stripe}`} />;
+            })
+          ) : (
+            <div className="flex-1 bg-border" />
+          )}
+        </div>
 
-      {!open && (
-        // Covers the whole block, including the area over the color
-        // stripe (which sits underneath in DOM order), so tapping
-        // anywhere on the block opens it — not just the text itself.
+        {/* Covers the whole block, including the area over the color
+            stripe (which sits underneath in DOM order), so tapping
+            anywhere on the block opens it — not just the text itself. */}
         <div
           role="button"
           tabIndex={0}
@@ -202,12 +198,21 @@ function Block({
             <p className="truncate text-[10px] text-muted">{appt.ownerName}</p>
           )}
         </div>
-      )}
+      </div>
 
+      {/* Full-size popup instead of expanding in place — the day column
+          itself can be quite narrow at this zoom level, nowhere near
+          enough room for the action buttons at a readable size. */}
       {open && (
-        <div className="border-t border-border bg-background px-2.5 py-2.5 text-xs">
-          <div className="flex items-start justify-between gap-2">
-            <p className="font-serif text-sm text-foreground">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 text-sm shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="font-serif text-lg text-foreground">
               {appt.petId ? (
                 <Link
                   href={`/admin/pets/${appt.petId}`}
@@ -226,94 +231,96 @@ function Block({
                 {appt.ownerName}
               </Link>
             </p>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              aria-label="Close"
-              className="shrink-0 rounded-full px-1.5 text-sm text-muted hover:text-foreground"
-            >
-              ✕
-            </button>
-          </div>
-          {appt.ownerPhone && <p className="mt-0.5 text-muted">{appt.ownerPhone}</p>}
-          {appt.flags.length > 0 && (
-            <div className="mt-1.5 flex flex-wrap gap-1">
-              {appt.flags.map((flagKey) => {
-                const flag = SCHEDULE_FLAGS.find((f) => f.key === flagKey);
-                if (!flag) return null;
-                return (
-                  <span
-                    key={flagKey}
-                    className={`flex items-center gap-0.5 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10px] font-medium ${flag.bg} ${flag.text}`}
-                  >
-                    <flag.Icon className="h-2.5 w-2.5 shrink-0" />
-                    {flag.label}
-                  </span>
-                );
-              })}
-            </div>
-          )}
-          <p className="mt-1.5 text-foreground/90">
-            {formatServiceLabel(appt.service)}
-            {appt.addOns.length > 0 && ` · ${appt.addOns.join(", ")}`}
-          </p>
-          <p className="mt-1 flex items-center justify-between gap-2">
-            <span className="text-muted">{paymentLabel}</span>
-            <span className="font-medium text-accent-dark">${appt.price}</span>
-          </p>
-
-          <div
-            className={
-              "mt-2 grid grid-cols-1 gap-1.5 " +
-              // These action buttons come from several separate components
-              // (some with their own dropdown/modal markup nested inside),
-              // so a blanket "every button" selector would also stretch
-              // things like the Cancel confirmation modal's own side-by-side
-              // buttons. Direct-child selectors reach only each item's own
-              // top-level trigger, one or two levels down depending on
-              // whether that component wraps its trigger in a div.
-              "[&>form]:w-full [&>form>button]:w-full " +
-              "[&>a]:block [&>a]:w-full [&>a]:text-center " +
-              "[&>button]:w-full " +
-              "[&>div]:w-full [&>div>button]:w-full"
-            }
-          >
-            {appt.status === "requested" && (
-              <form action={confirmAction.bind(null, appt.id)}>
-                <button
-                  type="submit"
-                  className="rounded-full bg-accent px-2 py-1 text-[10px] font-medium text-white transition-colors hover:bg-accent-dark"
-                >
-                  Confirm
-                </button>
-              </form>
+            {appt.ownerPhone && (
+              <p className="mt-0.5 text-muted">{appt.ownerPhone}</p>
             )}
-            {appt.paymentMethod === "in_person" &&
-              appt.paymentStatus === "unpaid" && (
-                <form action={setOnlinePaymentAction.bind(null, appt.id)}>
+            {appt.flags.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {appt.flags.map((flagKey) => {
+                  const flag = SCHEDULE_FLAGS.find((f) => f.key === flagKey);
+                  if (!flag) return null;
+                  return (
+                    <span
+                      key={flagKey}
+                      className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${flag.bg} ${flag.text}`}
+                    >
+                      <flag.Icon className="h-3 w-3 shrink-0" />
+                      {flag.label}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+            <p className="mt-2 text-foreground/90">
+              {formatHour(appt.hour, appt.minute)} · {formatServiceLabel(appt.service)}
+              {appt.addOns.length > 0 && ` · ${appt.addOns.join(", ")}`}
+            </p>
+            <p className="mt-1 flex items-center justify-between gap-2">
+              <span className="text-muted">{paymentLabel}</span>
+              <span className="font-medium text-accent-dark">${appt.price}</span>
+            </p>
+
+            <div
+              className={
+                "mt-4 grid grid-cols-1 gap-2 " +
+                // These action buttons come from several separate components
+                // (some with their own dropdown/modal markup nested inside),
+                // so a blanket "every button" selector would also stretch
+                // things like the Cancel confirmation modal's own side-by-side
+                // buttons. Direct-child selectors reach only each item's own
+                // top-level trigger, one or two levels down depending on
+                // whether that component wraps its trigger in a div.
+                "[&>form]:w-full [&>form>button]:w-full " +
+                "[&>a]:block [&>a]:w-full [&>a]:text-center " +
+                "[&>button]:w-full " +
+                "[&>div]:w-full [&>div>button]:w-full"
+              }
+            >
+              {appt.status === "requested" && (
+                <form action={confirmAction.bind(null, appt.id)}>
                   <button
                     type="submit"
-                    className="rounded-full border border-border px-2 py-1 text-[10px] font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+                    className="rounded-full bg-accent px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-dark"
                   >
-                    Pay Online
+                    Confirm
                   </button>
                 </form>
               )}
-            {appt.status !== "completed" && (
-              <MarkCompleteButton appointmentId={appt.id} compact />
-            )}
-            <QuickMessageButtons appointmentId={appt.id} />
-            <CancelAppointmentButton appointmentId={appt.id} isAdmin />
-            <Link
-              href={`/admin/appointments/${appt.id}`}
-              className="rounded-full border border-border px-2 py-1 text-[10px] font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+              {appt.paymentMethod === "in_person" &&
+                appt.paymentStatus === "unpaid" && (
+                  <form action={setOnlinePaymentAction.bind(null, appt.id)}>
+                    <button
+                      type="submit"
+                      className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+                    >
+                      Pay Online
+                    </button>
+                  </form>
+                )}
+              {appt.status !== "completed" && (
+                <MarkCompleteButton appointmentId={appt.id} compact />
+              )}
+              <QuickMessageButtons appointmentId={appt.id} />
+              <CancelAppointmentButton appointmentId={appt.id} isAdmin />
+              <Link
+                href={`/admin/appointments/${appt.id}`}
+                className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+              >
+                Edit
+              </Link>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="mt-4 w-full text-center text-xs text-muted hover:text-foreground"
             >
-              Edit
-            </Link>
+              Close
+            </button>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
