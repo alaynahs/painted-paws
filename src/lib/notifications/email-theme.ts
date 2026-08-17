@@ -62,7 +62,7 @@ export function renderEmailHtml(subject: string, body: string): string {
         <p style="margin:0 0 24px;text-align:center;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#3a6d8a;font-family:Arial,sans-serif;">
           ${escapeHtml(subject)}
         </p>
-        <div style="border-top:1px solid #e7e1d6;padding-top:22px;font-family:Arial,sans-serif;">
+        <div style="margin-top:22px;font-family:Arial,sans-serif;">
           ${paragraphsToHtml(body)}
         </div>
       </div>
