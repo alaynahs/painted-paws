@@ -28,6 +28,23 @@ export default async function LeaveReviewPage({
     ? appointment.pets[0]
     : appointment.pets;
 
+  const { data: photos } = await supabase
+    .from("groom_photos")
+    .select("id, storage_path, photo_type")
+    .eq("appointment_id", appointment.id)
+    .in("photo_type", ["before", "after"]);
+
+  const photoUrls = await Promise.all(
+    (photos ?? []).map(async (p) => {
+      const { data: signed } = await supabase.storage
+        .from("groom-photos")
+        .createSignedUrl(p.storage_path, 60 * 60 * 24);
+      return { ...p, url: signed?.signedUrl ?? null };
+    }),
+  );
+  const beforePhoto = photoUrls.find((p) => p.photo_type === "before" && p.url);
+  const afterPhoto = photoUrls.find((p) => p.photo_type === "after" && p.url);
+
   return (
     <div className="mx-auto max-w-md px-6 py-16 text-center">
       <p className="text-sm font-medium tracking-wide text-accent-dark uppercase">
@@ -64,6 +81,46 @@ export default async function LeaveReviewPage({
       {!notip && (
         <div className="mt-10 rounded-2xl border border-border bg-card p-6 text-left">
           <TipSelector appointmentId={appointment.id} price={appointment.price} />
+        </div>
+      )}
+
+      {(beforePhoto || afterPhoto) && (
+        <div className="mt-10 text-left">
+          <p className="text-sm font-medium tracking-wide text-accent-dark uppercase">
+            Before &amp; After
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <div>
+              {beforePhoto?.url ? (
+                // eslint-disable-next-line @next/next/no-img-element -- signed URL from private storage, not an optimizable static asset
+                <img
+                  src={beforePhoto.url}
+                  alt={`${pet?.name ?? "Pet"} before`}
+                  className="aspect-square w-full rounded-xl object-cover"
+                />
+              ) : (
+                <div className="flex aspect-square w-full items-center justify-center rounded-xl border border-dashed border-border text-xs text-muted">
+                  Before photo coming soon
+                </div>
+              )}
+              <p className="mt-1.5 text-center text-xs text-muted">Before</p>
+            </div>
+            <div>
+              {afterPhoto?.url ? (
+                // eslint-disable-next-line @next/next/no-img-element -- signed URL from private storage, not an optimizable static asset
+                <img
+                  src={afterPhoto.url}
+                  alt={`${pet?.name ?? "Pet"} after`}
+                  className="aspect-square w-full rounded-xl object-cover"
+                />
+              ) : (
+                <div className="flex aspect-square w-full items-center justify-center rounded-xl border border-dashed border-border text-xs text-muted">
+                  After photo coming soon
+                </div>
+              )}
+              <p className="mt-1.5 text-center text-xs text-muted">After</p>
+            </div>
+          </div>
         </div>
       )}
     </div>

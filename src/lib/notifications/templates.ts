@@ -557,12 +557,12 @@ export function postVisitThankYouEmail(vars: {
   pickupDropoff: boolean;
 }): EmailContent {
   return {
-    subject: `${vars.petName} is ready! 🐾`,
+    subject: `Before and After Pictures — ${vars.petName} 🐾`,
     body: `Hi ${vars.firstName},
 
 ${vars.petName} is all fresh, clean, and ready to head home!${pickupUrgencyLine(vars.pickupDropoff)}
 
-If you'd like to leave a review or add a tip for your groomer, you can do both here:
+Leave a review or add a tip for your groomer, then see ${vars.petName}'s before and after pictures:
 [Leave a review or tip here](${vars.reviewUrl})
 
 Thank you again — we hope to see you both soon!
@@ -573,7 +573,8 @@ ${BUSINESS_NAME}`,
 // Same as postVisitThankYouEmail, minus the tip ask — for visits where the
 // admin doesn't want to solicit a tip (e.g. one was already given in
 // person). Still links to the same page, which is fine to also have a tip
-// option on it; this email itself just doesn't mention one.
+// option on it; this email itself just doesn't mention one. Subject stays
+// "Before and After Pictures" either way, per the admin's request.
 export function postVisitReviewOnlyEmail(vars: {
   firstName: string;
   petName: string;
@@ -581,12 +582,12 @@ export function postVisitReviewOnlyEmail(vars: {
   pickupDropoff: boolean;
 }): EmailContent {
   return {
-    subject: `${vars.petName} is ready! 🐾`,
+    subject: `Before and After Pictures — ${vars.petName} 🐾`,
     body: `Hi ${vars.firstName},
 
 ${vars.petName} is all fresh, clean, and ready to head home!${pickupUrgencyLine(vars.pickupDropoff)}
 
-If you have a moment, we'd love to hear how it went:
+Leave a review, then see ${vars.petName}'s before and after pictures:
 [Leave a review here](${vars.reviewUrl})
 
 Thank you again — we hope to see you both soon!

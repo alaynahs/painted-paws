@@ -140,12 +140,16 @@ export async function uploadGroomPhoto(formData: FormData) {
   const petId = formData.get("petId") as string;
   const caption = ((formData.get("caption") as string) || "").trim() || null;
   const appointmentId = ((formData.get("appointmentId") as string) || "") || null;
+  const photoTypeRaw = formData.get("photoType") as string | null;
+  const photoType = photoTypeRaw === "before" || photoTypeRaw === "after" ? photoTypeRaw : null;
   const file = formData.get("file") as File;
+  // Lets this same action serve both the pet page's general photo gallery
+  // and the appointment page's before/after uploader without either one
+  // landing back on the wrong page.
+  const returnPath = ((formData.get("returnPath") as string) || "") || `/admin/pets/${petId}`;
 
   if (!file || file.size === 0) {
-    redirect(
-      `/admin/pets/${petId}?error=${encodeURIComponent("Choose a photo to upload.")}`,
-    );
+    redirect(`${returnPath}?error=${encodeURIComponent("Choose a photo to upload.")}`);
   }
 
   const { data: pet } = await supabase
@@ -154,7 +158,7 @@ export async function uploadGroomPhoto(formData: FormData) {
     .eq("id", petId)
     .single();
 
-  if (!pet) redirect(`/admin/pets/${petId}?error=${encodeURIComponent("Pet not found.")}`);
+  if (!pet) redirect(`${returnPath}?error=${encodeURIComponent("Pet not found.")}`);
 
   const storagePath = `${pet.owner_id}/${petId}/${randomUUID()}-${sanitizeFileName(file.name)}`;
   const { error: uploadError } = await supabase.storage
@@ -162,7 +166,7 @@ export async function uploadGroomPhoto(formData: FormData) {
     .upload(storagePath, file, { contentType: file.type });
 
   if (uploadError) {
-    redirect(`/admin/pets/${petId}?error=${encodeURIComponent(uploadError.message)}`);
+    redirect(`${returnPath}?error=${encodeURIComponent(uploadError.message)}`);
   }
 
   await supabase.from("groom_photos").insert({
@@ -171,10 +175,13 @@ export async function uploadGroomPhoto(formData: FormData) {
     appointment_id: appointmentId,
     storage_path: storagePath,
     caption,
+    photo_type: photoType,
   });
 
   revalidatePath(`/admin/pets/${petId}`);
   revalidatePath(`/account/pets/${petId}`);
+  if (appointmentId) revalidatePath(`/admin/appointments/${appointmentId}`);
+  redirect(`${returnPath}?message=Photo+uploaded.`);
 }
 
 // Lets the admin upload a rabies vaccine record for a customer's pet
@@ -235,7 +242,11 @@ export async function uploadRabiesVaccineAdmin(formData: FormData) {
   redirect(`/admin/pets/${petId}?saved=1`);
 }
 
-export async function deleteGroomPhoto(photoId: string, petId: string) {
+export async function deleteGroomPhoto(
+  photoId: string,
+  petId: string,
+  appointmentId?: string,
+) {
   const { supabase } = await requireAdmin();
 
   const { data: photo } = await supabase
@@ -251,6 +262,7 @@ export async function deleteGroomPhoto(photoId: string, petId: string) {
 
   revalidatePath(`/admin/pets/${petId}`);
   revalidatePath(`/account/pets/${petId}`);
+  if (appointmentId) revalidatePath(`/admin/appointments/${appointmentId}`);
 }
 
 interface AppointmentContact {

@@ -466,7 +466,7 @@ export default async function AdminPetDetailPage({
                       {photo.caption && (
                         <p className="text-[10px] text-muted">{photo.caption}</p>
                       )}
-                      <form action={deleteGroomPhoto.bind(null, photo.id, pet.id)}>
+                      <form action={deleteGroomPhoto.bind(null, photo.id, pet.id, undefined)}>
                         <button
                           type="submit"
                           className="text-[10px] text-muted hover:text-accent-dark"
