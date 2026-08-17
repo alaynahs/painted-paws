@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { formatHour } from "@/lib/format";
 import { formatServiceLabel } from "@/lib/pricing/pricing";
@@ -120,7 +120,17 @@ function Block({
   confirmAction: (appointmentId: string) => void;
   setOnlinePaymentAction: (appointmentId: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  // Two separate reasons the detail view can be showing: a mouse hovering
+  // over it (desktop only — touch devices never fire these events, so this
+  // is a pure bonus there, never the only way in) previews it right where
+  // it naturally sits; actually clicking "pins" it open regardless of the
+  // mouse, relocated to the top of the day column so it's never off-screen
+  // and easy to read/act on without fighting page scroll.
+  const [hovering, setHovering] = useState(false);
+  const [pinned, setPinned] = useState(false);
+  const open = hovering || pinned;
+  const blockRef = useRef<HTMLDivElement>(null);
+
   const top = (appt.hour + appt.minute / 60 - startHour) * PX_PER_HOUR;
   const height = Math.max(24, (appt.durationMinutes / 60) * PX_PER_HOUR - 2);
   const laneWidthPct = 100 / appt.laneCount;
@@ -140,20 +150,40 @@ function Block({
   // width the day column happens to have at this zoom level.
   const OPEN_WIDTH = 300;
 
+  function togglePinned() {
+    setPinned((v) => {
+      const next = !v;
+      if (next) {
+        // Scroll after the position actually jumps to the top of the
+        // column, not before — otherwise it scrolls to where the block
+        // used to be.
+        requestAnimationFrame(() => {
+          blockRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      }
+      return next;
+    });
+  }
+
   return (
     <div
+      ref={blockRef}
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => setHovering(false)}
       className={`absolute overflow-hidden rounded-lg bg-card pl-1.5 text-left shadow-sm transition-shadow ${
         open ? "z-30 shadow-xl" : "z-10 hover:shadow-md"
       }`}
       style={
-        open
-          ? { top, height: "auto", minHeight: height, left: 2, width: OPEN_WIDTH }
-          : {
-              top,
-              height,
-              left: `calc(${appt.lane * laneWidthPct}% + 2px)`,
-              width: `calc(${laneWidthPct}% - 4px)`,
-            }
+        pinned
+          ? { top: 0, height: "auto", minHeight: height, left: 2, width: OPEN_WIDTH }
+          : open
+            ? { top, height: "auto", minHeight: height, left: 2, width: OPEN_WIDTH }
+            : {
+                top,
+                height,
+                left: `calc(${appt.lane * laneWidthPct}% + 2px)`,
+                width: `calc(${laneWidthPct}% - 4px)`,
+              }
       }
     >
       <div className="absolute inset-y-0 left-0 flex w-1.5 flex-col">
@@ -174,11 +204,11 @@ function Block({
       <div
         role="button"
         tabIndex={0}
-        onClick={() => setOpen((v) => !v)}
+        onClick={togglePinned}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            setOpen((v) => !v);
+            togglePinned();
           }
         }}
         className="cursor-pointer py-1 pr-2 pl-2.5 text-left"
@@ -311,7 +341,7 @@ function Block({
 
           <button
             type="button"
-            onClick={() => setOpen(false)}
+            onClick={() => setPinned(false)}
             className="mt-3 w-full text-center text-xs text-muted hover:text-foreground"
           >
             Close
