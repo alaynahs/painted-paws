@@ -17,7 +17,6 @@ import {
   noResponseWarningEmail,
   pickup15MinEmail,
   pickupReadyEmail,
-  postVisitReviewOnlyEmail,
   postVisitThankYouEmail,
 } from "@/lib/notifications/templates";
 import { formatDate, formatHour } from "@/lib/format";
@@ -423,7 +422,7 @@ export async function markAppointmentComplete(
         email: profile.email,
       },
       "post_visit_thank_you",
-      includeTip ? postVisitThankYouEmail(emailVars) : postVisitReviewOnlyEmail(emailVars),
+      postVisitThankYouEmail(emailVars),
     );
   }
 
