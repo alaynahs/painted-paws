@@ -894,7 +894,11 @@ export async function createAppointment(formData: FormData) {
     fields.service,
     subtotal,
     salesTax,
-    "/account?booked=1&message=Payment+received.+Thank+you!",
+    // {CHECKOUT_SESSION_ID} is a Stripe-substituted template value, giving
+    // each real booking a unique success URL — lets the Meta Pixel dedupe a
+    // completed-booking conversion event against a manual page refresh
+    // without needing to strip the confirmation banner's own query params.
+    "/account?booked=1&message=Payment+received.+Thank+you!&session_id={CHECKOUT_SESSION_ID}",
     `/api/book/checkout-cancelled?appointmentId=${appointment.id}`,
   );
 

@@ -5,6 +5,7 @@ import { updateProfile, updateEmail } from "@/app/account/actions";
 import { logout } from "@/app/auth/actions";
 import ThemeToggle from "@/components/theme-toggle";
 import ContactInfoCard from "@/components/contact-info-card";
+import TrackBookingConfirmed from "@/components/track-booking-confirmed";
 import CancelAppointmentButton from "@/components/cancel-appointment-button";
 import UnpaidAppointmentsPopup from "@/components/unpaid-appointments-popup";
 import {
@@ -30,9 +31,10 @@ export default async function AccountPage({
     message?: string;
     saved?: string;
     booked?: string;
+    session_id?: string;
   }>;
 }) {
-  const { error, message, saved, booked } = await searchParams;
+  const { error, message, saved, booked, session_id: sessionId } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -131,9 +133,12 @@ export default async function AccountPage({
       </h1>
 
       {booked && (
-        <p className="mt-6 rounded-xl border border-accent/40 bg-accent-tint px-4 py-3 text-sm text-foreground">
-          You&apos;re booked! See the details below.
-        </p>
+        <>
+          {sessionId && <TrackBookingConfirmed sessionId={sessionId} />}
+          <p className="mt-6 rounded-xl border border-accent/40 bg-accent-tint px-4 py-3 text-sm text-foreground">
+            You&apos;re booked! See the details below.
+          </p>
+        </>
       )}
       {saved && (
         <p className="mt-6 rounded-xl border border-accent/40 bg-accent-tint px-4 py-3 text-sm text-foreground">
