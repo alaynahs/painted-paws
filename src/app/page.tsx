@@ -69,25 +69,14 @@ export default async function Home() {
               breed-standard haircuts, in a space built for calm, not chaos.
             </p>
             <div className="mt-5 flex flex-wrap items-center gap-2 text-sm text-muted">
-              <span className="rounded-full bg-pastel-pink/70 px-3 py-1 font-semibold text-foreground/85">
-                🐾 Woof-approved
+              <span className="rounded-full bg-pastel-yellow/70 px-3 py-1 font-semibold text-foreground/85">
+                Zero cages
               </span>
               <span className="rounded-full bg-pastel-mint/70 px-3 py-1 font-semibold text-foreground/85">
-                🐱 Meow-approved
+                Insured
               </span>
-              <span className="rounded-full bg-pastel-yellow/70 px-3 py-1 font-semibold text-foreground/85">
-                ✨ Zero cages
-              </span>
-            </div>
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-muted">
-              <span className="rounded-full bg-accent-tint px-3 py-1 font-semibold text-foreground/85">
-                ✓ Certified
-              </span>
-              <span className="rounded-full bg-accent-tint px-3 py-1 font-semibold text-foreground/85">
-                ✓ Insured
-              </span>
-              <span className="rounded-full bg-accent-tint px-3 py-1 font-semibold text-foreground/85">
-                ✓ 3-Day Look Great Guarantee
+              <span className="rounded-full bg-pastel-lavender/70 px-3 py-1 font-semibold text-foreground/85">
+                3-Day Look Great Guarantee
               </span>
             </div>
             <div className="mt-8 flex flex-wrap gap-4">
