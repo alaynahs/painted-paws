@@ -29,7 +29,7 @@ const features = [
   },
   {
     title: "Curbside hand-off",
-    body: "Text when you arrive and we'll meet you at the car for simple, contactless drop-off and pickup.",
+    body: "Text when you arrive and we'll meet you at the car for a simple, no-walk-in-required drop-off and pickup.",
   },
 ];
 
