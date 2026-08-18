@@ -119,6 +119,28 @@ export default async function RootLayout({
             alt=""
           />
         </noscript>
+
+        {/* Google tag (gtag.js) — base site tag for the Google Ads
+            campaign. Tag ID: AW-18397379594. Same literal <head> block
+            reasoning as the Meta Pixel above: next/script's App Router
+            behavior doesn't land this reliably enough for Google's own
+            install checker. The actual booking-conversion event fires
+            separately, in TrackBookingConfirmed, once we have the
+            conversion label from the Google Ads conversion action. */}
+        <script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=AW-18397379594"
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'AW-18397379594');
+            `,
+          }}
+        />
       </head>
       <body className="min-h-full flex flex-col">
         <script
