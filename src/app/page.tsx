@@ -79,6 +79,17 @@ export default async function Home() {
                 ✨ Zero cages
               </span>
             </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-muted">
+              <span className="rounded-full bg-accent-tint px-3 py-1 font-semibold text-foreground/85">
+                ✓ Certified
+              </span>
+              <span className="rounded-full bg-accent-tint px-3 py-1 font-semibold text-foreground/85">
+                ✓ Insured
+              </span>
+              <span className="rounded-full bg-accent-tint px-3 py-1 font-semibold text-foreground/85">
+                ✓ 3-Day Look Great Guarantee
+              </span>
+            </div>
             <div className="mt-8 flex flex-wrap gap-4">
               <Link
                 href="/book"
@@ -157,14 +168,6 @@ export default async function Home() {
                 understanding of animal behavior and comfort to every
                 appointment.
               </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <span className="rounded-full bg-accent-tint px-3 py-1 text-xs font-medium text-foreground/80">
-                  ✓ Certified
-                </span>
-                <span className="rounded-full bg-accent-tint px-3 py-1 text-xs font-medium text-foreground/80">
-                  ✓ Insured
-                </span>
-              </div>
             </RevealOnScroll>
           </div>
         </div>
