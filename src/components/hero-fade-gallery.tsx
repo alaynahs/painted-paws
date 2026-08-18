@@ -27,13 +27,27 @@ export default function HeroFadeGallery({
 }) {
   const [index, setIndex] = useState(0);
   const touchStartX = useRef<number | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    const id = setInterval(() => {
+    intervalRef.current = setInterval(() => {
       setIndex((i) => (i + 1) % items.length);
     }, 3500);
-    return () => clearInterval(id);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, [items.length]);
+
+  // Used by the arrows, dots, and swipe alike — restarts the auto-advance
+  // clock on manual navigation so it doesn't immediately auto-flip again a
+  // moment after the user just picked a photo.
+  function step(delta: number) {
+    setIndex((i) => (i + delta + items.length) % items.length);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(() => {
+      setIndex((i) => (i + 1) % items.length);
+    }, 3500);
+  }
 
   function handleTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.touches[0].clientX;
@@ -44,9 +58,9 @@ export default function HeroFadeGallery({
     const deltaX = e.changedTouches[0].clientX - touchStartX.current;
     const SWIPE_THRESHOLD = 40;
     if (deltaX > SWIPE_THRESHOLD) {
-      setIndex((i) => (i - 1 + items.length) % items.length);
+      step(-1);
     } else if (deltaX < -SWIPE_THRESHOLD) {
-      setIndex((i) => (i + 1) % items.length);
+      step(1);
     }
     touchStartX.current = null;
   }
@@ -82,6 +96,43 @@ export default function HeroFadeGallery({
           )}
         </div>
       ))}
+
+      {items.length > 1 && (
+        <>
+          <button
+            type="button"
+            onClick={() => step(-1)}
+            aria-label="Previous photo"
+            className="absolute top-1/2 left-3 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm transition-colors hover:bg-black/50"
+          >
+            <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5">
+              <path
+                d="M15 5l-7 7 7 7"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={() => step(1)}
+            aria-label="Next photo"
+            className="absolute top-1/2 right-3 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm transition-colors hover:bg-black/50"
+          >
+            <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5">
+              <path
+                d="M9 5l7 7-7 7"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        </>
+      )}
 
       <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-1.5">
         {items.map((_, i) => (
