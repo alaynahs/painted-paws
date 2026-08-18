@@ -898,7 +898,7 @@ export async function createAppointment(formData: FormData) {
     // each real booking a unique success URL — lets the Meta Pixel dedupe a
     // completed-booking conversion event against a manual page refresh
     // without needing to strip the confirmation banner's own query params.
-    "/account?booked=1&message=Payment+received.+Thank+you!&session_id={CHECKOUT_SESSION_ID}",
+    `/account?booked=1&message=Payment+received.+Thank+you!&session_id={CHECKOUT_SESSION_ID}&value=${price}`,
     `/api/book/checkout-cancelled?appointmentId=${appointment.id}`,
   );
 

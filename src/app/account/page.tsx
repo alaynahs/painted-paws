@@ -32,9 +32,17 @@ export default async function AccountPage({
     saved?: string;
     booked?: string;
     session_id?: string;
+    value?: string;
   }>;
 }) {
-  const { error, message, saved, booked, session_id: sessionId } = await searchParams;
+  const {
+    error,
+    message,
+    saved,
+    booked,
+    session_id: sessionId,
+    value,
+  } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -134,7 +142,9 @@ export default async function AccountPage({
 
       {booked && (
         <>
-          {sessionId && <TrackBookingConfirmed sessionId={sessionId} />}
+          {sessionId && (
+            <TrackBookingConfirmed sessionId={sessionId} value={value ? Number(value) : undefined} />
+          )}
           <p className="mt-6 rounded-xl border border-accent/40 bg-accent-tint px-4 py-3 text-sm text-foreground">
             You&apos;re booked! See the details below.
           </p>
