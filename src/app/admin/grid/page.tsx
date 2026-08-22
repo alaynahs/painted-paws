@@ -120,6 +120,12 @@ export default async function AdminScheduleGridPage({
           >
             Month view
           </Link>
+          <Link
+            href="/admin/month-list"
+            className="rounded-full border border-border px-5 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+          >
+            View all
+          </Link>
         </div>
       </div>
 

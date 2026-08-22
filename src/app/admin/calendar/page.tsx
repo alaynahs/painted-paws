@@ -124,6 +124,12 @@ export default async function AdminCalendarPage({
           >
             Week view
           </Link>
+          <Link
+            href={`/admin/month-list?month=${year}-${pad(month + 1)}`}
+            className="rounded-full border border-border px-5 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+          >
+            View all
+          </Link>
         </div>
       </div>
 
