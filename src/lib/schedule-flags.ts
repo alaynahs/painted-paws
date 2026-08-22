@@ -3,6 +3,7 @@
 // flag" the same way — a discrepancy between the two would be worse than
 // either one being wrong consistently.
 import { monthsSince } from "@/lib/pricing/pricing";
+import { todayInCentral } from "@/lib/format";
 import type { ScheduleFlagKey } from "@/components/schedule-flag-icons";
 import type { createClient } from "@/lib/supabase/server";
 
@@ -50,6 +51,7 @@ export function computeScheduleFlags(
     birth_date?: string | null;
     health_concerns?: string | null;
     rabies_vaccine_path?: string | null;
+    rabies_expires_at?: string | null;
   } | null,
   ctx: ScheduleContext,
 ): ScheduleFlagKey[] {
@@ -64,6 +66,13 @@ export function computeScheduleFlags(
     flags.push("senior");
   }
   if (pet?.health_concerns?.trim()) flags.push("healthConcerns");
-  if (!pet?.rabies_vaccine_path) flags.push("vaccineNeeded");
+  // A file attachment isn't actually required to record a rabies vaccine —
+  // the admin can log just an expiration date over the phone with no PDF
+  // on hand (see uploadRabiesVaccineAdmin) — so file presence alone isn't
+  // enough to clear this flag, and an expiration date in the past should
+  // still raise it even if a (now-stale) file is on record.
+  const expired = !!pet?.rabies_expires_at && pet.rabies_expires_at < todayInCentral();
+  const hasRecord = !!pet?.rabies_vaccine_path || !!pet?.rabies_expires_at;
+  if (!hasRecord || expired) flags.push("vaccineNeeded");
   return flags;
 }
