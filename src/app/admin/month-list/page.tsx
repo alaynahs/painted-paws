@@ -20,19 +20,11 @@ function toISO(year: number, month: number, day: number) {
   return `${year}-${pad(month + 1)}-${pad(day)}`;
 }
 
-function formatDayHeader(dateStr: string) {
-  const [y, m, d] = dateStr.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
-}
-
 // Every appointment for a whole month as small, color-flagged tiles (same
-// flag-stripe colors as the grid views) instead of paging through a week
-// at a time or clicking through the calendar grid — the "just show me all
-// of it at once" option.
+// flag-stripe colors as the grid views), all in one unbroken flowing grid
+// with the date printed on each tile — no per-day headers/cards eating
+// vertical space — so a full month fits on screen with little to no
+// scrolling instead of paging through a week at a time.
 export default async function AdminMonthListPage({
   searchParams,
 }: {
@@ -68,15 +60,13 @@ export default async function AdminMonthListPage({
 
   const scheduleContext = await buildScheduleContext(supabase);
 
-  const byDay: Record<string, ScheduleAppointment[]> = {};
-  for (const appt of appointments ?? []) {
+  const allAppts: ScheduleAppointment[] = (appointments ?? []).map((appt) => {
     const pet = Array.isArray(appt.pets) ? appt.pets[0] : appt.pets;
     const profile = Array.isArray(appt.profiles) ? appt.profiles[0] : appt.profiles;
     const addOns: string[] = appt.add_ons ?? [];
     const flags = computeScheduleFlags(appt, pet, scheduleContext);
 
-    if (!byDay[appt.appointment_date]) byDay[appt.appointment_date] = [];
-    byDay[appt.appointment_date].push({
+    return {
       id: appt.id,
       date: appt.appointment_date,
       hour: appt.appointment_hour,
@@ -95,9 +85,8 @@ export default async function AdminMonthListPage({
       paymentMethod: appt.payment_method,
       paymentStatus: appt.payment_status,
       flags,
-    });
-  }
-  const daysWithAppts = Object.keys(byDay).sort();
+    };
+  });
 
   const prevMonth = month === 0 ? 11 : month - 1;
   const prevYear = month === 0 ? year - 1 : year;
@@ -105,78 +94,57 @@ export default async function AdminMonthListPage({
   const nextYear = month === 11 ? year + 1 : year;
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-16">
-      <p className="text-sm font-medium tracking-wide text-accent-dark uppercase">
-        Admin
-      </p>
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="font-serif text-3xl text-foreground">
-          All Appointments
-        </h1>
-        <div className="flex flex-wrap gap-3">
+    <div className="mx-auto max-w-5xl px-6 py-8">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-serif text-2xl text-foreground">All Appointments</h1>
+        <div className="flex flex-wrap gap-2">
           <Link
             href="/admin"
-            className="rounded-full border border-border px-5 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+            className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
           >
             List view
           </Link>
           <Link
             href="/admin/grid"
-            className="rounded-full border border-border px-5 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+            className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
           >
             Week view
           </Link>
           <Link
             href="/admin/calendar"
-            className="rounded-full border border-border px-5 py-2 text-sm font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+            className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
           >
             Month view
           </Link>
         </div>
       </div>
 
-      <div className="mt-6 flex items-center justify-between gap-4">
+      <div className="mt-3 flex items-center justify-between gap-4">
         <Link
           href={`/admin/month-list?month=${prevYear}-${pad(prevMonth + 1)}`}
-          className="shrink-0 rounded-full border border-border px-5 py-2.5 text-sm whitespace-nowrap font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+          className="shrink-0 rounded-full border border-border px-4 py-1.5 text-xs whitespace-nowrap font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
         >
-          ← Previous month
+          ← Previous
         </Link>
         <p className="text-center text-sm text-muted">
-          {MONTH_NAMES[month]} {year}
+          {MONTH_NAMES[month]} {year} · {allAppts.length} appointment
+          {allAppts.length === 1 ? "" : "s"}
         </p>
         <Link
           href={`/admin/month-list?month=${nextYear}-${pad(nextMonth + 1)}`}
-          className="shrink-0 rounded-full border border-border px-5 py-2.5 text-sm whitespace-nowrap font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+          className="shrink-0 rounded-full border border-border px-4 py-1.5 text-xs whitespace-nowrap font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
         >
-          Next month →
+          Next →
         </Link>
       </div>
 
-      <p className="mt-4 text-sm text-muted">
-        {appointments?.length ?? 0} appointment
-        {appointments?.length === 1 ? "" : "s"} in {MONTH_NAMES[month]}.
-      </p>
-
-      <div className="mt-6 space-y-6">
-        {daysWithAppts.length > 0 ? (
-          daysWithAppts.map((day) => (
-            <section
-              key={day}
-              className="rounded-2xl border border-border bg-card p-5"
-            >
-              <h2 className="font-serif text-lg text-foreground">
-                {formatDayHeader(day)}
-              </h2>
-              <div className="mt-3">
-                <MonthListTiles
-                  appts={byDay[day]}
-                  confirmAction={confirmAppointment}
-                  setOnlinePaymentAction={setAppointmentOnlinePayment}
-                />
-              </div>
-            </section>
-          ))
+      <div className="mt-4">
+        {allAppts.length > 0 ? (
+          <MonthListTiles
+            appts={allAppts}
+            confirmAction={confirmAppointment}
+            setOnlinePaymentAction={setAppointmentOnlinePayment}
+          />
         ) : (
           <p className="text-sm text-muted">
             No appointments scheduled for {MONTH_NAMES[month]}.

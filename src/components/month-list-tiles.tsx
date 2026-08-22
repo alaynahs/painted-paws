@@ -2,18 +2,23 @@
 
 import { useState } from "react";
 import { formatHour } from "@/lib/format";
-import { formatServiceLabel } from "@/lib/pricing/pricing";
 import { SCHEDULE_FLAGS } from "@/components/schedule-flag-icons";
 import AppointmentDetailPanel, {
   FlagBadge,
   type ScheduleAppointment,
 } from "@/components/appointment-detail-panel";
 
+function shortDate(dateStr: string) {
+  const [, m, d] = dateStr.split("-").map(Number);
+  return `${m}/${d}`;
+}
+
 // Same color-stripe-by-flag treatment as the grid's Block component, just
 // laid out as small tiles that wrap in normal document flow instead of
-// being absolutely time-positioned in a day column — lets every
-// appointment in the month show at once instead of one day's worth at a
-// time.
+// being absolutely time-positioned in a day column, with the date printed
+// on the tile itself instead of a per-day section header — that's what
+// lets a whole month's worth flow as one dense, unbroken grid instead of
+// paying a header+card tax on every single day.
 function Tile({
   appt,
   confirmAction,
@@ -27,12 +32,12 @@ function Tile({
 
   return (
     <div
-      className={`overflow-hidden rounded-lg border border-border bg-card shadow-sm transition-shadow ${
-        open ? "w-full shadow-md" : "w-[168px]"
+      className={`overflow-hidden rounded-md border border-border bg-card shadow-sm transition-shadow ${
+        open ? "w-full shadow-md" : "w-[122px]"
       }`}
     >
       <div className="flex">
-        <div className="flex w-1.5 shrink-0 flex-col">
+        <div className="flex w-1 shrink-0 flex-col">
           {appt.flags.length > 0 ? (
             appt.flags.map((flagKey) => {
               const flag = SCHEDULE_FLAGS.find((f) => f.key === flagKey);
@@ -46,27 +51,21 @@ function Tile({
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="min-w-0 flex-1 cursor-pointer px-2.5 py-2 text-left"
+          className="min-w-0 flex-1 cursor-pointer px-1.5 py-1 text-left"
         >
-          <div className="flex min-w-0 items-center gap-1">
-            <p className="min-w-0 truncate text-[12px] font-medium text-foreground">
-              {appt.petName}
-            </p>
-            {appt.status === "requested" && (
-              <span className="shrink-0 rounded-full bg-accent-tint px-1.5 py-0.5 text-[9px] font-medium tracking-wide text-accent-dark uppercase">
-                Req
-              </span>
-            )}
-          </div>
+          <p className="min-w-0 truncate text-[11px] font-medium text-foreground">
+            {appt.petName}
+          </p>
           {appt.flags.length > 0 && (
             <div className="mt-0.5 flex flex-wrap items-center gap-0.5">
               {appt.flags.map((flagKey) => (
-                <FlagBadge key={flagKey} flagKey={flagKey} sizeClass="h-3 w-3" />
+                <FlagBadge key={flagKey} flagKey={flagKey} sizeClass="h-2.5 w-2.5" />
               ))}
             </div>
           )}
-          <p className="truncate text-[10px] text-muted">
-            {formatHour(appt.hour, appt.minute)} · {formatServiceLabel(appt.service)}
+          <p className="truncate text-[9px] text-muted">
+            {shortDate(appt.date)} · {formatHour(appt.hour, appt.minute)}
+            {appt.status === "requested" && " · Req"}
           </p>
         </button>
       </div>
@@ -97,7 +96,7 @@ export default function MonthListTiles({
   setOnlinePaymentAction: (appointmentId: string) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-1.5">
       {appts.map((appt) => (
         <Tile
           key={appt.id}
