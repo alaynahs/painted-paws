@@ -51,12 +51,12 @@ import {
   todayInCentral,
 } from "@/lib/format";
 import { checkPickupEligibility } from "@/lib/geocoding";
+import { logAppointmentHistory } from "@/lib/appointment-history";
 import { notifyEmail, notifyText } from "@/lib/notifications/service";
 import {
   BUSINESS_EMAIL,
   adminNewBookingEmail,
   appointmentConfirmedEmail,
-  bookingConfirmationEmail,
   bookingConfirmationSms,
   checkoutAbandonedEmail,
   firstTimeWelcomeEmail,
@@ -354,7 +354,6 @@ export async function sendBookingNotifications(
     rabiesVaccinePath,
     service,
     price,
-    needsWaiver = false,
   }: {
     customerId: string;
     petId: string;
@@ -366,10 +365,6 @@ export async function sendBookingNotifications(
     rabiesVaccinePath: string | null;
     service: string;
     price: number;
-    // True when this booking (an admin phone booking) went through without
-    // the waiver being filled out — the confirmation email then links to a
-    // standalone page for the customer to sign it before their visit.
-    needsWaiver?: boolean;
   },
 ) {
   const { data: profile } = await supabase
@@ -398,15 +393,6 @@ export async function sendBookingNotifications(
     target,
     "booking_confirmation",
     bookingConfirmationSms(vars),
-  );
-  await notifyEmail(
-    supabase,
-    target,
-    "booking_confirmation",
-    bookingConfirmationEmail({
-      ...vars,
-      waiverUrl: needsWaiver ? `${origin}/sign-waiver/${appointmentId}` : undefined,
-    }),
   );
 
   await notifyEmail(
@@ -871,6 +857,13 @@ export async function createAppointment(formData: FormData) {
     redirect(`/book?error=${encodeURIComponent(error?.message ?? "Could not book")}`);
   }
 
+  await logAppointmentHistory(supabase, {
+    appointmentId: appointment.id,
+    action: "booked",
+    actorType: "customer",
+    actorId: user.id,
+  });
+
   if (redeemablePack) {
     await redeemPackCredit(supabase, redeemablePack);
   }
@@ -1059,6 +1052,13 @@ export async function updateAppointment(formData: FormData) {
     redirect(`${editPath}?error=${encodeURIComponent(error.message)}`);
   }
 
+  await logAppointmentHistory(supabase, {
+    appointmentId,
+    action: "edited",
+    actorType: admin ? "admin" : "customer",
+    actorId: user.id,
+  });
+
   redirect(admin ? "/admin?saved=1" : "/account?saved=1");
 }
 
@@ -1108,6 +1108,14 @@ export async function cancelAppointment(formData: FormData) {
   }
 
   await query;
+
+  await logAppointmentHistory(supabase, {
+    appointmentId,
+    action: "cancelled",
+    actorType: admin ? "admin" : "customer",
+    actorId: user.id,
+    note: reason,
+  });
 
   if (noShow && appt) {
     const customerId = appt.customer_id as string;
@@ -1169,6 +1177,13 @@ export async function confirmAppointment(appointmentId: string) {
     .single();
 
   if (appt) {
+    await logAppointmentHistory(supabase, {
+      appointmentId,
+      action: "confirmed",
+      actorType: admin ? "admin" : "customer",
+      actorId: user.id,
+    });
+
     const pet = Array.isArray(appt.pets) ? appt.pets[0] : appt.pets;
     const { data: profile } = await supabase
       .from("profiles")
@@ -1711,7 +1726,7 @@ export async function searchCustomers(query: string) {
 }
 
 export async function adminCreateAppointment(formData: FormData) {
-  const { supabase } = await requireAdmin();
+  const { supabase, user } = await requireAdmin();
 
   const customerId = formData.get("customerId") as string;
   const fields = readBookingFields(formData);
@@ -1817,6 +1832,13 @@ export async function adminCreateAppointment(formData: FormData) {
     );
   }
 
+  await logAppointmentHistory(supabase, {
+    appointmentId: appointment.id,
+    action: "booked",
+    actorType: "admin",
+    actorId: user.id,
+  });
+
   if (redeemablePack) {
     await redeemPackCredit(supabase, redeemablePack);
   }
@@ -1841,7 +1863,6 @@ export async function adminCreateAppointment(formData: FormData) {
     rabiesVaccinePath: pet.rabies_vaccine_path,
     service: fields.service,
     price,
-    needsWaiver: !waiverSigned,
   });
 
   redirect(`${successBase}?booked=${encodeURIComponent(pet.name)}`);

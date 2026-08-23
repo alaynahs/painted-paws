@@ -1,5 +1,3 @@
-import { NO_SHOW_GRACE_MINUTES } from "@/lib/booking-hours";
-
 export const BUSINESS_NAME = "Painted Paws";
 export const BUSINESS_EMAIL = "booking@paintedpawsaustin.com";
 export const BUSINESS_ADDRESS = "304 Lemon Light Lane, Pflugerville, TX";
@@ -66,46 +64,6 @@ If you need to reschedule, please let us know as soon as possible.
 
 We can't wait to see you!
 ${BUSINESS_NAME}`;
-}
-
-export function bookingConfirmationEmail(vars: {
-  firstName: string;
-  petName: string;
-  date: string;
-  time: string;
-  // Set when this was booked by the admin (e.g. a phone booking) and the
-  // waiver wasn't filled out at booking time — links the customer to a
-  // standalone page to sign it before their visit.
-  waiverUrl?: string;
-}): EmailContent {
-  const waiverLine = vars.waiverUrl
-    ? `\n\nOne last thing — please sign our grooming waiver before your visit:\n[Sign the waiver here](${vars.waiverUrl})\n`
-    : "";
-  return {
-    subject: vars.waiverUrl
-      ? "Upcoming Appointment and Waiver 🐾"
-      : "You're Booked! 🐾",
-    body: `Hi ${vars.firstName},
-
-Your appointment is confirmed!
-
-Appointment Details
-• Pet: ${vars.petName}
-• Date: ${vars.date}
-• Time: ${vars.time}
-• Address: ${BUSINESS_ADDRESS}
-${waiverLine}
-Please arrive on time and make sure your pup has had a potty break before coming in.
-
-Curbside hand-off: our home workspace is a pet-only zone — no walk-ins. When you arrive, park in the driveway and send a quick text; we'll meet you at your car to bring your pet in, and do the same for pickup once the groom is complete.
-
-Please note: if you haven't shown up ${NO_SHOW_GRACE_MINUTES} minutes past your appointment time, it will be cancelled as a no-show.
-
-If you need to make any changes, simply reply to this email or contact us.
-
-We look forward to seeing you and ${vars.petName}!
-${BUSINESS_NAME}`,
-  };
 }
 
 // Sent when an admin books an appointment on a customer's behalf (e.g. a

@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { requireAdmin } from "@/lib/supabase/admin";
 import { getPricingConfig } from "@/lib/pricing/config";
+import { logAppointmentHistory } from "@/lib/appointment-history";
 import { notifyEmail, type NotificationType } from "@/lib/notifications/service";
 import type { QuickMessageType } from "@/lib/notifications/quick-message-labels";
 import {
@@ -390,7 +391,7 @@ export async function markAppointmentComplete(
   appointmentId: string,
   includeTip: boolean,
 ) {
-  const { supabase } = await requireAdmin();
+  const { supabase, user } = await requireAdmin();
 
   const { data } = await supabase
     .from("appointments")
@@ -410,6 +411,13 @@ export async function markAppointmentComplete(
     .from("appointments")
     .update({ status: "completed" })
     .eq("id", appointmentId);
+
+  await logAppointmentHistory(supabase, {
+    appointmentId,
+    action: "completed",
+    actorType: "admin",
+    actorId: user.id,
+  });
 
   if (profile?.email) {
     const origin = (await headers()).get("origin");

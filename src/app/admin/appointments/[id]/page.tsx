@@ -75,13 +75,23 @@ export default async function AdminEditAppointmentPage({
       <p className="text-sm font-medium tracking-wide text-accent-dark uppercase">
         Admin · Edit appointment
       </p>
-      <h1 className="mt-3 font-serif text-3xl text-foreground">
-        {appointment.pets.name}&apos;s Appointment
-      </h1>
-      <p className="mt-1 text-sm text-muted">
-        {appointment.profiles?.full_name ?? "Unknown owner"}
-        {appointment.profiles?.phone ? ` · ${appointment.profiles.phone}` : ""}
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="mt-3 font-serif text-3xl text-foreground">
+            {appointment.pets.name}&apos;s Appointment
+          </h1>
+          <p className="mt-1 text-sm text-muted">
+            {appointment.profiles?.full_name ?? "Unknown owner"}
+            {appointment.profiles?.phone ? ` · ${appointment.profiles.phone}` : ""}
+          </p>
+        </div>
+        <Link
+          href={`/admin/appointments/${appointment.id}/history`}
+          className="mt-3 shrink-0 rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+        >
+          Appointment History
+        </Link>
+      </div>
 
       {error && (
         <p className="mt-6 rounded-xl border border-border bg-accent-tint px-4 py-3 text-sm text-foreground">

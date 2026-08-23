@@ -101,6 +101,10 @@ const faqGroups = [
         q: "What happens after repeated no-shows?",
         a: "After 3 no-shows, online booking is disabled for that account. You'll need to email us directly to book any future appointments.",
       },
+      {
+        q: "Is my deposit refundable if I need to cancel?",
+        a: "Yes. Whether you paid in full or with a 50% deposit, the full amount is refundable if you need to cancel or in the event of a no-show.",
+      },
     ],
   },
   {
@@ -108,7 +112,7 @@ const faqGroups = [
     items: [
       {
         q: "How can I pay?",
-        a: "Payment is collected online at the time of booking, by card.",
+        a: "Payment is collected online by card. You can either pay in full at booking, or pay a 50% deposit and settle the rest after your appointment.",
       },
       {
         q: "What do memberships include?",
