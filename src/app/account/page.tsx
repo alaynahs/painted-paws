@@ -207,7 +207,7 @@ export default async function AccountPage({
                       : appt.payment_status === "refunded"
                         ? "Refunded"
                         : appt.payment_status === "deposit_paid"
-                          ? "Deposit paid"
+                          ? "Partially paid"
                           : "Pay online (unpaid)"
                     : "Pay in person"}
                   {" · "}

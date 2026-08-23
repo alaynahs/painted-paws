@@ -74,7 +74,7 @@ export default function AppointmentDetailPanel({
         : appt.paymentStatus === "refunded"
           ? "Refunded"
           : appt.paymentStatus === "deposit_paid"
-            ? "Deposit paid"
+            ? "Partially paid"
             : "Pay online (unpaid)"
       : "Pay in person";
 
