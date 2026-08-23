@@ -117,10 +117,7 @@ export default async function AccountPage({
 
   const unpaidOnlineAppointments = upcomingAppointments
     .filter(
-      (a) =>
-        a.payment_method === "online" &&
-        a.payment_status !== "paid" &&
-        a.payment_status !== "refunded",
+      (a) => a.payment_method === "online" && a.payment_status === "unpaid",
     )
     .map((a) => ({
       id: a.id,
@@ -209,7 +206,9 @@ export default async function AccountPage({
                       ? "Paid online"
                       : appt.payment_status === "refunded"
                         ? "Refunded"
-                        : "Pay online (unpaid)"
+                        : appt.payment_status === "deposit_paid"
+                          ? "Deposit paid"
+                          : "Pay online (unpaid)"
                     : "Pay in person"}
                   {" · "}
                   {appt.status}
@@ -233,8 +232,12 @@ export default async function AccountPage({
                   </Link>
                   <CancelAppointmentButton appointmentId={appt.id} />
                   {appt.payment_method === "online" &&
-                    appt.payment_status !== "paid" &&
-                    appt.payment_status !== "refunded" && (
+                    // Deliberately excludes "deposit_paid" — that
+                    // appointment already has a partial payment on record,
+                    // and the remaining-balance link is admin-sent (see
+                    // sendPaymentLinkEmail), not a customer self-serve full
+                    // charge that would double up on the deposit.
+                    appt.payment_status === "unpaid" && (
                       <form action={payAppointmentNow.bind(null, appt.id)}>
                         <button
                           type="submit"

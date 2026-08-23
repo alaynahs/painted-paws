@@ -73,7 +73,9 @@ export default function AppointmentDetailPanel({
         ? "Paid online"
         : appt.paymentStatus === "refunded"
           ? "Refunded"
-          : "Pay online (unpaid)"
+          : appt.paymentStatus === "deposit_paid"
+            ? "Deposit paid"
+            : "Pay online (unpaid)"
       : "Pay in person";
 
   // Uploading before/after shots only makes sense once the groom has

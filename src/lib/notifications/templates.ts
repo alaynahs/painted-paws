@@ -115,20 +115,42 @@ export function paymentLinkEmail(vars: {
   petName: string;
   date: string;
   time: string;
-  price: number;
+  // What this specific link charges — half the total for a deposit, or
+  // whatever's left for a remainder link. Falls back to the full price
+  // when portion is unset.
+  amountDue: number;
+  totalPrice: number;
+  portion?: "deposit" | "remainder";
   payUrl: string;
 }): EmailContent {
+  const subject =
+    vars.portion === "deposit"
+      ? `50% Deposit for ${vars.petName}'s Appointment`
+      : vars.portion === "remainder"
+        ? `Remaining Balance for ${vars.petName}'s Appointment`
+        : `Complete Payment for ${vars.petName}'s Appointment`;
+
+  const intro =
+    vars.portion === "deposit"
+      ? `Here's your deposit link to reserve ${vars.petName}'s upcoming appointment.`
+      : vars.portion === "remainder"
+        ? `Here's your link for the remaining balance on ${vars.petName}'s appointment.`
+        : `Here's your payment link for ${vars.petName}'s upcoming appointment.`;
+
+  const totalLine = vars.portion
+    ? `\n• Amount due now: $${vars.amountDue}\n• Total appointment price: $${vars.totalPrice}`
+    : `\n• Total: $${vars.amountDue}`;
+
   return {
-    subject: `Complete Payment for ${vars.petName}'s Appointment`,
+    subject,
     body: `Hi ${vars.firstName},
 
-Here's your payment link for ${vars.petName}'s upcoming appointment.
+${intro}
 
 Appointment Details
 • Pet: ${vars.petName}
 • Date: ${vars.date}
-• Time: ${vars.time}
-• Total: $${vars.price}
+• Time: ${vars.time}${totalLine}
 
 [Pay now](${vars.payUrl})
 

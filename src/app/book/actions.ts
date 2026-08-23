@@ -1235,6 +1235,11 @@ async function createAppointmentCheckoutSession(
   // opened whenever the customer gets to it, so it gets Stripe's 24-hour
   // ceiling instead — see sendPaymentLinkEmail below.
   expiresInSeconds: number = 30 * 60,
+  // Set for a deposit/remainder-balance link so the Stripe checkout page and
+  // receipt read clearly (e.g. "50% Deposit"), and so the webhook knows this
+  // isn't a full payment — see markAppointmentPaid.
+  portionLabel?: string,
+  paymentPortion?: "deposit" | "remainder",
 ): Promise<string | null> {
   if (!stripe) return null;
   const session = await stripe.checkout.sessions.create({
@@ -1245,7 +1250,7 @@ async function createAppointmentCheckoutSession(
         price_data: {
           currency: "usd",
           product_data: {
-            name: `${petName} · ${formatServiceLabel(service)}`,
+            name: `${petName} · ${formatServiceLabel(service)}${portionLabel ? ` (${portionLabel})` : ""}`,
             // Stripe fetches this from its own servers, so it only renders
             // once this image is reachable at a real public URL (i.e. once
             // the site is deployed, not while testing on localhost).
@@ -1270,7 +1275,7 @@ async function createAppointmentCheckoutSession(
           ]
         : []),
     ],
-    metadata: { appointmentId },
+    metadata: paymentPortion ? { appointmentId, paymentPortion } : { appointmentId },
     success_url: `${origin}${successPath}`,
     cancel_url: `${origin}${cancelPath}`,
     // This is what actually protects the slot from a customer who abandons
@@ -1299,6 +1304,14 @@ export async function payAppointmentNow(appointmentId: string) {
 
   if (!appt) redirect("/account?error=Appointment%20not%20found");
   if (appt.payment_status === "paid") redirect("/account");
+  // A deposit's already in — this self-serve flow always charges the full
+  // price, which would double-bill on top of it. The remaining-balance
+  // link for these is admin-sent instead (see sendPaymentLinkEmail).
+  if (appt.payment_status === "deposit_paid") {
+    redirect(
+      "/account?error=A+deposit+is+already+on+file+for+this+appointment+%E2%80%94+we%27ll+email+you+a+link+for+the+remaining+balance.",
+    );
+  }
 
   if (!stripe) {
     redirect(
@@ -1374,8 +1387,11 @@ export async function payAllUnpaidAppointmentsNow() {
     .eq("customer_id", user.id)
     .eq("payment_method", "online")
     .neq("status", "cancelled")
-    .neq("payment_status", "paid")
-    .neq("payment_status", "refunded")
+    // Deliberately excludes "deposit_paid", not just "paid"/"refunded" — a
+    // full bulk charge here would double-bill for whatever's already been
+    // collected as a deposit; the remaining-balance link for those is
+    // admin-sent instead (see sendPaymentLinkEmail).
+    .eq("payment_status", "unpaid")
     .gte("appointment_date", todayStr);
 
   const unpaid = appts ?? [];
@@ -1407,14 +1423,18 @@ export async function payAllUnpaidAppointmentsNow() {
 // Lets an admin email a Stripe payment link straight to a customer for an
 // appointment booked on their behalf (e.g. a phone booking) instead of
 // requiring them to log in and click "Pay Now" themselves.
-export async function sendPaymentLinkEmail(appointmentId: string) {
+export async function sendPaymentLinkEmail(appointmentId: string, formData: FormData) {
   const { supabase } = await requireAdmin();
   const editPath = `/admin/appointments/${appointmentId}`;
+  // "full" | "deposit" | "remainder" — deposit charges half now and leaves
+  // the appointment in a new "deposit_paid" state; remainder collects
+  // whatever's actually still owed once that deposit's in.
+  const portion = (formData.get("portion") as string) || "full";
 
   const { data: appt } = await supabase
     .from("appointments")
     .select(
-      "id, customer_id, price, sales_tax, service, appointment_date, appointment_hour, appointment_minute, payment_status, pets(name)",
+      "id, customer_id, price, sales_tax, amount_paid, service, appointment_date, appointment_hour, appointment_minute, payment_status, pets(name)",
     )
     .eq("id", appointmentId)
     .single();
@@ -1422,6 +1442,14 @@ export async function sendPaymentLinkEmail(appointmentId: string) {
   if (!appt) redirect(`${editPath}?error=Appointment%20not%20found`);
   if (appt.payment_status === "paid") {
     redirect(`${editPath}?message=${encodeURIComponent("This appointment is already paid.")}`);
+  }
+  if (portion === "remainder" && appt.payment_status !== "deposit_paid") {
+    redirect(`${editPath}?error=${encodeURIComponent("No deposit has been paid yet.")}`);
+  }
+  if (portion !== "remainder" && appt.payment_status === "deposit_paid") {
+    redirect(
+      `${editPath}?error=${encodeURIComponent("A deposit is already paid — send the remaining balance link instead.")}`,
+    );
   }
   if (!stripe) {
     redirect(
@@ -1444,16 +1472,43 @@ export async function sendPaymentLinkEmail(appointmentId: string) {
   const pet = Array.isArray(appt.pets) ? appt.pets[0] : appt.pets;
   const origin = (await headers()).get("origin");
 
+  // A full payment splits subtotal/tax exactly as billed, same as always.
+  // A deposit charges half of each so the tax line still reads sensibly on
+  // the checkout page. The remainder just charges whatever's actually left
+  // as one flat amount, so rounding from the deposit's half-split never
+  // leaves a stray cent uncollected.
+  let subtotal: number;
+  let salesTax: number;
+  let portionLabel: string | undefined;
+  let paymentPortion: "deposit" | "remainder" | undefined;
+
+  if (portion === "deposit") {
+    subtotal = Math.round(((appt.price - appt.sales_tax) / 2) * 100) / 100;
+    salesTax = Math.round((appt.sales_tax / 2) * 100) / 100;
+    portionLabel = "50% Deposit";
+    paymentPortion = "deposit";
+  } else if (portion === "remainder") {
+    subtotal = Math.max(0, Math.round((appt.price - appt.amount_paid) * 100) / 100);
+    salesTax = 0;
+    portionLabel = "Remaining Balance";
+    paymentPortion = "remainder";
+  } else {
+    subtotal = appt.price - appt.sales_tax;
+    salesTax = appt.sales_tax;
+  }
+
   const checkoutUrl = await createAppointmentCheckoutSession(
     origin,
     appt.id,
     pet?.name ?? "Pet",
     appt.service,
-    appt.price - appt.sales_tax,
-    appt.sales_tax,
+    subtotal,
+    salesTax,
     "/account?message=Payment+received.+Thank+you!",
     `/api/book/checkout-cancelled?appointmentId=${appt.id}`,
     24 * 60 * 60,
+    portionLabel,
+    paymentPortion,
   );
 
   if (!checkoutUrl) {
@@ -1469,7 +1524,9 @@ export async function sendPaymentLinkEmail(appointmentId: string) {
       petName: pet?.name ?? "your pet",
       date: formatDate(appt.appointment_date),
       time: formatHour(appt.appointment_hour, appt.appointment_minute),
-      price: appt.price,
+      amountDue: Math.round((subtotal + salesTax) * 100) / 100,
+      totalPrice: appt.price,
+      portion: paymentPortion,
       payUrl: checkoutUrl,
     }),
   );

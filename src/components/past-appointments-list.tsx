@@ -56,14 +56,17 @@ export default function PastAppointmentsList({
                       ? "Paid online"
                       : appt.payment_status === "refunded"
                         ? "Refunded"
-                        : "Pay online (unpaid)"
+                        : appt.payment_status === "deposit_paid"
+                          ? "Deposit paid"
+                          : "Pay online (unpaid)"
                     : "Pay in person"}
                   {" · "}
                   {appt.status}
                 </p>
                 {appt.payment_method === "online" &&
-                  appt.payment_status !== "paid" &&
-                  appt.payment_status !== "refunded" &&
+                  // Excludes "deposit_paid" too — see account/page.tsx for
+                  // why a self-serve full charge here would double-bill.
+                  appt.payment_status === "unpaid" &&
                   appt.status !== "cancelled" && (
                     <div className="mt-3">
                       <form action={payAppointmentNowAction.bind(null, appt.id)}>

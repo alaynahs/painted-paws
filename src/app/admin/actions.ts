@@ -447,9 +447,18 @@ export async function markAppointmentComplete(
 // forever.
 export async function markAppointmentPaid(appointmentId: string) {
   const { supabase } = await requireAdmin();
+  const { data: appt } = await supabase
+    .from("appointments")
+    .select("price")
+    .eq("id", appointmentId)
+    .single();
   await supabase
     .from("appointments")
-    .update({ payment_status: "paid" })
+    // Always sets amount_paid to the full price, even if a deposit had
+    // already covered part of it — this is "the rest came in outside
+    // Stripe" (cash, card reader), so the appointment is fully settled
+    // either way.
+    .update({ payment_status: "paid", amount_paid: appt?.price ?? 0 })
     .eq("id", appointmentId);
   revalidatePath(`/admin/appointments/${appointmentId}`);
   redirect(`/admin/appointments/${appointmentId}?message=Marked+paid.`);

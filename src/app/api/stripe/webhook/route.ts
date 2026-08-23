@@ -13,11 +13,48 @@ async function markAppointmentPaid(
   supabase: ReturnType<typeof createServiceClient>,
   appointmentId: string,
   paymentIntentId: string | null,
+  // Set for a deposit/remainder-balance checkout — anything else (a plain
+  // full payment, or the bulk "pay all upcoming" flow) marks the
+  // appointment fully paid outright, same as always.
+  paymentPortion?: "deposit" | "remainder",
+  amountPaidNowCents?: number,
 ) {
+  const { data: current } = await supabase
+    .from("appointments")
+    .select("price, amount_paid")
+    .eq("id", appointmentId)
+    .single();
+
+  if (!current) return;
+
+  let newAmountPaid: number;
+  let newStatus: "paid" | "deposit_paid";
+
+  if (paymentPortion) {
+    const amountNow = (amountPaidNowCents ?? 0) / 100;
+    newAmountPaid = Math.round(((current.amount_paid ?? 0) + amountNow) * 100) / 100;
+    // Small epsilon guards against a fractional-cent rounding mismatch
+    // between what was quoted and what Stripe actually collected.
+    newStatus = newAmountPaid >= current.price - 0.01 ? "paid" : "deposit_paid";
+  } else {
+    newAmountPaid = current.price;
+    newStatus = "paid";
+  }
+
   await supabase
     .from("appointments")
-    .update({ payment_status: "paid", stripe_payment_intent_id: paymentIntentId })
+    .update({
+      payment_status: newStatus,
+      amount_paid: newAmountPaid,
+      stripe_payment_intent_id: paymentIntentId,
+    })
     .eq("id", appointmentId);
+
+  // A deposit or remainder installment doesn't re-send the full "you're
+  // booked" notification set — that already went out at booking time (or
+  // on whichever payment first confirmed it), and resending it here would
+  // just be a confusing duplicate for what's really just a payment update.
+  if (paymentPortion) return;
 
   const { data: appt } = await supabase
     .from("appointments")
@@ -125,9 +162,19 @@ export async function POST(request: NextRequest) {
 
     const paymentIntentId =
       typeof session.payment_intent === "string" ? session.payment_intent : null;
+    const paymentPortion = session.metadata?.paymentPortion as
+      | "deposit"
+      | "remainder"
+      | undefined;
 
     if (appointmentId) {
-      await markAppointmentPaid(createServiceClient(), appointmentId, paymentIntentId);
+      await markAppointmentPaid(
+        createServiceClient(),
+        appointmentId,
+        paymentIntentId,
+        paymentPortion,
+        session.amount_total ?? undefined,
+      );
     }
 
     // The "pay for all upcoming services" bulk checkout from the account

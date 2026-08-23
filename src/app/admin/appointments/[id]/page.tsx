@@ -41,6 +41,9 @@ export default async function AdminEditAppointmentPage({
   const sendPaymentLinkWithId = sendPaymentLinkEmail.bind(null, appointment.id);
   const markPaidWithId = markAppointmentPaid.bind(null, appointment.id);
   const config = await getPricingConfig();
+  const depositAmount = Math.round((appointment.price / 2) * 100) / 100;
+  const remainingAmount =
+    Math.round((appointment.price - appointment.amount_paid) * 100) / 100;
 
   let promoDiscountPercent: number | null = null;
   if (appointment.promo_id) {
@@ -107,9 +110,10 @@ export default async function AdminEditAppointmentPage({
         )}
       </div>
 
-      {appointment.payment_status !== "paid" && appointment.payment_status !== "refunded" && (
+      {appointment.payment_status === "unpaid" && (
         <div className="mt-4 flex flex-wrap gap-3">
           <form action={sendPaymentLinkWithId}>
+            <input type="hidden" name="portion" value="full" />
             <button
               type="submit"
               className="rounded-full border border-blue-600 px-6 py-2.5 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-600 hover:text-white"
@@ -118,6 +122,19 @@ export default async function AdminEditAppointmentPage({
             </button>
             <p className="mt-1.5 text-xs text-muted">
               Emails a Stripe payment link straight to the pet parent.
+            </p>
+          </form>
+          <form action={sendPaymentLinkWithId}>
+            <input type="hidden" name="portion" value="deposit" />
+            <button
+              type="submit"
+              className="rounded-full border border-blue-600 px-6 py-2.5 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-600 hover:text-white"
+            >
+              Email 50% Deposit Link (${depositAmount})
+            </button>
+            <p className="mt-1.5 text-xs text-muted">
+              Collects half now — email the remaining balance link once the
+              groom is done.
             </p>
           </form>
           <form action={markPaidWithId}>
@@ -132,6 +149,41 @@ export default async function AdminEditAppointmentPage({
               reader, etc.), so it counts on the revenue report.
             </p>
           </form>
+        </div>
+      )}
+
+      {appointment.payment_status === "deposit_paid" && (
+        <div className="mt-4">
+          <p className="rounded-xl border border-border bg-accent-tint px-4 py-2.5 text-sm text-foreground/90">
+            Deposit paid: ${appointment.amount_paid} of ${appointment.price} —
+            ${remainingAmount} remaining
+          </p>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <form action={sendPaymentLinkWithId}>
+              <input type="hidden" name="portion" value="remainder" />
+              <button
+                type="submit"
+                className="rounded-full border border-blue-600 px-6 py-2.5 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-600 hover:text-white"
+              >
+                Email Remaining Balance Link (${remainingAmount})
+              </button>
+              <p className="mt-1.5 text-xs text-muted">
+                Emails a Stripe link for what&apos;s still owed.
+              </p>
+            </form>
+            <form action={markPaidWithId}>
+              <button
+                type="submit"
+                className="rounded-full bg-accent px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-dark"
+              >
+                Mark Fully Paid
+              </button>
+              <p className="mt-1.5 text-xs text-muted">
+                Confirms the remaining balance was collected outside
+                checkout (cash, card reader, etc.).
+              </p>
+            </form>
+          </div>
         </div>
       )}
 

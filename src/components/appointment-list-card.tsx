@@ -70,7 +70,9 @@ export default function AppointmentListCard({ appt }: { appt: AppointmentListIte
             ? "Paid online"
             : appt.payment_status === "refunded"
               ? "Refunded"
-              : "Pay online (unpaid)"
+              : appt.payment_status === "deposit_paid"
+                ? "Deposit paid"
+                : "Pay online (unpaid)"
           : "Pay in person"}
       </p>
       {appt.pickup_dropoff && appt.pickup_address && (
