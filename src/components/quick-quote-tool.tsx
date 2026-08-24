@@ -12,6 +12,7 @@ import {
 import {
   calculateDogPrice,
   calculateCatPrice,
+  calculateSalesTax,
   dogAddOns,
   catAddOns,
   DOG_ADD_ONS_INCLUDED_WITH_SERVICE,
@@ -20,6 +21,7 @@ import {
   DOG_SERVICE_DESCRIPTIONS,
   CAT_SERVICE_LABELS,
   CAT_SERVICE_DESCRIPTIONS,
+  SALES_TAX_PERCENT,
   type DogBookingService,
   type CatServiceLevel,
   type PricingConfig,
@@ -153,6 +155,10 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
   const addOnsTotal = addOnCatalog
     .filter((a) => selectedAddOns.includes(a.name))
     .reduce((sum, a) => sum + a.price, 0);
+
+  const subtotal = (result?.total ?? 0) + addOnsTotal;
+  const salesTax = calculateSalesTax(subtotal);
+  const total = subtotal + salesTax;
 
   function toggleAddOn(name: string) {
     setSelectedAddOns((prev) =>
@@ -388,7 +394,10 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
               : ` · ${isKitten ? "Kitten" : "Adult"}`}
           </p>
           <p className="mt-4 font-serif text-4xl text-accent-dark">
-            ${(result.total + addOnsTotal).toFixed(2).replace(/\.00$/, "")}
+            ${total.toFixed(2).replace(/\.00$/, "")}
+          </p>
+          <p className="mt-1 text-xs text-muted">
+            ${subtotal.toFixed(2).replace(/\.00$/, "")} + ${salesTax.toFixed(2)} sales tax ({SALES_TAX_PERCENT}%)
           </p>
           <div className="mt-4 border-t border-border pt-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted">
