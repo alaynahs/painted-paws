@@ -15,13 +15,24 @@ export interface ScheduleContext {
 }
 
 // Two bulk queries instead of one per appointment: "new customer" needs
-// every appointment's date for that customer (not just this view's date
-// range), and "caution" needs every pet with a caution-rated note.
+// every appointment date for a customer (not just this view's date range)
+// to find their true earliest visit, and "caution" needs every pet with a
+// caution-rated note. customerIds narrows the first query to just the
+// customers actually visible in the current view — without it, this scans
+// every appointment the business has ever had on every single page load,
+// which only gets slower as appointment history grows; every caller has
+// already fetched its own date range's appointments by this point, so the
+// relevant customer ids are cheap to pass in.
 export async function buildScheduleContext(
   supabase: Awaited<ReturnType<typeof createClient>>,
+  customerIds?: string[],
 ): Promise<ScheduleContext> {
+  let apptQuery = supabase.from("appointments").select("customer_id, appointment_date");
+  if (customerIds) {
+    apptQuery = apptQuery.in("customer_id", customerIds);
+  }
   const [{ data: allCustomerAppts }, { data: cautionNotes }] = await Promise.all([
-    supabase.from("appointments").select("customer_id, appointment_date"),
+    apptQuery,
     supabase.from("groom_notes").select("pet_id").eq("rating", "caution"),
   ]);
 

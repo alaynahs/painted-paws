@@ -64,7 +64,8 @@ export default async function AdminScheduleGridPage({
     .order("appointment_hour", { ascending: true })
     .order("appointment_minute", { ascending: true });
 
-  const scheduleContext = await buildScheduleContext(supabase);
+  const customerIds = [...new Set((appointments ?? []).map((a) => a.customer_id))];
+  const scheduleContext = await buildScheduleContext(supabase, customerIds);
 
   const appointmentsByDay: Record<string, ScheduleAppointment[]> = {};
   for (const day of days) appointmentsByDay[day] = [];
