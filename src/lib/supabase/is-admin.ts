@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserWithRole } from "@/lib/supabase/current-user";
 
 // Non-redirecting admin check for layout/nav rendering, where we need a
 // plain boolean to decide what to show — unlike requireAdmin() in
@@ -11,15 +11,8 @@ export async function isCurrentUserAdmin(): Promise<boolean> {
     return false;
   }
   try {
-    const supabase = await createClient();
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) return false;
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", data.user.id)
-      .single();
-    return profile?.role === "admin";
+    const { role } = await getCurrentUserWithRole();
+    return role === "admin";
   } catch {
     return false;
   }
