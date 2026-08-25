@@ -32,7 +32,11 @@ import {
   type PricingConfig,
 } from "@/lib/pricing/pricing";
 import { getPricingConfig } from "@/lib/pricing/config";
-import { getCustomerCoupon } from "@/lib/coupons/actions";
+import {
+  getCustomerCoupons,
+  reserveCouponsForAppointment,
+  releaseCouponsForAppointment,
+} from "@/lib/coupons/actions";
 import { getActivePromotion } from "@/lib/promotions/actions";
 import { promotionAppliesToDate } from "@/lib/promotions/helpers";
 import {
@@ -774,16 +778,19 @@ export async function createAppointment(formData: FormData) {
     promotionAppliesToDate(activePromotion.maxAppointmentLeadDays, fields.date);
   const promoDiscountPercent = promoApplies ? activePromotion!.discountPercent : null;
   const promoId = promoApplies ? activePromotion!.id : null;
-  // A personal coupon (admin-assigned, e.g. an apology discount) is opt-in,
-  // never automatic — the customer explicitly chooses to redeem it (see
-  // the "applyCoupon" checkbox in booking-flow.tsx), same as redeeming a
-  // groom pack credit above. It stacks on top of whatever sitewide promo
-  // is running, then gets marked used once this booking actually goes
-  // through — see the redemption in the Stripe webhook.
-  const coupon = await getCustomerCoupon(user.id);
-  const couponApplied = fields.applyCoupon && !!coupon;
-  const couponPercent = couponApplied ? (coupon!.discountPercent ?? 0) : 0;
-  const couponAmount = couponApplied ? (coupon!.discountAmount ?? 0) : 0;
+  // Personal coupons (admin-assigned, e.g. an apology discount, or redeemed
+  // via a code) are opt-in, never automatic — the customer explicitly
+  // chooses to apply them (see the "applyCoupon" checkbox in
+  // booking-flow.tsx), same as redeeming a groom pack credit above. Every
+  // coupon the customer currently has stacks together on top of whatever
+  // sitewide promo is running. They're reserved against this appointment
+  // now (so the same coupon can't be stacked onto a second booking while
+  // this one's still pending payment) and only actually marked used once
+  // this booking's payment confirms — see the Stripe webhook.
+  const coupons = fields.applyCoupon ? await getCustomerCoupons(user.id) : [];
+  const couponApplied = coupons.length > 0;
+  const couponPercent = coupons.reduce((sum, c) => sum + (c.discountPercent ?? 0), 0);
+  const couponAmount = coupons.reduce((sum, c) => sum + (c.discountAmount ?? 0), 0);
   const totalDiscountPercent = (promoDiscountPercent ?? 0) + couponPercent || null;
   const config = await getPricingConfig();
 
@@ -847,7 +854,7 @@ export async function createAppointment(formData: FormData) {
       pickup_dropoff: fields.pickupDropoff,
       pickup_address: fields.pickupAddress,
       promo_id: promoId,
-      coupon_id: couponApplied ? coupon!.id : null,
+      coupon_id: couponApplied ? coupons[0].id : null,
       advance_booking_discount: advanceDiscount,
     })
     .select("id")
@@ -855,6 +862,13 @@ export async function createAppointment(formData: FormData) {
 
   if (error || !appointment) {
     redirect(`/book?error=${encodeURIComponent(error?.message ?? "Could not book")}`);
+  }
+
+  if (couponApplied) {
+    await reserveCouponsForAppointment(
+      coupons.map((c) => c.id),
+      appointment.id,
+    );
   }
 
   await logAppointmentHistory(supabase, {
@@ -1108,6 +1122,11 @@ export async function cancelAppointment(formData: FormData) {
   }
 
   await query;
+
+  // Any coupon reserved (but not yet spent — a payment never confirmed) for
+  // this appointment goes back into the customer's available pool instead
+  // of being stuck unusable forever.
+  await releaseCouponsForAppointment(appointmentId);
 
   await logAppointmentHistory(supabase, {
     appointmentId,

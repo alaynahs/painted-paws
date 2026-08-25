@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/supabase/admin";
+import { formatDateTime } from "@/lib/format";
 
 const ACTION_LABELS: Record<string, string> = {
   booked: "Booked",
@@ -9,13 +10,6 @@ const ACTION_LABELS: Record<string, string> = {
   confirmed: "Confirmed",
   completed: "Marked complete",
 };
-
-function formatTimestamp(iso: string) {
-  return new Date(iso).toLocaleString("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
-}
 
 export default async function AppointmentHistoryPage({
   params,
@@ -68,7 +62,7 @@ export default async function AppointmentHistoryPage({
                   <p className="text-sm font-medium text-foreground">
                     {ACTION_LABELS[h.action] ?? h.action}
                   </p>
-                  <p className="text-xs text-muted">{formatTimestamp(h.created_at)}</p>
+                  <p className="text-xs text-muted">{formatDateTime(h.created_at)}</p>
                 </div>
                 <p className="mt-1 text-xs text-muted">
                   By {who}

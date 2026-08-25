@@ -145,7 +145,7 @@ const faqGroups = [
     items: [
       {
         q: "Where are you located?",
-        a: "Austin, TX, a private, in-home studio, not a commercial salon.",
+        a: "304 Lemon Light Lane, Pflugerville, TX — a private, in-home studio, not a commercial salon.",
       },
       {
         q: "Are you insured?",

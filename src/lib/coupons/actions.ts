@@ -10,36 +10,85 @@ export interface CustomerCoupon {
   note: string | null;
 }
 
-// Finds a customer's most recently obtained still-unused coupon, if any.
-// Newest-first (not oldest) so that redeeming a coupon code takes
-// precedence over an older dormant personal coupon sitting on the same
-// account — otherwise a customer could type a code, see its discount
-// applied client-side, but have an unrelated older coupon silently used
-// instead at actual checkout. Unlike sitewide promotions, coupons aren't
-// scheduled or capped — they're just valid until redeemed once. Uses a
-// service-role client since this is looked up during signed-out-adjacent
-// contexts (e.g. before the booking form has fully settled) as well as
-// from server actions.
-export async function getCustomerCoupon(
+// Finds every coupon a customer can still stack onto a new booking —
+// newest first, same ordering the old single-coupon lookup used (so a
+// freshly redeemed code still shows first in the list). A coupon that's
+// already reserved against a different pending appointment (see
+// reserveCouponsForAppointment below) is excluded even though it isn't
+// "used" yet — otherwise the same coupon could be applied to two separate
+// bookings at once, one of which would fail to actually redeem it later.
+// Unlike sitewide promotions, coupons aren't scheduled or capped — they're
+// just valid until redeemed once. Uses a service-role client since this is
+// looked up during signed-out-adjacent contexts (e.g. before the booking
+// form has fully settled) as well as from server actions.
+export async function getCustomerCoupons(
   customerId: string,
-): Promise<CustomerCoupon | null> {
+): Promise<CustomerCoupon[]> {
   const supabase = createServiceClient();
   const { data } = await supabase
     .from("coupons")
     .select("id, discount_percent, discount_amount, note")
     .eq("customer_id", customerId)
     .is("used_at", null)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .is("redeemed_appointment_id", null)
+    .order("created_at", { ascending: false });
 
-  if (!data) return null;
-  return {
-    id: data.id,
-    discountPercent: data.discount_percent,
-    discountAmount: data.discount_amount,
-    note: data.note,
-  };
+  return (data ?? []).map((c) => ({
+    id: c.id,
+    discountPercent: c.discount_percent,
+    discountAmount: c.discount_amount,
+    note: c.note,
+  }));
+}
+
+// These three all write to the coupons table, which RLS locks to
+// admin-only writes (customers can only ever read their own rows) — so
+// each uses a service-role client itself rather than accepting whatever
+// client the caller has, the same way getCustomerCoupons above does.
+// That's safe here specifically because every caller already resolved
+// the coupon ids/appointment id from the authenticated customer's own
+// session before reaching these.
+
+// Reserves a batch of coupons against a just-created appointment, without
+// marking them used yet — that only happens once payment actually confirms
+// (see markCouponsUsedForAppointment). Reserving up front is what keeps the
+// same coupon from being stacked onto a second, unrelated booking while
+// this one is still pending payment.
+export async function reserveCouponsForAppointment(
+  couponIds: string[],
+  appointmentId: string,
+) {
+  if (couponIds.length === 0) return;
+  const supabase = createServiceClient();
+  await supabase
+    .from("coupons")
+    .update({ redeemed_appointment_id: appointmentId })
+    .in("id", couponIds);
+}
+
+// Releases any coupons still reserved-but-unused for an appointment that
+// didn't end up going through (cancelled, or its checkout expired unpaid)
+// — back into the pool so the customer can actually use them on a future
+// booking instead of them being silently stuck.
+export async function releaseCouponsForAppointment(appointmentId: string) {
+  const supabase = createServiceClient();
+  await supabase
+    .from("coupons")
+    .update({ redeemed_appointment_id: null })
+    .eq("redeemed_appointment_id", appointmentId)
+    .is("used_at", null);
+}
+
+// Marks every coupon reserved for an appointment as actually spent, once
+// its payment is confirmed — replaces the old single coupon_id lookup so
+// any number of stacked coupons get redeemed together.
+export async function markCouponsUsedForAppointment(appointmentId: string) {
+  const supabase = createServiceClient();
+  await supabase
+    .from("coupons")
+    .update({ used_at: new Date().toISOString() })
+    .eq("redeemed_appointment_id", appointmentId)
+    .is("used_at", null);
 }
 
 export interface AnnounceableCoupon {

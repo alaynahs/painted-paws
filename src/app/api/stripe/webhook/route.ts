@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe/client";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendBookingNotifications, notifyAdminCheckoutAbandoned } from "@/app/book/actions";
+import {
+  markCouponsUsedForAppointment,
+  releaseCouponsForAppointment,
+} from "@/lib/coupons/actions";
 import { notifyEmail } from "@/lib/notifications/service";
 import { BUSINESS_EMAIL, tipReceivedEmail } from "@/lib/notifications/templates";
 
@@ -59,7 +63,7 @@ async function markAppointmentPaid(
   const { data: appt } = await supabase
     .from("appointments")
     .select(
-      "customer_id, pet_id, appointment_date, appointment_hour, appointment_minute, service, price, coupon_id, pets(name, rabies_vaccine_path)",
+      "customer_id, pet_id, appointment_date, appointment_hour, appointment_minute, service, price, pets(name, rabies_vaccine_path)",
     )
     .eq("id", appointmentId)
     .single();
@@ -80,14 +84,10 @@ async function markAppointmentPaid(
     price: appt.price,
   });
 
-  // Only burn the coupon once payment actually confirms — an
-  // abandoned checkout leaves it available to try again.
-  if (appt.coupon_id) {
-    await supabase
-      .from("coupons")
-      .update({ used_at: new Date().toISOString(), redeemed_appointment_id: appointmentId })
-      .eq("id", appt.coupon_id);
-  }
+  // Only burn any stacked coupons once payment actually confirms — an
+  // abandoned checkout leaves them available to try again (see
+  // releaseCouponsForAppointment on the cancellation/expiry side).
+  await markCouponsUsedForAppointment(appointmentId);
 }
 
 // Stripe is the source of truth for whether money actually changed hands —
@@ -235,6 +235,7 @@ export async function POST(request: NextRequest) {
         .select("id");
 
       if (cancelled && cancelled.length > 0) {
+        await releaseCouponsForAppointment(appointmentId);
         await notifyAdminCheckoutAbandoned(supabase, appointmentId);
       }
     }

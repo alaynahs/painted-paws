@@ -39,7 +39,7 @@ import {
 } from "@/app/book/actions";
 import { getActivePromotion, type ActivePromotion } from "@/lib/promotions/actions";
 import { promotionAppliesToDate } from "@/lib/promotions/helpers";
-import { getCustomerCoupon, redeemCouponCode } from "@/lib/coupons/actions";
+import { getCustomerCoupons, redeemCouponCode } from "@/lib/coupons/actions";
 import { logBookingStep } from "@/lib/analytics/booking-funnel";
 import {
   ADMIN_EXTRA_HOURS,
@@ -120,6 +120,19 @@ function daysSinceBirth(birthDate: string) {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
   return Math.round((now.getTime() - then.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+// Combines however many stacked coupons into one readable label — e.g.
+// "25% off" if they're all percent-based, "15% + $10 off" if mixed.
+function couponsSummaryLabel(
+  coupons: { discountPercent: number | null; discountAmount: number | null }[],
+) {
+  const percent = coupons.reduce((sum, c) => sum + (c.discountPercent ?? 0), 0);
+  const amount = coupons.reduce((sum, c) => sum + (c.discountAmount ?? 0), 0);
+  const parts: string[] = [];
+  if (percent > 0) parts.push(`${percent}%`);
+  if (amount > 0) parts.push(`$${amount}`);
+  return parts.length > 0 ? `${parts.join(" + ")} off` : "";
 }
 
 function PillGroup<T extends string>({
@@ -273,27 +286,34 @@ export default function BookingFlow({
     mode === "edit"
       ? (initial?.advanceBookingDiscount ?? 0)
       : advanceBookingDiscountAmount(config, date);
-  // A personal coupon (admin-assigned) is opt-in, never automatic — the
-  // customer chooses to redeem it, same as redeeming a groom pack credit
-  // below. When redeemed, it stacks on top of the sitewide promo, if any,
-  // matching createAppointment's server-side calculation. Edits never pick
-  // up a coupon (it's locked in at original booking time only).
-  const [customerCoupon, setCustomerCoupon] = useState<{
-    discountPercent: number | null;
-    discountAmount: number | null;
-  } | null>(null);
+  // Personal coupons (admin-assigned, or redeemed via a code) are opt-in,
+  // never automatic — the customer chooses to apply them, same as
+  // redeeming a groom pack credit below. All of a customer's available
+  // coupons stack together on top of the sitewide promo, if any, matching
+  // createAppointment's server-side calculation (which independently
+  // re-fetches every available coupon rather than trusting this list, so
+  // this state is only ever for display). Edits never pick up a coupon
+  // (it's locked in at original booking time only).
+  const [customerCoupons, setCustomerCoupons] = useState<
+    { discountPercent: number | null; discountAmount: number | null }[]
+  >([]);
   const [applyCoupon, setApplyCoupon] = useState(false);
   const [couponCodeInput, setCouponCodeInput] = useState("");
   const [couponCodeError, setCouponCodeError] = useState<string | null>(null);
   const [couponCodeSubmitting, setCouponCodeSubmitting] = useState(false);
   const [couponCodeApplied, setCouponCodeApplied] = useState(false);
-  const couponActive = mode === "create" && customerCoupon != null && applyCoupon;
-  const couponPercent = couponActive ? (customerCoupon!.discountPercent ?? 0) : 0;
-  const couponAmount = couponActive ? (customerCoupon!.discountAmount ?? 0) : 0;
+  const couponActive = mode === "create" && customerCoupons.length > 0 && applyCoupon;
+  const couponPercent = couponActive
+    ? customerCoupons.reduce((sum, c) => sum + (c.discountPercent ?? 0), 0)
+    : 0;
+  const couponAmount = couponActive
+    ? customerCoupons.reduce((sum, c) => sum + (c.discountAmount ?? 0), 0)
+    : 0;
 
   // Typing a code spawns a personal-coupon row for this customer server-side
-  // (see redeemCouponCode) and, on success, is applied the exact same way an
-  // admin-assigned coupon already is — same state, same price math below.
+  // (see redeemCouponCode) and, on success, stacks onto the display list the
+  // exact same way an admin-assigned coupon already does — same state, same
+  // price math below.
   async function handleApplyCouponCode() {
     if (!couponCodeInput.trim()) return;
     setCouponCodeSubmitting(true);
@@ -304,12 +324,13 @@ export default function BookingFlow({
       setCouponCodeError(result.error ?? "Could not apply that code.");
       return;
     }
-    setCustomerCoupon({
-      discountPercent: result.discountPercent ?? null,
-      discountAmount: result.discountAmount ?? null,
-    });
+    setCustomerCoupons((prev) => [
+      ...prev,
+      { discountPercent: result.discountPercent ?? null, discountAmount: result.discountAmount ?? null },
+    ]);
     setApplyCoupon(true);
     setCouponCodeApplied(true);
+    setCouponCodeInput("");
   }
   // Admin bookings don't draw from the sitewide promo or a customer's saved
   // coupon — instead the admin can just type in whatever one-off discount
@@ -353,8 +374,8 @@ export default function BookingFlow({
   useEffect(() => {
     if (isAdmin || mode === "edit" || !customerId) return;
     let cancelled = false;
-    getCustomerCoupon(customerId).then((coupon) => {
-      if (!cancelled) setCustomerCoupon(coupon);
+    getCustomerCoupons(customerId).then((coupons) => {
+      if (!cancelled) setCustomerCoupons(coupons);
     });
     return () => {
       cancelled = true;
@@ -381,11 +402,11 @@ export default function BookingFlow({
   }, [isAdmin, mode, hour]);
 
   useEffect(() => {
-    if (!customerCoupon && applyCoupon) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- un-toggles redemption if the coupon became unavailable out from under an active selection
+    if (customerCoupons.length === 0 && applyCoupon) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- un-toggles redemption if every coupon became unavailable out from under an active selection
       setApplyCoupon(false);
     }
-  }, [customerCoupon, applyCoupon]);
+  }, [customerCoupons, applyCoupon]);
 
   useEffect(() => {
     if (tooYoungToBook) {
@@ -1275,7 +1296,7 @@ export default function BookingFlow({
           </div>
         )}
 
-        {mode === "create" && customerCoupon != null && (
+        {mode === "create" && customerCoupons.length > 0 && (
           <label className="mb-4 flex items-center justify-between gap-2 rounded-xl border border-accent-dark/40 bg-card px-3.5 py-2.5 text-sm text-foreground/90">
             <span className="flex items-center gap-2">
               <input
@@ -1284,12 +1305,12 @@ export default function BookingFlow({
                 onChange={(e) => setApplyCoupon(e.target.checked)}
                 className="h-4 w-4 rounded border-border accent-accent"
               />
-              Use my available coupon
+              {customerCoupons.length > 1
+                ? `Use my ${customerCoupons.length} available coupons`
+                : "Use my available coupon"}
             </span>
             <span className="shrink-0 text-xs font-medium text-accent-dark">
-              {customerCoupon.discountPercent != null
-                ? `${customerCoupon.discountPercent}% off`
-                : `$${customerCoupon.discountAmount} off`}
+              {couponsSummaryLabel(customerCoupons)}
             </span>
           </label>
         )}
@@ -1329,11 +1350,9 @@ export default function BookingFlow({
         )}
         {couponActive && (
           <div className="mt-3 rounded-xl bg-accent px-4 py-2.5 text-center text-sm font-medium text-white">
-            🎁 Redeeming your{" "}
-            {customerCoupon!.discountPercent != null
-              ? `${customerCoupon!.discountPercent}% off`
-              : `$${customerCoupon!.discountAmount} off`}{" "}
-            coupon — you&apos;re saving ${couponSavings.toFixed(2)}
+            🎁 Redeeming your {couponsSummaryLabel(customerCoupons)} coupon
+            {customerCoupons.length > 1 ? "s" : ""} — you&apos;re saving $
+            {couponSavings.toFixed(2)}
           </div>
         )}
         {adminDiscountType === "exact" && Number(adminDiscountValue) > 0 && (
