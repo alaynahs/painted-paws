@@ -26,15 +26,15 @@ export type CatServiceLevel = "bath" | "lightTrim" | "fleaBath" | "fleaBathTidy"
 export type PuppyWeightBand = "under5" | "under10" | "under20" | "over20";
 
 export const DOG_WEIGHT_LABELS: Record<DogWeightClass, string> = {
-  small: "Small (1–15 lb)",
-  medium: "Medium (16–30 lb)",
-  large: "Large (30–75 lb)",
+  small: "Small (1–20 lb)",
+  medium: "Medium (21–50 lb)",
+  large: "Large (51–75 lb)",
   xlarge: "Extra Large (75+ lb)",
 };
 
 export function dogWeightClass(weightLb: number): DogWeightClass {
-  if (weightLb <= 15) return "small";
-  if (weightLb <= 30) return "medium";
+  if (weightLb <= 20) return "small";
+  if (weightLb <= 50) return "medium";
   if (weightLb <= 75) return "large";
   return "xlarge";
 }
