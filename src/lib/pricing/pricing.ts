@@ -81,7 +81,14 @@ export interface DogPriceInput {
   isPuppy: boolean;
   deshed: boolean;
   isDoodleMix: boolean;
+  // Bulldog/Pit Bull types — see isMinimalCoatDiscountBreed in breeds.ts.
+  isMinimalCoatBreed?: boolean;
 }
+
+// Flat discount off the standard adult weight-class groom price for
+// Bulldog/Pit Bull types, whose minimal coat means less brushing/de-shed
+// work than a typical dog in the same weight class.
+export const MINIMAL_COAT_DISCOUNT_AMOUNT = 5;
 
 export interface PriceBreakdownLine {
   label: string;
@@ -140,6 +147,12 @@ export function calculateDogPrice(
       label: `${DOG_SERVICE_LABELS[service]} (${DOG_WEIGHT_LABELS[weightClass]})`,
       amount: base,
     });
+    if (input.isMinimalCoatBreed) {
+      lines.push({
+        label: "Short-coat breed discount",
+        amount: -MINIMAL_COAT_DISCOUNT_AMOUNT,
+      });
+    }
   }
 
   if (input.deshed) {

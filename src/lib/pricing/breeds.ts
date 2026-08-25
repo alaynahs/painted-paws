@@ -10,13 +10,14 @@ export interface BreedEntry {
 const SHORT_SMALL_MEDIUM = [
   "Basenji", "Beagle", "Boston Terrier", "Boxer",
   "Bull Terrier (Miniature & Standard)", "Chihuahua (Smooth-haired)",
-  "Dachshund (Smooth)", "French Bulldog", "Italian Greyhound",
-  "Manchester Terrier", "Miniature Pinscher", "Pug", "Rat Terrier", "Whippet",
+  "Dachshund (Smooth)", "English Bulldog", "French Bulldog",
+  "Italian Greyhound", "Manchester Terrier", "Miniature Pinscher", "Pug",
+  "Rat Terrier", "Staffordshire Bull Terrier", "Whippet",
 ];
 
 const SHORT_LARGE_GIANT = [
-  "American Staffordshire Terrier", "American Pit Bull Terrier",
-  "Anatolian Shepherd",
+  "American Bulldog", "American Staffordshire Terrier",
+  "American Pit Bull Terrier", "Anatolian Shepherd",
   "Black Russian Terrier", "Bloodhound", "Boerboel", "Bullmastiff",
   "Cane Corso", "Catahoula Leopard Dog", "Doberman Pinscher",
   "Dogue de Bordeaux", "Fila Brasileiro", "Great Dane", "Greyhound",
@@ -54,6 +55,32 @@ export function isDoodleMixBreed(breed: string): boolean {
   }
   const target = normalizeBreedTokens(trimmed.replace(/ Mix$/i, ""));
   return DOODLE_MIX_BREED_NAMES.some((name) => normalizeBreedTokens(name) === target);
+}
+
+// Bulldog and Pit Bull types specifically — coats thin enough that the
+// standard weight-class groom price gets a flat $5 knocked off (see
+// calculateDogPrice). Not the whole "short coat" group, just these.
+const MINIMAL_COAT_DISCOUNT_BREED_NAMES = [
+  "English Bulldog", "French Bulldog", "American Bulldog",
+  "American Pit Bull Terrier", "American Staffordshire Terrier",
+  "Staffordshire Bull Terrier",
+];
+
+// Matches "American Bulldog" or "American Bulldog Mix" the same way
+// isDoodleMixBreed does above, so a mixed-breed pet still qualifies.
+export function isMinimalCoatDiscountBreed(breed: string): boolean {
+  const trimmed = breed.trim();
+  if (
+    MINIMAL_COAT_DISCOUNT_BREED_NAMES.some(
+      (name) => trimmed === name || trimmed === `${name} Mix`,
+    )
+  ) {
+    return true;
+  }
+  const target = normalizeBreedTokens(trimmed.replace(/ Mix$/i, ""));
+  return MINIMAL_COAT_DISCOUNT_BREED_NAMES.some(
+    (name) => normalizeBreedTokens(name) === target,
+  );
 }
 
 const LONG_SILKY_DROP = [

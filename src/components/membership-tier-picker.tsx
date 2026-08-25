@@ -18,7 +18,11 @@ import {
   type PackageTier,
   type PricingConfig,
 } from "@/lib/pricing/pricing";
-import { isDoodleMixBreed, type CoatLength } from "@/lib/pricing/breeds";
+import {
+  isDoodleMixBreed,
+  isMinimalCoatDiscountBreed,
+  type CoatLength,
+} from "@/lib/pricing/breeds";
 
 interface Pet {
   id: string;
@@ -71,6 +75,7 @@ export default function MembershipTierPicker({
         isPuppy: false,
         deshed: false,
         isDoodleMix: isDoodleMixBreed(pet.breed),
+        isMinimalCoatBreed: isMinimalCoatDiscountBreed(pet.breed),
       },
       config,
     ).total;

@@ -7,6 +7,7 @@ import {
   findBreed,
   findCatBreed,
   isDoodleMixBreed,
+  isMinimalCoatDiscountBreed,
   type CoatLength,
 } from "@/lib/pricing/breeds";
 import {
@@ -115,6 +116,7 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
           isPuppy,
           deshed: false,
           isDoodleMix: isDoodleMixBreed(fullBreedName),
+          isMinimalCoatBreed: isMinimalCoatDiscountBreed(fullBreedName),
         },
         config,
       );

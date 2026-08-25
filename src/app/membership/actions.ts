@@ -24,7 +24,7 @@ import {
   type PricingConfig,
 } from "@/lib/pricing/pricing";
 import { getPricingConfig } from "@/lib/pricing/config";
-import { isDoodleMixBreed } from "@/lib/pricing/breeds";
+import { isDoodleMixBreed, isMinimalCoatDiscountBreed } from "@/lib/pricing/breeds";
 
 interface PetRow {
   species: "dog" | "cat";
@@ -89,6 +89,7 @@ function computeMembershipMonthlyPrice(
       isPuppy: false,
       deshed: false,
       isDoodleMix: isDoodleMixBreed(pet.breed),
+      isMinimalCoatBreed: isMinimalCoatDiscountBreed(pet.breed),
     },
     config,
   ).total;
@@ -315,6 +316,7 @@ export async function purchaseGroomPack(formData: FormData) {
       isPuppy: pet.is_puppy ?? false,
       deshed: false,
       isDoodleMix: isDoodleMixBreed(pet.breed),
+      isMinimalCoatBreed: isMinimalCoatDiscountBreed(pet.breed),
     },
     config,
   ).total;

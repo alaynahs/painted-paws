@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { requireAdmin } from "@/lib/supabase/admin";
 import { stripe } from "@/lib/stripe/client";
-import { isDoodleMixBreed } from "@/lib/pricing/breeds";
+import { isDoodleMixBreed, isMinimalCoatDiscountBreed } from "@/lib/pricing/breeds";
 import {
   advanceBookingDiscountAmount,
   applyMemberAddonDiscount,
@@ -129,6 +129,7 @@ function computeAppointmentPrice(
             isPuppy: pet.is_puppy ?? false,
             deshed,
             isDoodleMix: isDoodleMixBreed(pet.breed),
+            isMinimalCoatBreed: isMinimalCoatDiscountBreed(pet.breed),
           },
           config,
         ).total
