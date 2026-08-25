@@ -52,18 +52,16 @@ export function FlagBadge({
 }
 
 // The full expanded view of one appointment — name/owner, flags with
-// labels, service, payment status/price, and every quick action (Confirm,
-// Mark Complete, Pay Online, Edit, Cancel, Quick email). Used identically
-// by the grid's own expand-in-place block and the month view's per-day
+// labels, service, payment status/price, and every quick action (Mark
+// Complete, Pay Online, Edit, Cancel, Quick email). Used identically by
+// the grid's own expand-in-place block and the month view's per-day
 // popover.
 export default function AppointmentDetailPanel({
   appt,
-  confirmAction,
   setOnlinePaymentAction,
   onClose,
 }: {
   appt: ScheduleAppointment;
-  confirmAction: (appointmentId: string) => void;
   setOnlinePaymentAction: (appointmentId: string) => void;
   onClose?: () => void;
 }) {
@@ -153,16 +151,6 @@ export default function AppointmentDetailPanel({
           "[&>div]:w-full [&>div>button]:w-full"
         }
       >
-        {appt.status === "requested" && (
-          <form action={confirmAction.bind(null, appt.id)}>
-            <button
-              type="submit"
-              className="rounded-full bg-accent px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-dark"
-            >
-              Confirm
-            </button>
-          </form>
-        )}
         {appt.paymentMethod === "in_person" && appt.paymentStatus === "unpaid" && (
           <form action={setOnlinePaymentAction.bind(null, appt.id)}>
             <button

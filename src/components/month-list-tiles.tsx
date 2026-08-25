@@ -21,11 +21,9 @@ function shortDate(dateStr: string) {
 // paying a header+card tax on every single day.
 function Tile({
   appt,
-  confirmAction,
   setOnlinePaymentAction,
 }: {
   appt: ScheduleAppointment;
-  confirmAction: (appointmentId: string) => void;
   setOnlinePaymentAction: (appointmentId: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -65,7 +63,6 @@ function Tile({
           )}
           <p className="truncate text-[9px] text-muted">
             {shortDate(appt.date)} · {formatHour(appt.hour, appt.minute)}
-            {appt.status === "requested" && " · Req"}
           </p>
         </button>
       </div>
@@ -76,7 +73,6 @@ function Tile({
         >
           <AppointmentDetailPanel
             appt={appt}
-            confirmAction={confirmAction}
             setOnlinePaymentAction={setOnlinePaymentAction}
             onClose={() => setOpen(false)}
           />
@@ -88,11 +84,9 @@ function Tile({
 
 export default function MonthListTiles({
   appts,
-  confirmAction,
   setOnlinePaymentAction,
 }: {
   appts: ScheduleAppointment[];
-  confirmAction: (appointmentId: string) => void;
   setOnlinePaymentAction: (appointmentId: string) => void;
 }) {
   return (
@@ -101,7 +95,6 @@ export default function MonthListTiles({
         <Tile
           key={appt.id}
           appt={appt}
-          confirmAction={confirmAction}
           setOnlinePaymentAction={setOnlinePaymentAction}
         />
       ))}

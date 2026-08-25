@@ -7,12 +7,6 @@ export default function ScheduleLegend() {
     <div className="mt-6 rounded-2xl border border-border bg-card p-5">
       <h2 className="text-sm font-medium text-foreground">Key</h2>
       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2.5">
-        <div className="flex items-center gap-1.5 text-xs text-foreground/90">
-          <span className="rounded-full bg-accent-tint px-1.5 py-0.5 text-[9px] font-medium tracking-wide text-accent-dark uppercase">
-            Req
-          </span>
-          Requested, needs confirming
-        </div>
         {SCHEDULE_FLAGS.map(({ key, label, Icon, text, bg }) => (
           <div key={key} className="flex items-center gap-1.5 text-xs text-foreground/90">
             <span className={`flex h-4 w-4 items-center justify-center rounded-full ${bg}`}>

@@ -57,7 +57,6 @@ export function computeScheduleFlags(
 ): ScheduleFlagKey[] {
   const flags: ScheduleFlagKey[] = [];
   if (appt.pet_id && ctx.cautionPetIds.has(appt.pet_id)) flags.push("caution");
-  if (appt.status === "requested") flags.push("requested");
   if (pet?.species === "cat") flags.push("cat");
   if (ctx.earliestDateByCustomer.get(appt.customer_id) === appt.appointment_date) {
     flags.push("newCustomer");

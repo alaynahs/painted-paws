@@ -34,24 +34,28 @@ ${BUSINESS_NAME}`,
   };
 }
 
-export function appointmentConfirmedEmail(vars: {
+// Sent only when an admin phone booking went through without the waiver
+// being signed live — a standalone, purely functional email (appointment
+// details, address, and the signing link), not a general "you're booked"
+// message.
+export function signWaiverEmail(vars: {
   firstName: string;
   petName: string;
   date: string;
   time: string;
+  waiverUrl: string;
 }): EmailContent {
   return {
-    subject: "Appointment Confirmed! 🐾",
+    subject: "Please Sign Your Grooming Waiver",
     body: `Hi ${vars.firstName},
 
-${vars.petName}'s appointment is officially confirmed!
+Your appointment for ${vars.petName} is booked for ${vars.date} at ${vars.time}.
 
-Appointment Details
-• Pet: ${vars.petName}
-• Date: ${vars.date}
-• Time: ${vars.time}
+Address: ${BUSINESS_ADDRESS}
 
-We can't wait to see you both!
+Please sign our grooming waiver before your visit:
+[Sign the waiver here](${vars.waiverUrl})
+
 ${BUSINESS_NAME}`,
   };
 }
@@ -241,45 +245,6 @@ export function tipReceivedEmail(vars: {
 • Amount: $${vars.amount}
 
 ${BUSINESS_NAME} site`,
-  };
-}
-
-export function firstTimeWelcomeSms(vars: { firstName: string; petName: string }) {
-  return `Welcome to ${BUSINESS_NAME}, ${vars.firstName}! 🐾
-
-Thanks for booking ${vars.petName}'s first appointment with us!
-
-As a welcome gift, you'll receive ONE FREE add-on during your first visit. Choose from:
-🦷 Teeth Brushing
-✨ Nail Grinding
-🫧 Premium Shampoo Upgrade
-🌿 Premium Conditioner Upgrade
-
-Just let us know your choice when you arrive. We can't wait to meet you both!`;
-}
-
-export function firstTimeWelcomeEmail(vars: {
-  firstName: string;
-  petName: string;
-}): EmailContent {
-  return {
-    subject: "Welcome! Enjoy a Free First-Visit Upgrade 🎉",
-    body: `Hi ${vars.firstName},
-
-Thank you for booking with ${BUSINESS_NAME}! We're so excited to meet you and ${vars.petName}.
-
-As a welcome gift, you'll receive ONE FREE add-on during your first grooming appointment!
-
-Choose one:
-• Teeth Brushing
-• Nail Grinding
-• Premium Shampoo Upgrade
-• Premium Conditioner Upgrade
-
-Just let us know which you'd like when you arrive.
-
-See you soon!
-${BUSINESS_NAME}`,
   };
 }
 

@@ -37,23 +37,6 @@ function CatIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-function ClockIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3.5 2" />
-    </svg>
-  );
-}
-
 function WarningTriangleIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -94,7 +77,6 @@ function SyringeIcon(props: SVGProps<SVGSVGElement>) {
 
 export type ScheduleFlagKey =
   | "caution"
-  | "requested"
   | "cat"
   | "newCustomer"
   | "senior"
@@ -122,17 +104,6 @@ export const SCHEDULE_FLAGS: {
     text: "text-red-800",
     bg: "bg-red-200",
     stripe: "bg-red-800",
-  },
-  {
-    key: "requested",
-    label: "Awaiting confirmation",
-    Icon: ClockIcon,
-    // Matches the existing "Req" status pill's own colors exactly, rather
-    // than a generic blue, since this flag is that same status — just
-    // folded into the same stackable system as the others.
-    text: "text-accent-dark",
-    bg: "bg-accent-tint",
-    stripe: "bg-accent",
   },
   {
     key: "cat",

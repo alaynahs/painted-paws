@@ -60,14 +60,12 @@ import { notifyEmail, notifyText } from "@/lib/notifications/service";
 import {
   BUSINESS_EMAIL,
   adminNewBookingEmail,
-  appointmentConfirmedEmail,
   bookingConfirmationSms,
   checkoutAbandonedEmail,
-  firstTimeWelcomeEmail,
-  firstTimeWelcomeSms,
   newClientVaccineReminderSms,
   noCallNoShowWarningEmail,
   paymentLinkEmail,
+  signWaiverEmail,
 } from "@/lib/notifications/templates";
 
 interface PetRow {
@@ -359,6 +357,7 @@ export async function sendBookingNotifications(
     rabiesVaccinePath,
     service,
     price,
+    needsWaiver = false,
   }: {
     customerId: string;
     petId: string;
@@ -370,6 +369,12 @@ export async function sendBookingNotifications(
     rabiesVaccinePath: string | null;
     service: string;
     price: number;
+    // True for an admin phone booking that went through without the
+    // waiver being signed live — sends a dedicated, waiver-only email
+    // (not bundled into any other message) with a link to sign it before
+    // the visit. Never set for a customer's own booking, since the
+    // waiver is mandatory there and always already signed by this point.
+    needsWaiver?: boolean;
   },
 ) {
   const { data: profile } = await supabase
@@ -416,23 +421,15 @@ export async function sendBookingNotifications(
     }),
   );
 
-  const { count } = await supabase
-    .from("appointments")
-    .select("id", { count: "exact", head: true })
-    .eq("customer_id", customerId);
-
-  if ((count ?? 0) <= 1) {
-    await notifyText(
-      supabase,
-      target,
-      "first_time_welcome",
-      firstTimeWelcomeSms(vars),
-    );
+  if (needsWaiver) {
     await notifyEmail(
       supabase,
       target,
-      "first_time_welcome",
-      firstTimeWelcomeEmail(vars),
+      "sign_waiver",
+      signWaiverEmail({
+        ...vars,
+        waiverUrl: `${origin}/sign-waiver/${appointmentId}`,
+      }),
     );
   }
 
@@ -846,6 +843,9 @@ export async function createAppointment(formData: FormData) {
       appointment_date: fields.date,
       appointment_hour: fields.hour,
       appointment_minute: fields.minute,
+      // Every booking is confirmed immediately now — there's no more
+      // separate "requested, needs confirming" step.
+      status: "confirmed",
       payment_method: "online",
       price,
       sales_tax: salesTax,
@@ -1169,70 +1169,6 @@ export async function cancelAppointment(formData: FormData) {
     admin
       ? "/admin?message=Appointment+cancelled."
       : "/account?message=Appointment+cancelled.",
-  );
-}
-
-export async function confirmAppointment(appointmentId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const admin = await isAdminUser(supabase, user.id);
-
-  let query = supabase
-    .from("appointments")
-    .update({ status: "confirmed" })
-    .eq("id", appointmentId);
-
-  if (!admin) {
-    query = query.eq("customer_id", user.id);
-  }
-
-  const { data: appt } = await query
-    .select(
-      "customer_id, appointment_date, appointment_hour, appointment_minute, pets(name)",
-    )
-    .single();
-
-  if (appt) {
-    await logAppointmentHistory(supabase, {
-      appointmentId,
-      action: "confirmed",
-      actorType: admin ? "admin" : "customer",
-      actorId: user.id,
-    });
-
-    const pet = Array.isArray(appt.pets) ? appt.pets[0] : appt.pets;
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("full_name, email, phone")
-      .eq("id", appt.customer_id)
-      .single();
-
-    await notifyEmail(
-      supabase,
-      {
-        customerId: appt.customer_id,
-        appointmentId,
-        email: profile?.email ?? null,
-        phone: profile?.phone ?? null,
-      },
-      "appointment_confirmed",
-      appointmentConfirmedEmail({
-        firstName: (profile?.full_name || "there").split(" ")[0],
-        petName: pet?.name ?? "Pet",
-        date: formatDate(appt.appointment_date),
-        time: formatHour(appt.appointment_hour, appt.appointment_minute),
-      }),
-    );
-  }
-
-  redirect(
-    admin
-      ? "/admin?message=Appointment+confirmed."
-      : "/account?message=Appointment+confirmed.",
   );
 }
 
@@ -1832,6 +1768,9 @@ export async function adminCreateAppointment(formData: FormData) {
       appointment_date: fields.date,
       appointment_hour: fields.hour,
       appointment_minute: fields.minute,
+      // Every booking is confirmed immediately now — there's no more
+      // separate "requested, needs confirming" step.
+      status: "confirmed",
       admin_booked: true,
       payment_method: fields.paymentMethod,
       price,
@@ -1883,6 +1822,7 @@ export async function adminCreateAppointment(formData: FormData) {
     rabiesVaccinePath: pet.rabies_vaccine_path,
     service: fields.service,
     price,
+    needsWaiver: !waiverSigned,
   });
 
   redirect(`${successBase}?booked=${encodeURIComponent(pet.name)}`);

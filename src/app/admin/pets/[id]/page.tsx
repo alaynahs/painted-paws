@@ -12,7 +12,7 @@ import {
   uploadGroomPhoto,
   uploadRabiesVaccineAdmin,
 } from "@/app/admin/actions";
-import { confirmAppointment, getNoShowCount } from "@/app/book/actions";
+import { getNoShowCount } from "@/app/book/actions";
 import { MAX_NO_SHOWS } from "@/lib/booking-hours";
 import PetForm from "@/components/pet-form";
 import MembershipCard from "@/components/membership-card";
@@ -664,16 +664,6 @@ function AppointmentCard({
       )}
       {showActions && (
         <div className="mt-3 flex flex-wrap gap-2">
-          {appt.status === "requested" && (
-            <form action={confirmAppointment.bind(null, appt.id)}>
-              <button
-                type="submit"
-                className="rounded-full bg-accent px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-dark"
-              >
-                Confirm
-              </button>
-            </form>
-          )}
           {appt.status !== "completed" && (
             <MarkCompleteButton appointmentId={appt.id} compact />
           )}

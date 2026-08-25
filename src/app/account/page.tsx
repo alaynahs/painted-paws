@@ -8,11 +8,7 @@ import ContactInfoCard from "@/components/contact-info-card";
 import TrackBookingConfirmed from "@/components/track-booking-confirmed";
 import CancelAppointmentButton from "@/components/cancel-appointment-button";
 import UnpaidAppointmentsPopup from "@/components/unpaid-appointments-popup";
-import {
-  confirmAppointment,
-  payAppointmentNow,
-  payAllUnpaidAppointmentsNow,
-} from "@/app/book/actions";
+import { payAppointmentNow, payAllUnpaidAppointmentsNow } from "@/app/book/actions";
 import { updatePasswordFromAccount } from "@/app/auth/actions";
 import MembershipCard from "@/components/membership-card";
 import PastAppointmentsList from "@/components/past-appointments-list";
@@ -214,16 +210,6 @@ export default async function AccountPage({
                   {appt.status}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {appt.status === "requested" && (
-                    <form action={confirmAppointment.bind(null, appt.id)}>
-                      <button
-                        type="submit"
-                        className="rounded-full bg-accent px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-dark"
-                      >
-                        Confirm
-                      </button>
-                    </form>
-                  )}
                   <Link
                     href={`/account/appointments/${appt.id}`}
                     className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"

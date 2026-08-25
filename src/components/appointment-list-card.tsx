@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { confirmAppointment, setAppointmentOnlinePayment } from "@/app/book/actions";
+import { setAppointmentOnlinePayment } from "@/app/book/actions";
 import CancelAppointmentButton from "@/components/cancel-appointment-button";
 import QuickMessageButtons from "@/components/quick-message-buttons";
 import MarkCompleteButton from "@/components/mark-complete-button";
@@ -24,20 +24,13 @@ export interface AppointmentListItem {
   profiles: { full_name: string | null; phone: string | null } | null;
 }
 
-// Shared appointment card used by both the week-at-a-time List view
-// (/admin) and the whole-month View All list — kept in one place so the
-// two don't drift out of sync on which quick actions show up.
+// Appointment card used by the week-at-a-time List view (/admin).
 export default function AppointmentListCard({ appt }: { appt: AppointmentListItem }) {
   return (
     <div className="rounded-xl border border-border bg-background p-3">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <p className="flex items-center gap-2 text-sm font-medium text-foreground">
           {formatHour(appt.appointment_hour, appt.appointment_minute)}
-          {appt.status === "requested" && (
-            <span className="rounded-full bg-accent-tint px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-accent-dark">
-              Requested
-            </span>
-          )}
         </p>
         <p className="text-sm font-medium text-accent-dark">${appt.price}</p>
       </div>
@@ -88,16 +81,6 @@ export default function AppointmentListCard({ appt }: { appt: AppointmentListIte
         </p>
       )}
       <div className="mt-3 flex flex-wrap gap-2">
-        {appt.status === "requested" && (
-          <form action={confirmAppointment.bind(null, appt.id)}>
-            <button
-              type="submit"
-              className="rounded-full bg-accent px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-accent-dark"
-            >
-              Confirm
-            </button>
-          </form>
-        )}
         {appt.status !== "completed" && (
           <MarkCompleteButton appointmentId={appt.id} compact />
         )}

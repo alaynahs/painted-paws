@@ -80,12 +80,10 @@ function layoutLanes(
 function Block({
   appt,
   startHour,
-  confirmAction,
   setOnlinePaymentAction,
 }: {
   appt: ScheduleAppointment & { lane: number; laneCount: number };
   startHour: number;
-  confirmAction: (appointmentId: string) => void;
   setOnlinePaymentAction: (appointmentId: string) => void;
 }) {
   // Two separate reasons the detail view can be showing: a mouse hovering
@@ -172,11 +170,6 @@ function Block({
           <p className="min-w-0 truncate text-[11px] font-medium text-foreground">
             {appt.petName}
           </p>
-          {appt.status === "requested" && (
-            <span className="shrink-0 rounded-full bg-accent-tint px-1.5 py-0.5 text-[9px] font-medium tracking-wide text-accent-dark uppercase">
-              Req
-            </span>
-          )}
         </div>
         {appt.flags.length > 0 && (
           <div className="mt-0.5 flex flex-wrap items-center gap-0.5">
@@ -200,7 +193,6 @@ function Block({
         >
           <AppointmentDetailPanel
             appt={appt}
-            confirmAction={confirmAction}
             setOnlinePaymentAction={setOnlinePaymentAction}
             onClose={() => setPinned(false)}
           />
@@ -214,13 +206,11 @@ export default function AdminScheduleGrid({
   days,
   dayLabels,
   appointmentsByDay,
-  confirmAction,
   setOnlinePaymentAction,
 }: {
   days: string[];
   dayLabels: string[];
   appointmentsByDay: Record<string, ScheduleAppointment[]>;
-  confirmAction: (appointmentId: string) => void;
   setOnlinePaymentAction: (appointmentId: string) => void;
 }) {
   const allAppts = days.flatMap((d) => appointmentsByDay[d] ?? []);
@@ -283,7 +273,6 @@ export default function AdminScheduleGrid({
                   key={appt.id}
                   appt={appt}
                   startHour={startHour}
-                  confirmAction={confirmAction}
                   setOnlinePaymentAction={setOnlinePaymentAction}
                 />
               ))}

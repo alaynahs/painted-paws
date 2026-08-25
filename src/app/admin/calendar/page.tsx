@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/supabase/admin";
-import { confirmAppointment, setAppointmentOnlinePayment } from "@/app/book/actions";
+import { setAppointmentOnlinePayment } from "@/app/book/actions";
 import { estimateDurationMinutes } from "@/lib/schedule-duration";
 import { buildScheduleContext, computeScheduleFlags } from "@/lib/schedule-flags";
 import AdminScheduleGrid from "@/components/admin-schedule-grid";
@@ -156,7 +156,6 @@ export default async function AdminCalendarPage({
           days={days}
           dayLabels={days.map(formatDayLabel)}
           appointmentsByDay={appointmentsByDay}
-          confirmAction={confirmAppointment}
           setOnlinePaymentAction={setAppointmentOnlinePayment}
         />
       </div>
