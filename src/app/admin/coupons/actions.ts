@@ -53,6 +53,7 @@ export async function createCoupon(customerId: string, formData: FormData) {
     couponGrantedEmail({
       firstName: (profile?.full_name || "there").split(" ")[0],
       discountLabel: discountLabel(discount.discount_percent, discount.discount_amount),
+      note,
     }),
   );
 
@@ -178,6 +179,7 @@ export async function createCouponsForGroup(formData: FormData) {
         couponGrantedEmail({
           firstName: (m.full_name || "there").split(" ")[0],
           discountLabel: label,
+          note,
         }),
       ),
     ),

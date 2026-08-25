@@ -23,7 +23,7 @@ export default function CouponDiscountInputs() {
       <input
         type="text"
         name="note"
-        placeholder="Note (optional)"
+        placeholder="Email subject to customer (optional)"
         className="min-w-[140px] flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-accent-dark"
       />
     </>

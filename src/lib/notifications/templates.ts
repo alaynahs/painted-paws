@@ -14,12 +14,18 @@ export interface EmailContent {
 export function couponGrantedEmail(vars: {
   firstName: string;
   discountLabel: string;
+  // Admin-entered custom message — when set, this becomes the email's
+  // subject and opening line instead of the generic "You've got a
+  // coupon!" default, so a specific announcement (e.g. new pricing)
+  // actually reaches the customer instead of getting silently dropped.
+  note?: string | null;
 }): EmailContent {
+  const note = vars.note?.trim() || null;
   return {
-    subject: "You've got a coupon! 🎉",
+    subject: note || "You've got a coupon! 🎉",
     body: `Hi ${vars.firstName},
 
-You got a coupon! Enjoy ${vars.discountLabel} at your next visit with ${BUSINESS_NAME}.
+${note ? `${note}\n\n` : ""}You got a coupon! Enjoy ${vars.discountLabel} at your next visit with ${BUSINESS_NAME}.
 
 Just select "Use my available coupon" when you book — no code needed.
 
