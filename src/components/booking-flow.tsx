@@ -45,6 +45,7 @@ import {
   ADMIN_EXTRA_HOURS,
   BOOKING_HOURS as HOURS,
   PICKUP_MIN_LEAD_HOURS,
+  expandToHalfHourSlots,
 } from "@/lib/booking-hours";
 import { centralWallClockToInstant, formatHour } from "@/lib/format";
 import {
@@ -104,12 +105,13 @@ function isPastOrTooSoon(
   date: string,
   hour: number,
   pickupDropoff: boolean,
+  minute: number = 0,
 ): boolean {
   // Appointment hours are always Central wall-clock time (the business's
   // own timezone) — building this without pinning a timezone would parse
   // it using the *visitor's own* local clock, wrongly disabling valid
   // buttons for anyone browsing from outside Central time.
-  const apptTime = centralWallClockToInstant(date, hour);
+  const apptTime = centralWallClockToInstant(date, hour, minute);
   const now = new Date();
   if (apptTime.getTime() <= now.getTime()) return true;
   if (pickupDropoff) {
@@ -461,7 +463,7 @@ export default function BookingFlow({
   }, [pet?.id, pet?.species, dogService, standalone]);
 
   useEffect(() => {
-    if (!isAdmin && hour !== null && isPastOrTooSoon(date, hour, pickupDropoff)) {
+    if (!isAdmin && hour !== null && isPastOrTooSoon(date, hour, pickupDropoff, minute)) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- clears a now-invalid hour when toggling pickup on requires more lead time than the current selection has
       setHour(null);
       setMinute(0);
@@ -480,24 +482,29 @@ export default function BookingFlow({
     let cancelled = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- kicks off an async availability fetch when `date` changes
     setLoadingHours(true);
-    getBookedHours(date, appointmentId).then((availability) => {
-      if (cancelled) return;
-      setBookedHours(availability.bookedHours);
-      setDayBlocked(availability.dayBlocked);
-      setDayFull(availability.dayFull);
-      // Don't clear the pre-filled hour on the initial mount when editing —
-      // only reset it once the user actually changes the date afterward.
-      if (!isFirstLoad.current) {
-        setHour(null);
-        setMinute(0);
-      }
-      isFirstLoad.current = false;
-      setLoadingHours(false);
-    });
+    // The required gap around every other appointment widens for a heavier
+    // pet or a pickup & drop-off booking (see minGapHoursFor), so a change
+    // to either needs a fresh availability fetch, not just a date change.
+    getBookedHours(date, appointmentId, pet?.weight_lb ?? null, pickupDropoff).then(
+      (availability) => {
+        if (cancelled) return;
+        setBookedHours(availability.bookedHours);
+        setDayBlocked(availability.dayBlocked);
+        setDayFull(availability.dayFull);
+        // Don't clear the pre-filled hour on the initial mount when editing —
+        // only reset it once the user actually changes the date afterward.
+        if (!isFirstLoad.current) {
+          setHour(null);
+          setMinute(0);
+        }
+        isFirstLoad.current = false;
+        setLoadingHours(false);
+      },
+    );
     return () => {
       cancelled = true;
     };
-  }, [date, appointmentId]);
+  }, [date, appointmentId, pet?.weight_lb, pickupDropoff]);
 
   useEffect(() => {
     if (!pickupDropoff || !pickupAddress.trim()) {
@@ -1006,41 +1013,47 @@ export default function BookingFlow({
           </p>
         )}
         <div className="mt-3 grid grid-cols-3 gap-2.5 sm:grid-cols-4">
-          {(isAdmin ? [...HOURS, ...ADMIN_EXTRA_HOURS] : HOURS).map((h) => {
-            const isSelected = hour === h && minute === 0;
-            const isTaken = bookedHours.includes(h);
-            // Admin can intentionally double-book a slot (e.g. two dogs
-            // from the same household both at 5pm) — everyone else is
-            // still blocked from an already-taken or too-soon/past hour.
-            const isDisabled =
-              !isAdmin && (isTaken || isPastOrTooSoon(date, h, pickupDropoff));
-            return (
-              <button
-                key={h}
-                type="button"
-                disabled={isDisabled}
-                onClick={() => {
-                  setHour(h);
-                  setMinute(0);
-                }}
-                className={`flex items-center justify-center gap-1.5 rounded-2xl border px-3 py-3 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-                  isSelected
-                    ? "border-accent bg-accent text-white"
-                    : isAdmin && isTaken
-                      ? "border-accent-dark/40 bg-accent-tint text-foreground/80 hover:border-accent-dark"
-                      : "border-border bg-card text-foreground/80 hover:border-accent-dark"
-                }`}
-              >
-                {isSelected && <PawIcon className="h-3.5 w-3.5" />}
-                {formatHour(h)}
-                {isAdmin && isTaken && !isSelected && (
-                  <span className="text-[10px] text-accent-dark">
-                    (booked)
-                  </span>
-                )}
-              </button>
-            );
-          })}
+          {expandToHalfHourSlots(isAdmin ? [...HOURS, ...ADMIN_EXTRA_HOURS] : HOURS).map(
+            (slot) => {
+              const slotHour = Math.floor(slot);
+              const slotMinute = slot % 1 === 0 ? 0 : 30;
+              const isSelected = hour === slotHour && minute === slotMinute;
+              const isTaken = bookedHours.includes(slot);
+              // Admin can intentionally double-book a slot (e.g. two dogs
+              // from the same household both at 5pm) — everyone else is
+              // still blocked from an already-taken/too-close or
+              // too-soon/past slot.
+              const isDisabled =
+                !isAdmin &&
+                (isTaken || isPastOrTooSoon(date, slotHour, pickupDropoff, slotMinute));
+              return (
+                <button
+                  key={slot}
+                  type="button"
+                  disabled={isDisabled}
+                  onClick={() => {
+                    setHour(slotHour);
+                    setMinute(slotMinute);
+                  }}
+                  className={`flex items-center justify-center gap-1.5 rounded-2xl border px-3 py-3 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                    isSelected
+                      ? "border-accent bg-accent text-white"
+                      : isAdmin && isTaken
+                        ? "border-accent-dark/40 bg-accent-tint text-foreground/80 hover:border-accent-dark"
+                        : "border-border bg-card text-foreground/80 hover:border-accent-dark"
+                  }`}
+                >
+                  {isSelected && <PawIcon className="h-3.5 w-3.5" />}
+                  {formatHour(slotHour, slotMinute)}
+                  {isAdmin && isTaken && !isSelected && (
+                    <span className="text-[10px] text-accent-dark">
+                      (blocked)
+                    </span>
+                  )}
+                </button>
+              );
+            },
+          )}
         </div>
         {isAdmin && (
           <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-accent-dark/40 bg-card px-3.5 py-2.5">

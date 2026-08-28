@@ -17,10 +17,8 @@ import {
   calculateSalesTax,
   SALES_TAX_PERCENT,
   catAddOns,
-  catWeightClass,
   CREATIVE_TIER_LABELS,
   dogAddOns,
-  dogWeightClass,
   formatServiceLabel,
   memberPackagePrices,
   PACKAGE_LABELS,
@@ -44,9 +42,12 @@ import {
   type CancellationReason,
 } from "@/lib/cancellation-reasons";
 import {
+  ADMIN_EXTRA_HOURS,
   BOOKING_HOURS,
   MAX_NO_SHOWS,
   PICKUP_MIN_LEAD_HOURS,
+  expandToHalfHourSlots,
+  minGapHoursFor,
 } from "@/lib/booking-hours";
 import {
   centralWallClockToInstant,
@@ -484,35 +485,26 @@ export async function notifyAdminCheckoutAbandoned(
 }
 
 export interface HourAvailability {
+  // Decimal-hour slot keys (9.5 = 9:30) that are unavailable — either
+  // literally taken, or too close to another appointment per
+  // minGapHoursFor's spacing rule.
   bookedHours: number[];
   dayBlocked: boolean;
   dayFull: boolean;
 }
 
-// A groomed dog/cat needs the groomer's undivided time after their slot
-// starts, scaled to how long that size of pet typically takes. Standalone
-// (add-on only) visits are quick and don't need extra buffer room.
-function bufferHoursFor(
-  service: string,
-  species: "dog" | "cat",
-  weightLb: number,
-): number {
-  if (service === "standalone") return 0;
-  if (species === "dog") {
-    const weightClass = dogWeightClass(weightLb);
-    return weightClass === "large" || weightClass === "xlarge" ? 2 : 1;
-  }
-  return catWeightClass(weightLb) === "over20" ? 2 : 1;
-}
-
 export async function getBookedHours(
   date: string,
   excludeAppointmentId?: string,
+  candidateWeightLb?: number | null,
+  candidatePickupDropoff?: boolean,
 ): Promise<HourAvailability> {
   const supabase = await createClient();
   let query = supabase
     .from("appointments")
-    .select("id, appointment_hour, service, duration_minutes, pets(species, weight_lb)")
+    .select(
+      "id, appointment_hour, appointment_minute, duration_minutes, pickup_dropoff, pets(weight_lb)",
+    )
     .eq("appointment_date", date)
     .neq("status", "cancelled");
 
@@ -532,30 +524,48 @@ export async function getBookedHours(
   const rows = appts ?? [];
   const dayFull = rows.length >= config.maxAppointmentsPerDay;
 
+  // Every slot either the customer or admin flow could offer — cheap to
+  // compute in full regardless of which one is asking.
+  const allSlots = expandToHalfHourSlots([...BOOKING_HOURS, ...ADMIN_EXTRA_HOURS]);
+  const candidateGap = minGapHoursFor(
+    candidateWeightLb ?? null,
+    !!candidatePickupDropoff,
+  );
+
   const bookedHours = new Set<number>();
   for (const row of rows) {
-    bookedHours.add(row.appointment_hour as number);
+    const start =
+      (row.appointment_hour as number) + (row.appointment_minute ?? 0) / 60;
     const pet = Array.isArray(row.pets) ? row.pets[0] : row.pets;
-    if (!pet) continue;
-    // A manually-set duration (see setAppointmentDuration) overrides the
-    // usual species/weight estimate entirely — if the admin says a groom
-    // is really going to run 9am-12pm, that blocks the full 3 hours
-    // regardless of what a typical appointment that size would take.
-    const buffer = row.duration_minutes
-      ? Math.ceil(row.duration_minutes / 60) - 1
-      : bufferHoursFor(row.service, pet.species, pet.weight_lb);
-    for (let i = 1; i <= buffer; i++) {
-      bookedHours.add((row.appointment_hour as number) + i);
+    const gap = Math.max(
+      minGapHoursFor(pet?.weight_lb ?? null, !!row.pickup_dropoff),
+      candidateGap,
+    );
+    // A manually-set duration (see setAppointmentDuration) can stretch an
+    // appointment's own occupied time past what the gap alone covers —
+    // e.g. an admin marking a 9am appointment as really running to noon.
+    const occupiedHours = row.duration_minutes ? row.duration_minutes / 60 : 0;
+
+    for (const slot of allSlots) {
+      if (slot > start - gap && slot < start + Math.max(gap, occupiedHours)) {
+        bookedHours.add(slot);
+      }
     }
   }
 
   if (dayFull) {
-    for (const h of BOOKING_HOURS) bookedHours.add(h);
+    for (const h of BOOKING_HOURS) {
+      bookedHours.add(h);
+      bookedHours.add(h + 0.5);
+    }
   }
 
   const dayBlocked = (blocks ?? []).some((b) => b.blocked_hour === null);
   for (const b of blocks ?? []) {
-    if (b.blocked_hour !== null) bookedHours.add(b.blocked_hour);
+    if (b.blocked_hour !== null) {
+      bookedHours.add(b.blocked_hour);
+      bookedHours.add(b.blocked_hour + 0.5);
+    }
   }
 
   return {
@@ -645,8 +655,9 @@ function bookingTimeError(
   date: string,
   hour: number,
   pickupDropoff: boolean,
+  minute: number = 0,
 ): string | null {
-  const apptTime = appointmentDateTime(date, hour);
+  const apptTime = appointmentDateTime(date, hour, minute);
   const now = new Date();
   if (apptTime.getTime() <= now.getTime()) return PAST_TIME_MESSAGE;
   if (pickupDropoff) {
@@ -727,7 +738,7 @@ export async function createAppointment(formData: FormData) {
     redirect(`/book?error=${encodeURIComponent(waiverIssue)}`);
   }
 
-  const timeIssue = bookingTimeError(fields.date, fields.hour, fields.pickupDropoff);
+  const timeIssue = bookingTimeError(fields.date, fields.hour, fields.pickupDropoff, fields.minute);
   if (timeIssue) {
     redirect(`/book?error=${encodeURIComponent(timeIssue)}`);
   }
@@ -945,7 +956,7 @@ export async function updateAppointment(formData: FormData) {
     : `/account/appointments/${appointmentId}`;
 
   if (!admin) {
-    const timeIssue = bookingTimeError(fields.date, fields.hour, fields.pickupDropoff);
+    const timeIssue = bookingTimeError(fields.date, fields.hour, fields.pickupDropoff, fields.minute);
     if (timeIssue) {
       redirect(`${editPath}?error=${encodeURIComponent(timeIssue)}`);
     }
