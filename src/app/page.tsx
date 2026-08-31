@@ -131,6 +131,17 @@ export default async function Home() {
         </div>
       </section>
 
+      <section className="bg-accent-tint">
+        <RevealOnScroll className="mx-auto max-w-6xl px-6 py-14">
+          <h2 className="text-center font-serif text-2xl text-foreground">
+            See What Pet Parents Have to Say
+          </h2>
+          <div className="mt-10">
+            <ReviewsCarousel reviews={realReviews} />
+          </div>
+        </RevealOnScroll>
+      </section>
+
       <section className="border-y border-border bg-card">
         <div className="mx-auto grid max-w-6xl gap-10 px-6 py-16 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((f, i) => (
@@ -330,17 +341,6 @@ export default async function Home() {
             </p>
           </RevealOnScroll>
         </div>
-      </section>
-
-      <section className="border-t border-border bg-accent-tint">
-        <RevealOnScroll className="mx-auto max-w-6xl px-6 py-14">
-          <h2 className="text-center font-serif text-2xl text-foreground">
-            See What Pet Parents Have to Say
-          </h2>
-          <div className="mt-10">
-            <ReviewsCarousel reviews={realReviews} />
-          </div>
-        </RevealOnScroll>
       </section>
 
       <section className="border-t border-border">
