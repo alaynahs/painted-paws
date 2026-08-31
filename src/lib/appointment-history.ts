@@ -5,7 +5,10 @@ export type AppointmentHistoryAction =
   | "edited"
   | "cancelled"
   | "confirmed"
-  | "completed";
+  | "completed"
+  | "checked_in"
+  | "groom_started"
+  | "ready";
 
 // One shared insert used by every appointment lifecycle action (booking,
 // editing, cancelling, confirming, completing) so the admin can see a full

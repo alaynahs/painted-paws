@@ -7,6 +7,11 @@ import { headers } from "next/headers";
 import { requireAdmin } from "@/lib/supabase/admin";
 import { getPricingConfig } from "@/lib/pricing/config";
 import { logAppointmentHistory } from "@/lib/appointment-history";
+import {
+  GROOM_RECIPE_FIELDS,
+  normalizeGroomRecipe,
+  type GroomRecipe,
+} from "@/lib/groom-recipe";
 import { notifyEmail, type NotificationType } from "@/lib/notifications/service";
 import type { QuickMessageType } from "@/lib/notifications/quick-message-labels";
 import {
@@ -269,6 +274,90 @@ export async function deleteGroomPhoto(
     revalidatePath(`/admin/appointments/${appointmentId}`);
     revalidatePath(`/admin/appointments/${appointmentId}/photos`);
   }
+}
+
+// A small identity photo for the pet (distinct from the groom-photos
+// before/after gallery) — one per pet, replaced wholesale on re-upload.
+export async function updatePetPhoto(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const petId = formData.get("petId") as string;
+  const file = formData.get("file") as File;
+  const returnPath = ((formData.get("returnPath") as string) || "") || `/admin/pets/${petId}`;
+
+  if (!file || file.size === 0) {
+    redirect(`${returnPath}?error=${encodeURIComponent("Choose a photo to upload.")}`);
+  }
+
+  const { data: pet } = await supabase
+    .from("pets")
+    .select("owner_id, photo_path")
+    .eq("id", petId)
+    .single();
+
+  if (!pet) redirect(`${returnPath}?error=${encodeURIComponent("Pet not found.")}`);
+
+  const storagePath = `${pet.owner_id}/${petId}/${randomUUID()}-${sanitizeFileName(file.name)}`;
+  const { error: uploadError } = await supabase.storage
+    .from("pet-photos")
+    .upload(storagePath, file, { contentType: file.type });
+
+  if (uploadError) {
+    redirect(`${returnPath}?error=${encodeURIComponent(uploadError.message)}`);
+  }
+
+  await supabase.from("pets").update({ photo_path: storagePath }).eq("id", petId);
+  if (pet.photo_path) {
+    await supabase.storage.from("pet-photos").remove([pet.photo_path]);
+  }
+
+  revalidatePath(`/admin/pets/${petId}`);
+  redirect(`${returnPath}?message=Photo+updated.`);
+}
+
+// Saves the groomer's own reusable groom-instructions reference for this
+// pet — see src/lib/groom-recipe.ts for the field list/shape.
+export async function updateGroomRecipe(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const petId = formData.get("petId") as string;
+  const recipe: GroomRecipe = {};
+  for (const field of GROOM_RECIPE_FIELDS) {
+    recipe[field] = (formData.get(field) as string) || "";
+  }
+  await supabase
+    .from("pets")
+    .update({ groom_recipe: normalizeGroomRecipe(recipe) })
+    .eq("id", petId);
+  revalidatePath(`/admin/pets/${petId}`);
+}
+
+const STAGE_COLUMN: Record<"checked_in" | "groom_started" | "ready", string> = {
+  checked_in: "checked_in_at",
+  groom_started: "groom_started_at",
+  ready: "ready_at",
+};
+
+// Purely operational, same-day stage tracking (Check In -> Start Groom ->
+// Mark Ready) — internal only, no customer notification. Checkout is a
+// separate, existing flow (markAppointmentComplete) since it's terminal
+// and already has its own email choice.
+export async function setAppointmentStage(
+  appointmentId: string,
+  stage: "checked_in" | "groom_started" | "ready",
+) {
+  const { supabase, user } = await requireAdmin();
+  await supabase
+    .from("appointments")
+    .update({ [STAGE_COLUMN[stage]]: new Date().toISOString() })
+    .eq("id", appointmentId);
+
+  await logAppointmentHistory(supabase, {
+    appointmentId,
+    action: stage,
+    actorType: "admin",
+    actorId: user.id,
+  });
+
+  revalidatePath(`/admin/appointments/${appointmentId}`);
 }
 
 interface AppointmentContact {

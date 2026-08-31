@@ -3,8 +3,6 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/supabase/admin";
 import { updatePet } from "@/app/account/pets/actions";
 import {
-  addGroomNote,
-  deleteGroomNote,
   deleteGroomPhoto,
   setCustomerDoNotBook,
   setPetActive,
@@ -15,14 +13,16 @@ import {
 import { getNoShowCount } from "@/app/book/actions";
 import { MAX_NO_SHOWS } from "@/lib/booking-hours";
 import PetForm from "@/components/pet-form";
+import PetPhoto from "@/components/pet-photo";
+import GroomingRecipeCard from "@/components/grooming-recipe-card";
 import MembershipCard from "@/components/membership-card";
-import CancelAppointmentButton from "@/components/cancel-appointment-button";
-import MarkCompleteButton from "@/components/mark-complete-button";
 import ShowMoreList from "@/components/show-more-list";
-import DeleteNoteButton from "@/components/delete-note-button";
+import NoteForm from "@/components/note-form";
+import NoteList from "@/components/note-list";
+import PetAppointmentCard from "@/components/pet-appointment-card";
+import { normalizeGroomRecipe } from "@/lib/groom-recipe";
 import { centralDateOnly, formatDate, formatHour, todayInCentral } from "@/lib/format";
 import {
-  formatServiceLabel,
   GROOM_PACK_SERVICE_LABELS,
   monthsSince,
   type GroomPackService,
@@ -76,6 +76,14 @@ export default async function AdminPetDetailPage({
       .from("vaccine-records")
       .createSignedUrl(pet.rabies_vaccine_path, 60 * 10);
     vaccineUrl = signed?.signedUrl ?? null;
+  }
+
+  let petPhotoUrl: string | null = null;
+  if (pet.photo_path) {
+    const { data: signed } = await supabase.storage
+      .from("pet-photos")
+      .createSignedUrl(pet.photo_path, 60 * 10);
+    petPhotoUrl = signed?.signedUrl ?? null;
   }
 
   const isPuppyExempt =
@@ -156,6 +164,9 @@ export default async function AdminPetDetailPage({
   const pastAppointments = (appointments ?? []).filter(
     (a) => a.appointment_date < todayStr || a.status === "cancelled",
   );
+  const todaysAppointment = upcomingAppointments.find(
+    (a) => a.appointment_date === todayStr,
+  );
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-16">
@@ -163,7 +174,14 @@ export default async function AdminPetDetailPage({
         Admin
       </p>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
-        <h1 className="font-serif text-3xl text-foreground">{pet.name}</h1>
+        <div className="flex items-center gap-4">
+          <PetPhoto
+            petId={pet.id}
+            photoUrl={petPhotoUrl}
+            returnPath={`/admin/pets/${pet.id}`}
+          />
+          <h1 className="font-serif text-3xl text-foreground">{pet.name}</h1>
+        </div>
         <Link
           href={`/admin/pets/${pet.id}/book`}
           className="rounded-full bg-accent px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-dark"
@@ -176,6 +194,23 @@ export default async function AdminPetDetailPage({
         {pet.profiles?.phone ? ` · ${pet.profiles.phone}` : ""}
         {pet.profiles?.email ? ` · ${pet.profiles.email}` : ""}
       </p>
+      {todaysAppointment && (
+        <Link
+          href={`/admin/appointments/${todaysAppointment.id}`}
+          className="mt-3 flex items-center justify-between rounded-xl border border-accent-dark/40 bg-accent-tint px-4 py-2.5 text-sm text-foreground transition-colors hover:border-accent-dark"
+        >
+          <span>
+            Today&apos;s appointment:{" "}
+            <span className="font-medium">
+              {formatHour(
+                todaysAppointment.appointment_hour,
+                todaysAppointment.appointment_minute,
+              )}
+            </span>
+          </span>
+          <span className="text-accent-dark">View visit →</span>
+        </Link>
+      )}
       {message && (
         <p className="mt-4 rounded-xl border border-accent/40 bg-accent-tint px-4 py-3 text-sm text-foreground">
           {message}
@@ -336,6 +371,11 @@ export default async function AdminPetDetailPage({
         </div>
 
         <aside className="space-y-6 lg:sticky lg:top-20 lg:self-start">
+          <GroomingRecipeCard
+            petId={pet.id}
+            recipe={normalizeGroomRecipe(pet.groom_recipe)}
+          />
+
           <section className="rounded-2xl border border-border bg-card p-5">
             <h2 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
               Rabies Vaccine
@@ -556,7 +596,7 @@ export default async function AdminPetDetailPage({
             {upcomingAppointments.length > 0 ? (
               <div className="mt-3 space-y-2">
                 {upcomingAppointments.map((appt) => (
-                  <AppointmentCard
+                  <PetAppointmentCard
                     key={appt.id}
                     appt={appt}
                     inspoUrl={inspoUrls[appt.id]}
@@ -579,7 +619,7 @@ export default async function AdminPetDetailPage({
               <div className="mt-3 max-h-[32rem] space-y-2 overflow-y-auto pr-1">
                 <ShowMoreList initialCount={3}>
                   {pastAppointments.map((appt) => (
-                    <AppointmentCard
+                    <PetAppointmentCard
                       key={appt.id}
                       appt={appt}
                       inspoUrl={inspoUrls[appt.id]}
@@ -593,212 +633,6 @@ export default async function AdminPetDetailPage({
           </section>
         </aside>
       </div>
-    </div>
-  );
-}
-
-interface AppointmentRow {
-  id: string;
-  appointment_date: string;
-  appointment_hour: number;
-  appointment_minute: number;
-  status: string;
-  service: string;
-  add_ons: string[];
-  price: number;
-  customer_note: string | null;
-  haircut_description?: string | null;
-  inspo_photo_path?: string | null;
-}
-
-function AppointmentCard({
-  appt,
-  inspoUrl,
-  showActions = false,
-}: {
-  appt: AppointmentRow;
-  inspoUrl?: string;
-  showActions?: boolean;
-}) {
-  return (
-    <div className="rounded-xl border border-border bg-background p-3">
-      <div className="flex items-baseline justify-between gap-2">
-        <p className="text-sm font-medium text-foreground">
-          {formatDate(appt.appointment_date)}
-        </p>
-        <span className="shrink-0 rounded-full bg-accent-tint px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-accent-dark">
-          {appt.status}
-        </span>
-      </div>
-      <p className="text-xs text-muted">
-        {formatHour(appt.appointment_hour, appt.appointment_minute)}
-      </p>
-      <p className="mt-1 text-xs text-foreground/90">
-        {formatServiceLabel(appt.service)}
-        {appt.add_ons?.length > 0 && ` · ${appt.add_ons.join(", ")}`}
-      </p>
-      <p className="mt-1 text-xs font-medium text-accent-dark">
-        ${appt.price}
-      </p>
-      {appt.customer_note && (
-        <p className="mt-2 rounded-lg bg-accent-tint px-2.5 py-1.5 text-xs text-foreground/90">
-          <span className="font-medium">Pet parent:</span>{" "}
-          {appt.customer_note}
-        </p>
-      )}
-      {appt.haircut_description && (
-        <p className="mt-2 rounded-lg bg-accent-tint px-2.5 py-1.5 text-xs text-foreground/90">
-          <span className="font-medium">Haircut request:</span>{" "}
-          {appt.haircut_description}
-        </p>
-      )}
-      {inspoUrl && (
-        <a
-          href={inspoUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-2 inline-block text-xs text-accent-dark hover:underline"
-        >
-          View inspiration photo/PDF →
-        </a>
-      )}
-      {showActions && (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {appt.status !== "completed" && (
-            <MarkCompleteButton appointmentId={appt.id} compact />
-          )}
-          <Link
-            href={`/admin/appointments/${appt.id}`}
-            className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
-          >
-            Edit
-          </Link>
-          <CancelAppointmentButton appointmentId={appt.id} isAdmin />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function NoteForm({
-  petId,
-  noteType,
-}: {
-  petId: string;
-  noteType: "grooming" | "behavior" | "parent";
-}) {
-  const placeholder =
-    noteType === "grooming"
-      ? "e.g. Took a size 4 blade on the body, sensitive around the ears…"
-      : noteType === "behavior"
-        ? "e.g. Nervous around the dryer, great with nail trims…"
-        : "e.g. Always 15 min late, great tipper, prefers text over calls…";
-  const isMultiline = noteType === "parent";
-
-  return (
-    <form action={addGroomNote} className="mt-4 space-y-2">
-      <input type="hidden" name="petId" value={petId} />
-      <input type="hidden" name="noteType" value={noteType} />
-      {isMultiline ? (
-        <textarea
-          name="note"
-          rows={3}
-          placeholder={placeholder}
-          className="w-full rounded-xl border border-border bg-background px-4 py-2 text-sm text-foreground outline-none focus:border-accent-dark"
-        />
-      ) : (
-        <input
-          name="note"
-          type="text"
-          placeholder={placeholder}
-          className="w-full rounded-xl border border-border bg-background px-4 py-2 text-sm text-foreground outline-none focus:border-accent-dark"
-        />
-      )}
-      <input
-        name="photo"
-        type="file"
-        accept="image/*"
-        className="block w-full text-xs text-foreground/80"
-      />
-      <p className="text-[10px] text-muted">
-        Photo is just for you — never shown to the pet parent.
-      </p>
-      <label className="flex items-center gap-2 text-xs text-foreground/90">
-        <input
-          type="checkbox"
-          name="rating"
-          value="caution"
-          className="h-3.5 w-3.5 rounded border-border accent-red-600"
-        />
-        ⚠ Mark as Caution — shows up automatically next time this pet is on
-        the schedule
-      </label>
-      <button
-        type="submit"
-        className="w-full rounded-full bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-dark"
-      >
-        + New Note
-      </button>
-    </form>
-  );
-}
-
-function NoteList({
-  notes,
-  noteUrls,
-  petId,
-  emptyLabel,
-}: {
-  notes: { id: string; note: string; created_at: string; rating: string | null }[];
-  noteUrls: Record<string, string>;
-  petId: string;
-  emptyLabel: string;
-}) {
-  if (notes.length === 0) {
-    return <p className="mt-4 text-sm text-muted">{emptyLabel}</p>;
-  }
-  return (
-    <div className="mt-4 space-y-2">
-      {notes.map((n) => (
-        <div
-          key={n.id}
-          className={`rounded-lg border p-3 text-sm text-foreground/90 ${
-            n.rating === "caution"
-              ? "border-red-300 bg-red-50 dark:border-red-900 dark:bg-red-950/30"
-              : "border-border bg-background"
-          }`}
-        >
-          <div className="flex items-start justify-between gap-3">
-            {n.rating === "caution" ? (
-              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-900/50 dark:text-red-300">
-                ⚠ Caution
-              </span>
-            ) : (
-              <span />
-            )}
-            <DeleteNoteButton action={deleteGroomNote.bind(null, n.id, petId)} />
-          </div>
-          {n.note && <p className="mt-1 whitespace-pre-wrap">{n.note}</p>}
-          {noteUrls[n.id] && (
-            <a
-              href={noteUrls[n.id]}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-2 block"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element -- signed URL from private storage, not an optimizable static asset */}
-              <img
-                src={noteUrls[n.id]}
-                alt="Note photo"
-                className="max-h-40 rounded-lg object-cover"
-              />
-            </a>
-          )}
-          <p className="mt-1 text-xs text-muted">
-            {formatDate(centralDateOnly(n.created_at))}
-          </p>
-        </div>
-      ))}
     </div>
   );
 }

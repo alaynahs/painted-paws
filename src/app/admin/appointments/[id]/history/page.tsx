@@ -1,15 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/supabase/admin";
-import { formatDateTime } from "@/lib/format";
-
-const ACTION_LABELS: Record<string, string> = {
-  booked: "Booked",
-  edited: "Edited",
-  cancelled: "Cancelled",
-  confirmed: "Confirmed",
-  completed: "Marked complete",
-};
+import AppointmentHistoryList from "@/components/appointment-history-list";
 
 export default async function AppointmentHistoryPage({
   params,
@@ -43,37 +35,8 @@ export default async function AppointmentHistoryPage({
         {pet?.name ?? "Pet"}&apos;s Appointment
       </h1>
 
-      <div className="mt-6 space-y-3">
-        {(history ?? []).length > 0 ? (
-          (history ?? []).map((h) => {
-            const profile = Array.isArray(h.profiles) ? h.profiles[0] : h.profiles;
-            const who =
-              h.actor_type === "admin"
-                ? "You"
-                : h.actor_type === "system"
-                  ? "System"
-                  : (profile?.full_name ?? "Pet parent");
-            return (
-              <div
-                key={h.id}
-                className="rounded-xl border border-border bg-card p-4"
-              >
-                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                  <p className="text-sm font-medium text-foreground">
-                    {ACTION_LABELS[h.action] ?? h.action}
-                  </p>
-                  <p className="text-xs text-muted">{formatDateTime(h.created_at)}</p>
-                </div>
-                <p className="mt-1 text-xs text-muted">
-                  By {who}
-                  {h.note ? ` · ${h.note}` : ""}
-                </p>
-              </div>
-            );
-          })
-        ) : (
-          <p className="text-sm text-muted">No history recorded yet.</p>
-        )}
+      <div className="mt-6">
+        <AppointmentHistoryList history={history ?? []} />
       </div>
 
       <Link
