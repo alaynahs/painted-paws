@@ -12,6 +12,24 @@ const creativeGrooms = [
 const testimonials = [
   {
     quote:
+      "Bella always comes home so squeaky clean and her coat sparkling. Thank you for taking such good care of her!",
+    attribution: "Bella's pet parent, a regular",
+  },
+  {
+    quote: "Very knowledgeable and helpful for our needs.",
+    attribution: "A new customer",
+  },
+  {
+    quote:
+      "Alaynah and my dog Sammy are best friends! She always loves coming to the salon to see her.",
+    attribution: "Sammy's pet parent",
+  },
+  {
+    quote: "Matilda always comes home looking and smelling great! Thank you Alaynah!",
+    attribution: "Matilda's pet parent",
+  },
+  {
+    quote:
       "We are beyond happy with our visit. The groom quality, knowledge, and friendliness were a 10/10 across the board. It's clear how much care goes into every appointment.",
     attribution: "A very happy pet parent",
   },
@@ -39,24 +57,6 @@ const testimonials = [
     quote:
       "She puts so much heart into every groom and genuinely gets to know each dog. It's obvious in the results and in how comfortable my pup is every time we come back.",
     attribution: "Loyal customer",
-  },
-  {
-    quote:
-      "Bella always comes home so squeaky clean and her coat sparkling. Thank you for taking such good care of her!",
-    attribution: "Bella's pet parent, a regular",
-  },
-  {
-    quote: "Very knowledgeable and helpful for our needs.",
-    attribution: "A new customer",
-  },
-  {
-    quote:
-      "Alaynah and my dog Sammy are best friends! She always loves coming to the salon to see her.",
-    attribution: "Sammy's pet parent",
-  },
-  {
-    quote: "Matilda always comes home looking and smelling great! Thank you Alaynah!",
-    attribution: "Matilda's pet parent",
   },
 ];
 
