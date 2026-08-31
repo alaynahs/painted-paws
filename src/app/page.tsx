@@ -7,16 +7,12 @@ import ReviewsCarousel from "@/components/reviews-carousel";
 import TrackHomeLanding from "@/components/track-home-landing";
 import { createClient } from "@/lib/supabase/server";
 
+// Ordered longest review to shortest.
 const realReviews = [
   {
     quote:
       "My toy poodle was way overdue for a groom and got all the attention and pampering she wanted — she came home happy and looking so cute! I live about 30 minutes away, but it's absolutely worth the drive. Highly recommend!",
     attribution: "Grace G.",
-    rating: 5,
-  },
-  {
-    quote: "Alaynah did an amazing job. We will be back.",
-    attribution: "Jamie M.",
     rating: 5,
   },
   {
@@ -26,8 +22,9 @@ const realReviews = [
     rating: 5,
   },
   {
-    quote: "Great experience with my 2 Shih Tzus.",
-    attribution: "Eve G.",
+    quote:
+      "Love coming to Painted Paws Austin. She has reasonable prices, gentle and kind with my pup. Millie has no problem going straight to the door.",
+    attribution: "Nayda H.",
     rating: 5,
   },
   {
@@ -37,9 +34,13 @@ const realReviews = [
     rating: 5,
   },
   {
-    quote:
-      "Love coming to Painted Paws Austin. She has reasonable prices, gentle and kind with my pup. Millie has no problem going straight to the door.",
-    attribution: "Nayda H.",
+    quote: "Alaynah did an amazing job. We will be back.",
+    attribution: "Jamie M.",
+    rating: 5,
+  },
+  {
+    quote: "Great experience with my 2 Shih Tzus.",
+    attribution: "Eve G.",
     rating: 5,
   },
 ];
@@ -137,17 +138,6 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="bg-accent-tint">
-        <RevealOnScroll className="mx-auto max-w-6xl px-6 py-14">
-          <h2 className="text-center font-serif text-2xl text-foreground">
-            See What Pet Parents Have to Say
-          </h2>
-          <div className="mt-10">
-            <ReviewsCarousel reviews={realReviews} />
-          </div>
-        </RevealOnScroll>
-      </section>
-
       <section className="border-y border-border bg-card">
         <div className="mx-auto grid max-w-6xl gap-10 px-6 py-16 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((f, i) => (
@@ -209,6 +199,17 @@ export default async function Home() {
             </RevealOnScroll>
           </div>
         </div>
+      </section>
+
+      <section className="mx-auto max-w-3xl px-6 py-10">
+        <RevealOnScroll className="rounded-2xl border border-border bg-foreground/[0.03] px-6 py-6 sm:px-10 sm:py-8">
+          <p className="text-center text-xs font-semibold tracking-widest text-accent-dark uppercase">
+            See What Pet Parents Have to Say
+          </p>
+          <div className="mt-5">
+            <ReviewsCarousel reviews={realReviews} />
+          </div>
+        </RevealOnScroll>
       </section>
 
       <section className="mx-auto max-w-6xl px-6 py-20">
