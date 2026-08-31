@@ -14,6 +14,7 @@ import { getNoShowCount } from "@/app/book/actions";
 import { MAX_NO_SHOWS } from "@/lib/booking-hours";
 import PetForm from "@/components/pet-form";
 import PetPhoto from "@/components/pet-photo";
+import CollapsibleCard from "@/components/collapsible-card";
 import GroomingRecipeCard from "@/components/grooming-recipe-card";
 import MembershipCard from "@/components/membership-card";
 import ShowMoreList from "@/components/show-more-list";
@@ -307,17 +308,8 @@ export default async function AdminPetDetailPage({
             </div>
           </section>
 
-          <div className="grid gap-6 sm:grid-cols-2">
-            <section className="rounded-2xl border border-border bg-card p-6">
-              <div className="flex items-center justify-between">
-                <h2 className="font-serif text-lg text-foreground">
-                  Grooming Notes
-                </h2>
-                <span className="text-xs text-muted">
-                  {groomingNotes.length} note
-                  {groomingNotes.length === 1 ? "" : "s"}
-                </span>
-              </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <CollapsibleCard title="Grooming Notes" count={groomingNotes.length}>
               <NoteForm petId={pet.id} noteType="grooming" />
               <NoteList
                 notes={groomingNotes}
@@ -325,18 +317,9 @@ export default async function AdminPetDetailPage({
                 petId={pet.id}
                 emptyLabel="No grooming notes yet."
               />
-            </section>
+            </CollapsibleCard>
 
-            <section className="rounded-2xl border border-border bg-card p-6">
-              <div className="flex items-center justify-between">
-                <h2 className="font-serif text-lg text-foreground">
-                  Behavior Notes
-                </h2>
-                <span className="text-xs text-muted">
-                  {behaviorNotes.length} note
-                  {behaviorNotes.length === 1 ? "" : "s"}
-                </span>
-              </div>
+            <CollapsibleCard title="Behavior Notes" count={behaviorNotes.length}>
               <NoteForm petId={pet.id} noteType="behavior" />
               <NoteList
                 notes={behaviorNotes}
@@ -344,19 +327,14 @@ export default async function AdminPetDetailPage({
                 petId={pet.id}
                 emptyLabel="No behavior notes yet."
               />
-            </section>
+            </CollapsibleCard>
           </div>
 
-          <section className="rounded-2xl border border-border bg-card p-6">
-            <div className="flex items-center justify-between">
-              <h2 className="font-serif text-lg text-foreground">
-                Pet Parent / Service Notes
-              </h2>
-              <span className="text-xs text-muted">
-                {parentNotes.length} note{parentNotes.length === 1 ? "" : "s"}
-              </span>
-            </div>
-            <p className="mt-1 text-xs text-muted">
+          <CollapsibleCard
+            title="Pet Parent / Service Notes"
+            count={parentNotes.length}
+          >
+            <p className="mb-2 text-xs text-muted">
               Anything about the pet parent or how the service went — never
               shown to them, same as the notes above.
             </p>
@@ -367,7 +345,7 @@ export default async function AdminPetDetailPage({
               petId={pet.id}
               emptyLabel="No pet parent / service notes yet."
             />
-          </section>
+          </CollapsibleCard>
         </div>
 
         <aside className="space-y-6 lg:sticky lg:top-20 lg:self-start">
@@ -457,17 +435,14 @@ export default async function AdminPetDetailPage({
             )}
           </section>
 
-          <section className="rounded-2xl border border-border bg-card p-5">
-            <h2 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
-              Groom Photos
-            </h2>
-            <p className="mt-1 text-xs text-muted">
+          <CollapsibleCard title="Groom Photos" count={groomPhotoUrls.length}>
+            <p className="mb-2 text-xs text-muted">
               Visible to {pet.profiles?.full_name ?? "the pet parent"} on
               their account.
             </p>
             <form
               action={uploadGroomPhoto}
-              className="mt-3 space-y-2 border-b border-border pb-4"
+              className="space-y-2 border-b border-border pb-4"
             >
               <input type="hidden" name="petId" value={pet.id} />
               <input
@@ -519,32 +494,28 @@ export default async function AdminPetDetailPage({
                 )}
               </div>
             ) : (
-              <p className="mt-3 text-sm text-muted">No groom photos yet.</p>
+              <p className="text-sm text-muted">No groom photos yet.</p>
             )}
-          </section>
+          </CollapsibleCard>
 
-          <section className="rounded-2xl border border-border bg-card p-5">
-            <h2 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
-              Membership
-            </h2>
+          <CollapsibleCard title="Membership" defaultOpen={!!membership}>
             {membership ? (
-              <div className="mt-2">
-                <MembershipCard
-                  membership={{ ...membership, pets: { name: pet.name } }}
-                  showCancel={false}
-                />
-              </div>
+              <MembershipCard
+                membership={{ ...membership, pets: { name: pet.name } }}
+                showCancel={false}
+              />
             ) : (
-              <p className="mt-2 text-sm text-muted">Not a member.</p>
+              <p className="text-sm text-muted">Not a member.</p>
             )}
-          </section>
+          </CollapsibleCard>
 
-          <section className="rounded-2xl border border-border bg-card p-5">
-            <h2 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
-              Groom Packs
-            </h2>
+          <CollapsibleCard
+            title="Groom Packs"
+            count={groomPacks?.length ?? 0}
+            defaultOpen={!!groomPacks && groomPacks.length > 0}
+          >
             {groomPacks && groomPacks.length > 0 ? (
-              <div className="mt-2 space-y-2">
+              <div className="space-y-2">
                 {groomPacks.map((pack) => {
                   const remaining =
                     pack.paid_count + pack.free_count - pack.credits_used;
@@ -585,9 +556,9 @@ export default async function AdminPetDetailPage({
                 })}
               </div>
             ) : (
-              <p className="mt-2 text-sm text-muted">No groom packs.</p>
+              <p className="text-sm text-muted">No groom packs.</p>
             )}
-          </section>
+          </CollapsibleCard>
 
           <section className="rounded-2xl border border-border bg-card p-5">
             <h2 className="text-sm font-medium uppercase tracking-wide text-accent-dark">

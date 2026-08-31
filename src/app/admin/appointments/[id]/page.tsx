@@ -9,6 +9,7 @@ import QuickMessageButtons from "@/components/quick-message-buttons";
 import RefundButton from "@/components/refund-button";
 import MarkCompleteButton from "@/components/mark-complete-button";
 import PetPhoto from "@/components/pet-photo";
+import CollapsibleCard from "@/components/collapsible-card";
 import GroomingRecipeCard from "@/components/grooming-recipe-card";
 import PriceBreakdownCard from "@/components/price-breakdown-card";
 import AppointmentStageTracker from "@/components/appointment-stage-tracker";
@@ -57,6 +58,7 @@ export default async function AdminEditAppointmentPage({
 
   if (!appointment || !appointment.pets) notFound();
   const pet = appointment.pets;
+  const appointmentPath = `/admin/appointments/${appointment.id}`;
 
   const sendPaymentLinkWithId = sendPaymentLinkEmail.bind(null, appointment.id);
   const markPaidWithId = markAppointmentPaid.bind(null, appointment.id);
@@ -378,58 +380,42 @@ export default async function AdminEditAppointmentPage({
           />
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <section className="rounded-2xl border border-border bg-card p-5">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
-                  Grooming Notes
-                </h2>
-                <span className="text-xs text-muted">{groomingNotes.length}</span>
-              </div>
-              <NoteForm petId={pet.id} noteType="grooming" />
+            <CollapsibleCard title="Grooming Notes" count={groomingNotes.length}>
+              <NoteForm petId={pet.id} noteType="grooming" returnPath={appointmentPath} />
               <NoteList
                 notes={groomingNotes}
                 noteUrls={noteUrls}
                 petId={pet.id}
                 emptyLabel="No grooming notes yet."
-              />
-            </section>
+              returnPath={appointmentPath} />
+            </CollapsibleCard>
 
-            <section className="rounded-2xl border border-border bg-card p-5">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
-                  Behavior Notes
-                </h2>
-                <span className="text-xs text-muted">{behaviorNotes.length}</span>
-              </div>
-              <NoteForm petId={pet.id} noteType="behavior" />
+            <CollapsibleCard title="Behavior Notes" count={behaviorNotes.length}>
+              <NoteForm petId={pet.id} noteType="behavior" returnPath={appointmentPath} />
               <NoteList
                 notes={behaviorNotes}
                 noteUrls={noteUrls}
                 petId={pet.id}
                 emptyLabel="No behavior notes yet."
-              />
-            </section>
+              returnPath={appointmentPath} />
+            </CollapsibleCard>
           </div>
 
-          <section className="rounded-2xl border border-border bg-card p-5">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
-                Pet Parent / Service Notes
-              </h2>
-              <span className="text-xs text-muted">{parentNotes.length}</span>
-            </div>
-            <NoteForm petId={pet.id} noteType="parent" />
+          <CollapsibleCard
+            title="Pet Parent / Service Notes"
+            count={parentNotes.length}
+          >
+            <NoteForm petId={pet.id} noteType="parent" returnPath={appointmentPath} />
             <NoteList
               notes={parentNotes}
               noteUrls={noteUrls}
               petId={pet.id}
               emptyLabel="No pet parent / service notes yet."
-            />
-          </section>
+            returnPath={appointmentPath} />
+          </CollapsibleCard>
 
-          <div className="rounded-xl border border-border bg-card p-4">
-            <p className="text-sm font-medium text-foreground">Blocked Length</p>
-            <p className="mt-1 text-xs text-muted">
+          <CollapsibleCard title="Blocked Length">
+            <p className="text-xs text-muted">
               By default this blocks about{" "}
               {(
                 (appointment.duration_minutes ??
@@ -466,7 +452,7 @@ export default async function AdminEditAppointmentPage({
                 Save
               </button>
             </form>
-          </div>
+          </CollapsibleCard>
 
           <Link
             href={`/admin/appointments/${appointment.id}/photos`}
@@ -567,15 +553,13 @@ export default async function AdminEditAppointmentPage({
             )}
           </section>
 
-          <section className="rounded-2xl border border-border bg-card p-5">
-            <h2 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
-              Groom Photos
-            </h2>
+          <CollapsibleCard title="Groom Photos" count={groomPhotoUrls.length}>
             <form
               action={uploadGroomPhoto}
-              className="mt-3 space-y-2 border-b border-border pb-4"
+              className="space-y-2 border-b border-border pb-4"
             >
               <input type="hidden" name="petId" value={pet.id} />
+              <input type="hidden" name="returnPath" value={appointmentPath} />
               <input
                 type="file"
                 name="file"
@@ -629,30 +613,26 @@ export default async function AdminEditAppointmentPage({
             ) : (
               <p className="mt-3 text-sm text-muted">No groom photos yet.</p>
             )}
-          </section>
+          </CollapsibleCard>
 
-          <section className="rounded-2xl border border-border bg-card p-5">
-            <h2 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
-              Membership
-            </h2>
+          <CollapsibleCard title="Membership" defaultOpen={!!membership}>
             {membership ? (
-              <div className="mt-2">
-                <MembershipCard
-                  membership={{ ...membership, pets: { name: pet.name } }}
-                  showCancel={false}
-                />
-              </div>
+              <MembershipCard
+                membership={{ ...membership, pets: { name: pet.name } }}
+                showCancel={false}
+              />
             ) : (
-              <p className="mt-2 text-sm text-muted">Not a member.</p>
+              <p className="text-sm text-muted">Not a member.</p>
             )}
-          </section>
+          </CollapsibleCard>
 
-          <section className="rounded-2xl border border-border bg-card p-5">
-            <h2 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
-              Groom Packs
-            </h2>
+          <CollapsibleCard
+            title="Groom Packs"
+            count={groomPacks?.length ?? 0}
+            defaultOpen={!!groomPacks && groomPacks.length > 0}
+          >
             {groomPacks && groomPacks.length > 0 ? (
-              <div className="mt-2 space-y-2">
+              <div className="space-y-2">
                 {groomPacks.map((pack) => {
                   const remaining =
                     pack.paid_count + pack.free_count - pack.credits_used;
@@ -689,9 +669,9 @@ export default async function AdminEditAppointmentPage({
                 })}
               </div>
             ) : (
-              <p className="mt-2 text-sm text-muted">No groom packs.</p>
+              <p className="text-sm text-muted">No groom packs.</p>
             )}
-          </section>
+          </CollapsibleCard>
 
           <section className="rounded-2xl border border-border bg-card p-5">
             <h2 className="text-sm font-medium uppercase tracking-wide text-accent-dark">

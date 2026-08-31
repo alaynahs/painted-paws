@@ -3,9 +3,11 @@ import { addGroomNote } from "@/app/admin/actions";
 export default function NoteForm({
   petId,
   noteType,
+  returnPath,
 }: {
   petId: string;
   noteType: "grooming" | "behavior" | "parent";
+  returnPath?: string;
 }) {
   const placeholder =
     noteType === "grooming"
@@ -19,6 +21,7 @@ export default function NoteForm({
     <form action={addGroomNote} className="mt-4 space-y-2">
       <input type="hidden" name="petId" value={petId} />
       <input type="hidden" name="noteType" value={noteType} />
+      {returnPath && <input type="hidden" name="returnPath" value={returnPath} />}
       {isMultiline ? (
         <textarea
           name="note"

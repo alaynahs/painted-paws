@@ -27,14 +27,14 @@ export default function PetPhoto({
           <PawIcon className="h-8 w-8 text-accent-dark opacity-50" />
         )}
       </div>
-      <form action={updatePetPhoto} className="flex flex-col gap-1">
+      <form action={updatePetPhoto} className="flex max-w-[9rem] flex-col gap-1">
         <input type="hidden" name="petId" value={petId} />
         {returnPath && <input type="hidden" name="returnPath" value={returnPath} />}
         <input
           type="file"
           name="file"
           accept="image/*"
-          className="block w-full text-xs text-foreground/80"
+          className="block w-full max-w-[9rem] text-xs text-foreground/80"
         />
         <button
           type="submit"

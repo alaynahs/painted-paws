@@ -7,11 +7,13 @@ export default function NoteList({
   noteUrls,
   petId,
   emptyLabel,
+  returnPath,
 }: {
   notes: { id: string; note: string; created_at: string; rating: string | null }[];
   noteUrls: Record<string, string>;
   petId: string;
   emptyLabel: string;
+  returnPath?: string;
 }) {
   if (notes.length === 0) {
     return <p className="mt-4 text-sm text-muted">{emptyLabel}</p>;
@@ -35,7 +37,9 @@ export default function NoteList({
             ) : (
               <span />
             )}
-            <DeleteNoteButton action={deleteGroomNote.bind(null, n.id, petId)} />
+            <DeleteNoteButton
+              action={deleteGroomNote.bind(null, n.id, petId, returnPath)}
+            />
           </div>
           {n.note && <p className="mt-1 whitespace-pre-wrap">{n.note}</p>}
           {noteUrls[n.id] && (

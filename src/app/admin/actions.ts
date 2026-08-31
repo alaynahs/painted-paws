@@ -73,7 +73,10 @@ export async function addGroomNote(formData: FormData) {
   const rating = formData.get("rating") === "caution" ? "caution" : null;
   const file = formData.get("photo") as File | null;
   const hasPhoto = !!file && file.size > 0;
-  const editPath = `/admin/pets/${petId}`;
+  // Notes can be added from either the pet record page or the appointment
+  // dashboard — stay on whichever one the admin was actually on, instead
+  // of always bouncing back to the pet page.
+  const editPath = ((formData.get("returnPath") as string) || "") || `/admin/pets/${petId}`;
 
   if (!note && !hasPhoto) {
     redirect(`${editPath}?error=${encodeURIComponent("Enter a note or attach a photo first.")}`);
@@ -112,9 +115,13 @@ export async function addGroomNote(formData: FormData) {
 // The photo (if any) is deleted from storage first, best-effort — if that
 // fails the note itself still gets deleted rather than leaving an orphaned
 // note the admin can't get rid of over a storage hiccup.
-export async function deleteGroomNote(noteId: string, petId: string) {
+export async function deleteGroomNote(
+  noteId: string,
+  petId: string,
+  returnPath?: string,
+) {
   const { supabase } = await requireAdmin();
-  const editPath = `/admin/pets/${petId}`;
+  const editPath = returnPath || `/admin/pets/${petId}`;
 
   const { data: note } = await supabase
     .from("groom_notes")

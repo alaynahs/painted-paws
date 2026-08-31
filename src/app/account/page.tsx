@@ -284,9 +284,25 @@ export default async function AccountPage({
         )}
       </section>
 
-      <section className="mt-8 rounded-2xl border border-border bg-card p-6">
-        <div className="flex items-center justify-between">
-          <h2 className="font-serif text-lg text-foreground">Membership</h2>
+      <details
+        className="group mt-8 rounded-2xl border border-border bg-card p-6"
+        open={
+          (memberships && memberships.length > 0) || activeGroomPacks.length > 0
+        }
+      >
+        <summary className="flex cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
+          <h2 className="font-serif text-lg text-foreground">
+            Membership &amp; Groom Packs
+          </h2>
+          <span className="inline-block text-muted transition-transform group-open:rotate-90">
+            ›
+          </span>
+        </summary>
+
+        <div className="mt-4 flex items-center justify-between">
+          <h3 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
+            Membership
+          </h3>
           <Link
             href="/membership"
             className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
@@ -295,13 +311,13 @@ export default async function AccountPage({
           </Link>
         </div>
         {memberships && memberships.length > 0 ? (
-          <div className="mt-4 space-y-3">
+          <div className="mt-3 space-y-3">
             {memberships.map((m) => (
               <MembershipCard key={m.id} membership={m} showCancel={false} />
             ))}
           </div>
         ) : (
-          <p className="mt-4 text-sm text-muted">
+          <p className="mt-2 text-sm text-muted">
             Not enrolled in a membership yet.
           </p>
         )}
@@ -319,7 +335,7 @@ export default async function AccountPage({
             </Link>
           </div>
           {activeGroomPacks.length > 0 ? (
-            <div className="mt-4 space-y-3">
+            <div className="mt-3 space-y-3">
               {activeGroomPacks.map((pack) => {
                 const remaining =
                   pack.paid_count + pack.free_count - pack.credits_used;
@@ -346,16 +362,24 @@ export default async function AccountPage({
               })}
             </div>
           ) : (
-            <p className="mt-4 text-sm text-muted">
+            <p className="mt-2 text-sm text-muted">
               No groom packs yet. Pre-purchase a batch of Baths or Full
               Grooms and get extra visits free.
             </p>
           )}
         </div>
-      </section>
+      </details>
 
-      <section className="mt-8 rounded-2xl border border-border bg-card p-6">
-        <h2 className="font-serif text-lg text-foreground">Your Coupons</h2>
+      <details
+        className="group mt-8 rounded-2xl border border-border bg-card p-6"
+        open={!!coupons && coupons.some((c) => !c.used_at)}
+      >
+        <summary className="flex cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
+          <h2 className="font-serif text-lg text-foreground">Your Coupons</h2>
+          <span className="inline-block text-muted transition-transform group-open:rotate-90">
+            ›
+          </span>
+        </summary>
         {coupons && coupons.length > 0 ? (
           <div className="mt-4 space-y-3">
             {coupons.map((c) => (
@@ -395,7 +419,7 @@ export default async function AccountPage({
             No coupons on your account right now.
           </p>
         )}
-      </section>
+      </details>
 
       <ContactInfoCard
         fullName={profile?.full_name ?? ""}
@@ -406,15 +430,20 @@ export default async function AccountPage({
         updatePasswordAction={updatePasswordFromAccount}
       />
 
-      <section className="mt-8 rounded-2xl border border-border bg-card p-6">
-        <h2 className="font-serif text-lg text-foreground">Appearance</h2>
+      <details className="group mt-8 rounded-2xl border border-border bg-card p-6">
+        <summary className="flex cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
+          <h2 className="font-serif text-lg text-foreground">Appearance</h2>
+          <span className="inline-block text-muted transition-transform group-open:rotate-90">
+            ›
+          </span>
+        </summary>
         <p className="mt-1 text-sm text-muted">
           Switch to a dark theme for your account pages.
         </p>
         <div className="mt-4">
           <ThemeToggle />
         </div>
-      </section>
+      </details>
 
       <form action={logout} className="mt-8">
         <button type="submit" className="text-sm text-muted hover:text-foreground">
