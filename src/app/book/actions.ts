@@ -61,6 +61,7 @@ import { notifyEmail, notifyText } from "@/lib/notifications/service";
 import {
   BUSINESS_EMAIL,
   adminNewBookingEmail,
+  bookingConfirmationEmail,
   bookingConfirmationSms,
   checkoutAbandonedEmail,
   newClientVaccineReminderSms,
@@ -404,6 +405,13 @@ export async function sendBookingNotifications(
     target,
     "booking_confirmation",
     bookingConfirmationSms(vars),
+  );
+
+  await notifyEmail(
+    supabase,
+    target,
+    "booking_confirmation",
+    bookingConfirmationEmail(vars),
   );
 
   await notifyEmail(

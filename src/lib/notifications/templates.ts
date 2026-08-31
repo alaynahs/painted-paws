@@ -60,6 +60,35 @@ ${BUSINESS_NAME}`,
   };
 }
 
+// Sent to the customer right when they book — the "You're Booked!" email.
+// Deliberately no add-on/upsell pitch here; just what they need before they
+// show up: the appointment details, the address, and the curbside
+// drop-off/pickup process, since we're a pet-only studio with no walk-ins.
+export function bookingConfirmationEmail(vars: {
+  firstName: string;
+  petName: string;
+  date: string;
+  time: string;
+}): EmailContent {
+  return {
+    subject: `You're Booked! — ${vars.petName} on ${vars.date}`,
+    body: `Hi ${vars.firstName},
+
+You're all set! We've reserved a grooming appointment for ${vars.petName} on ${vars.date} at ${vars.time}.
+
+Address: ${BUSINESS_ADDRESS}
+
+Drop-off: We're a pet-only, curbside studio — no walk-ins or home entry. When you arrive, park in the driveway and send a quick text; we'll meet you at your car to bring ${vars.petName} in.
+
+Pickup: We'll text you when ${vars.petName} is ready to go home. Park in the driveway and we'll bring them right back out to you.
+
+If you need to reschedule, please let us know as soon as possible.
+
+We can't wait to see you!
+${BUSINESS_NAME}`,
+  };
+}
+
 export function bookingConfirmationSms(vars: {
   firstName: string;
   petName: string;
@@ -510,13 +539,30 @@ function pickupUrgencyLine(pickupDropoff: boolean): string {
 // Sent when the admin marks an appointment complete/sent home — links to our
 // before/after + tip/review page (leave-a-review/[id]). Whether that page
 // also asks for a tip is controlled entirely by the URL (?notip=1 or not),
-// not by this email's copy, so this one function covers both cases.
+// not by this email's copy. includePhotos controls the copy itself, so the
+// email never promises pictures that haven't been uploaded yet.
 export function postVisitThankYouEmail(vars: {
   firstName: string;
   petName: string;
   reviewUrl: string;
   pickupDropoff: boolean;
+  includePhotos: boolean;
 }): EmailContent {
+  if (!vars.includePhotos) {
+    return {
+      subject: `${vars.petName} is all done! 🐾`,
+      body: `Hi ${vars.firstName},
+
+${vars.petName} is all fresh, clean, and ready to head home!${pickupUrgencyLine(vars.pickupDropoff)}
+
+We'd love to hear how it went:
+[Leave a review here](${vars.reviewUrl})
+
+Thank you again — we hope to see you both soon!
+${BUSINESS_NAME}`,
+    };
+  }
+
   return {
     subject: `Before and After Pictures — ${vars.petName} 🐾`,
     body: `Hi ${vars.firstName},

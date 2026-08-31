@@ -390,6 +390,7 @@ interface AppointmentEmailContact {
 export async function markAppointmentComplete(
   appointmentId: string,
   includeTip: boolean,
+  includePhotos: boolean,
 ) {
   const { supabase, user } = await requireAdmin();
 
@@ -426,6 +427,7 @@ export async function markAppointmentComplete(
       petName: pet?.name ?? "Your pet",
       reviewUrl: `${origin}/leave-a-review/${appt.id}${includeTip ? "" : "?notip=1"}`,
       pickupDropoff: appt.pickup_dropoff,
+      includePhotos,
     };
     await notifyEmail(
       supabase,
@@ -443,7 +445,7 @@ export async function markAppointmentComplete(
   redirect(
     `/admin/appointments/${appointmentId}?message=${encodeURIComponent(
       profile?.email
-        ? `Marked complete — ${includeTip ? "review + tip" : "review"} email sent.`
+        ? `Marked complete — ${includeTip ? "review + tip" : "review"} email sent${includePhotos ? "" : " (no photos)"}.`
         : "Marked complete — no email on file to notify.",
     )}`,
   );

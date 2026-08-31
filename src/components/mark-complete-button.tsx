@@ -36,20 +36,28 @@ export default function MarkCompleteButton({
 
       {open && (
         <div className="absolute left-0 top-full z-20 mt-1 w-56 rounded-xl border border-border bg-card p-1.5 shadow-lg">
-          <form action={markAppointmentComplete.bind(null, appointmentId, false)}>
+          <form action={markAppointmentComplete.bind(null, appointmentId, true, true)}>
             <button
               type="submit"
               className="block w-full rounded-lg px-3 py-2 text-left text-xs text-foreground/90 transition-colors hover:bg-accent-tint"
             >
-              Review only
+              Review + tip, with photos
             </button>
           </form>
-          <form action={markAppointmentComplete.bind(null, appointmentId, true)}>
+          <form action={markAppointmentComplete.bind(null, appointmentId, true, false)}>
             <button
               type="submit"
               className="block w-full rounded-lg px-3 py-2 text-left text-xs text-foreground/90 transition-colors hover:bg-accent-tint"
             >
-              Review + tip
+              Review + tip, no photos
+            </button>
+          </form>
+          <form action={markAppointmentComplete.bind(null, appointmentId, false, true)}>
+            <button
+              type="submit"
+              className="block w-full rounded-lg px-3 py-2 text-left text-xs text-foreground/90 transition-colors hover:bg-accent-tint"
+            >
+              Review only, with photos
             </button>
           </form>
         </div>
