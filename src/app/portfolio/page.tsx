@@ -1,7 +1,6 @@
 import Link from "next/link";
 import PawIcon from "@/components/paw-icon";
 import RevealOnScroll from "@/components/reveal-on-scroll";
-import ReviewsCarousel from "@/components/reviews-carousel";
 import { createClient } from "@/lib/supabase/server";
 
 const creativeGrooms = [
@@ -15,87 +14,49 @@ const testimonials = [
     quote:
       "We are beyond happy with our visit. The groom quality, knowledge, and friendliness were a 10/10 across the board. It's clear how much care goes into every appointment.",
     attribution: "A very happy pet parent",
-    rating: 5,
   },
   {
     quote:
       "The de-shed treatment on our husky duo was incredible. The before and after pictures still give us chills. Seeing our babies all cleaned up and fluffy again made our whole day.",
     attribution: "Husky duo's pet parent",
-    rating: 5,
   },
   {
     quote:
       "Always so kind, so patient, and clearly loves what she does. You can tell every dog that walks in gets treated like family.",
     attribution: "A regular client",
-    rating: 5,
   },
   {
     quote:
       "She's so passionate about the pets that come through her door, always eager to learn and always gentle, and it shows in the results every time.",
     attribution: "A grateful pet parent",
-    rating: 5,
   },
   {
     quote:
       "Curbside drop-off and pickup is so easy, right on time every time, and my pup always comes out calm and happy. You can tell how much care goes into keeping things organized.",
     attribution: "A returning pet parent",
-    rating: 5,
   },
   {
     quote:
       "She puts so much heart into every groom and genuinely gets to know each dog. It's obvious in the results and in how comfortable my pup is every time we come back.",
     attribution: "Loyal customer",
-    rating: 5,
   },
   {
     quote:
       "Bella always comes home so squeaky clean and her coat sparkling. Thank you for taking such good care of her!",
     attribution: "Bella's pet parent, a regular",
-    rating: 5,
   },
   {
     quote: "Very knowledgeable and helpful for our needs.",
     attribution: "A new customer",
-    rating: 5,
   },
   {
     quote:
       "Alaynah and my dog Sammy are best friends! She always loves coming to the salon to see her.",
     attribution: "Sammy's pet parent",
-    rating: 5,
   },
   {
     quote: "Matilda always comes home looking and smelling great! Thank you Alaynah!",
     attribution: "Matilda's pet parent",
-    rating: 5,
-  },
-  {
-    quote:
-      "My toy poodle was way overdue for a groom and got all the attention and pampering she wanted — she came home happy and looking so cute! I live about 30 minutes away, but it's absolutely worth the drive. Highly recommend!",
-    attribution: "Grace Gwe",
-    rating: 5,
-  },
-  {
-    quote: "You did an amazing job. We will be back.",
-    attribution: "Jamie Mills",
-    rating: 5,
-  },
-  {
-    quote:
-      "They did an awesome job with my Pomeranian mix, especially considering he was way overdue and needed some extra attention. He looks and feels so much better — we will be back for sure!",
-    attribution: "Camille Evans",
-    rating: 5,
-  },
-  {
-    quote: "Great experience with my 2 Shih Tzus.",
-    attribution: "Eve G.",
-    rating: 5,
-  },
-  {
-    quote:
-      "Just had my dog groomed by Alaynah yesterday and she did a fantastic job. I highly recommend.",
-    attribution: "Mary Anne Scott",
-    rating: 5,
   },
 ];
 
@@ -210,14 +171,28 @@ export default async function PortfolioPage() {
       </section>
 
       <section className="border-t border-border bg-accent-tint">
-        <RevealOnScroll className="mx-auto max-w-6xl px-6 py-14">
+        <div className="mx-auto max-w-6xl px-6 py-14">
           <h2 className="text-center font-serif text-2xl text-foreground">
-            See What Pet Parents Have to Say
+            What Pet Parents Say
           </h2>
-          <div className="mt-10">
-            <ReviewsCarousel reviews={testimonials} />
+          <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {testimonials.map((t, i) => (
+              <RevealOnScroll
+                key={t.attribution}
+                delay={(i % 3) * 100}
+                className="rounded-2xl border border-border bg-card p-6"
+              >
+                <PawIcon className="h-5 w-5 text-accent-dark" />
+                <p className="mt-3 font-serif text-base italic text-foreground">
+                  &ldquo;{t.quote}&rdquo;
+                </p>
+                <p className="mt-3 text-xs font-medium tracking-wide text-muted uppercase">
+                  {t.attribution}
+                </p>
+              </RevealOnScroll>
+            ))}
           </div>
-        </RevealOnScroll>
+        </div>
       </section>
 
       <section className="border-t border-border">

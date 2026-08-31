@@ -3,8 +3,40 @@ import Link from "next/link";
 import HeroFadeGallery from "@/components/hero-fade-gallery";
 import PawIcon from "@/components/paw-icon";
 import RevealOnScroll from "@/components/reveal-on-scroll";
+import ReviewsCarousel from "@/components/reviews-carousel";
 import TrackHomeLanding from "@/components/track-home-landing";
 import { createClient } from "@/lib/supabase/server";
+
+const realReviews = [
+  {
+    quote:
+      "My toy poodle was way overdue for a groom and got all the attention and pampering she wanted — she came home happy and looking so cute! I live about 30 minutes away, but it's absolutely worth the drive. Highly recommend!",
+    attribution: "Grace G.",
+    rating: 5,
+  },
+  {
+    quote: "You did an amazing job. We will be back.",
+    attribution: "Jamie M.",
+    rating: 5,
+  },
+  {
+    quote:
+      "They did an awesome job with my Pomeranian mix, especially considering he was way overdue and needed some extra attention. He looks and feels so much better — we will be back for sure!",
+    attribution: "Camille E.",
+    rating: 5,
+  },
+  {
+    quote: "Great experience with my 2 Shih Tzus.",
+    attribution: "Eve G.",
+    rating: 5,
+  },
+  {
+    quote:
+      "Just had my dog groomed by Alaynah yesterday and she did a fantastic job. I highly recommend.",
+    attribution: "Mary Anne S.",
+    rating: 5,
+  },
+];
 
 const features = [
   {
@@ -301,6 +333,17 @@ export default async function Home() {
       </section>
 
       <section className="border-t border-border bg-accent-tint">
+        <RevealOnScroll className="mx-auto max-w-6xl px-6 py-14">
+          <h2 className="text-center font-serif text-2xl text-foreground">
+            See What Pet Parents Have to Say
+          </h2>
+          <div className="mt-10">
+            <ReviewsCarousel reviews={realReviews} />
+          </div>
+        </RevealOnScroll>
+      </section>
+
+      <section className="border-t border-border">
         <RevealOnScroll className="mx-auto max-w-6xl px-6 py-16 text-center">
           <h2 className="font-serif text-4xl tracking-tight text-foreground">
             Ready to book your pup&apos;s (or kitty&apos;s) spa day?
