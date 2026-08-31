@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { sendQuickMessage } from "@/app/admin/actions";
 import { QUICK_MESSAGE_LABELS } from "@/lib/notifications/quick-message-labels";
+import { MessageIcon } from "@/components/stage-icons";
 
 const QUICK_MESSAGES: {
   type: string;
@@ -43,8 +44,10 @@ const QUICK_MESSAGES: {
 
 export default function QuickMessageButtons({
   appointmentId,
+  tile = false,
 }: {
   appointmentId: string;
+  tile?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [sending, setSending] = useState<string | null>(null);
@@ -82,13 +85,28 @@ export default function QuickMessageButtons({
   }
 
   return (
-    <div ref={ref} className="relative inline-block">
+    <div ref={ref} className={tile ? "relative" : "relative inline-block"}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+        className={
+          tile
+            ? "flex w-full flex-col items-center justify-center gap-1.5 rounded-2xl border border-border bg-card px-2 py-3 text-center text-foreground/80 transition-colors hover:border-accent-dark hover:text-accent-dark"
+            : "rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+        }
       >
-        {sentType ? "Sent ✓" : "Quick email ▾"}
+        {tile ? (
+          <>
+            <MessageIcon className="h-5 w-5" />
+            <span className="text-xs font-medium">
+              {sentType ? "Sent ✓" : "Message"}
+            </span>
+          </>
+        ) : sentType ? (
+          "Sent ✓"
+        ) : (
+          "Quick email ▾"
+        )}
       </button>
 
       {open && (

@@ -2,13 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import { markAppointmentComplete } from "@/app/admin/actions";
+import { CheckoutIcon } from "@/components/stage-icons";
 
 export default function MarkCompleteButton({
   appointmentId,
   compact = false,
+  tile = false,
 }: {
   appointmentId: string;
   compact?: boolean;
+  tile?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -24,14 +27,25 @@ export default function MarkCompleteButton({
     return () => document.removeEventListener("mousedown", handleOutside);
   }, [open]);
 
-  const triggerClass = compact
-    ? "rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
-    : "rounded-full bg-accent px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-dark";
+  const triggerClass = tile
+    ? "flex w-full flex-col items-center justify-center gap-1.5 rounded-2xl border border-accent-dark bg-accent-tint px-2 py-3 text-center transition-colors hover:bg-accent-dark hover:text-white"
+    : compact
+      ? "rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+      : "rounded-full bg-accent px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-dark";
 
   return (
-    <div ref={ref} className="relative inline-block">
+    <div ref={ref} className={tile ? "relative" : "relative inline-block"}>
       <button type="button" onClick={() => setOpen((v) => !v)} className={triggerClass}>
-        {compact ? "Mark Complete ▾" : "Mark Complete / Sent Home ▾"}
+        {tile ? (
+          <>
+            <CheckoutIcon className="h-5 w-5" />
+            <span className="text-xs font-medium">Checkout</span>
+          </>
+        ) : compact ? (
+          "Mark Complete ▾"
+        ) : (
+          "Mark Complete / Sent Home ▾"
+        )}
       </button>
 
       {open && (

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import ElapsedTimer from "@/components/elapsed-timer";
 import { setAppointmentStage } from "@/app/admin/actions";
+import { CheckInIcon, ScissorsIcon, ReadyIcon } from "@/components/stage-icons";
 
 function stageTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("en-US", {
@@ -10,30 +11,40 @@ function stageTime(iso: string): string {
   });
 }
 
-function StageSlot({
+function StageTile({
   label,
+  icon,
   doneAt,
   action,
 }: {
   label: string;
+  icon: ReactNode;
   doneAt: string | null;
   action: () => void;
 }) {
   if (doneAt) {
     return (
-      <div className="flex-1 rounded-xl border border-accent-dark/40 bg-accent-tint px-3 py-2 text-center">
-        <p className="text-xs font-medium text-accent-dark">✓ {label}</p>
-        <p className="text-[10px] text-muted">{stageTime(doneAt)}</p>
+      <div className="flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-accent-dark bg-accent-tint px-2 py-3 text-center">
+        <div className="relative">
+          {icon}
+          <span className="absolute -right-1.5 -top-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-accent-dark text-[8px] text-white">
+            ✓
+          </span>
+        </div>
+        <span className="text-xs font-medium text-accent-dark">{label}</span>
+        <span className="text-[10px] text-muted">{stageTime(doneAt)}</span>
       </div>
     );
   }
   return (
-    <form action={action} className="flex-1">
+    <form action={action}>
       <button
         type="submit"
-        className="w-full rounded-xl border border-border bg-card px-3 py-2 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+        className="flex w-full flex-col items-center justify-center gap-1.5 rounded-2xl border border-border bg-card px-2 py-3 text-center text-foreground/80 transition-colors hover:border-accent-dark hover:text-accent-dark"
       >
-        {label}
+        {icon}
+        <span className="text-xs font-medium">{label}</span>
+        <span className="text-[10px] text-muted">—</span>
       </button>
     </form>
   );
@@ -41,9 +52,9 @@ function StageSlot({
 
 // Purely operational, same-day tracking — internal only, no customer
 // notification (that's still a deliberate separate action via the quick
-// messages). Checkout isn't a fourth stage column here; it's whatever the
-// caller passes as checkoutSlot (the existing MarkCompleteButton), since
-// it's terminal and already has its own email choice.
+// messages). Checkout is the 4th tile visually, but functionally it's
+// whatever the caller passes as checkoutSlot (MarkCompleteButton in tile
+// mode), since it's terminal and already has its own email choice.
 export default function AppointmentStageTracker({
   appointmentId,
   checkedInAt,
@@ -69,24 +80,27 @@ export default function AppointmentStageTracker({
           </span>
         )}
       </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <StageSlot
+      <div className="mt-3 grid grid-cols-4 gap-2">
+        <StageTile
           label="Check In"
+          icon={<CheckInIcon className="h-5 w-5" />}
           doneAt={checkedInAt}
           action={setAppointmentStage.bind(null, appointmentId, "checked_in")}
         />
-        <StageSlot
+        <StageTile
           label="Start Groom"
+          icon={<ScissorsIcon className="h-5 w-5" />}
           doneAt={groomStartedAt}
           action={setAppointmentStage.bind(null, appointmentId, "groom_started")}
         />
-        <StageSlot
+        <StageTile
           label="Mark Ready"
+          icon={<ReadyIcon className="h-5 w-5" />}
           doneAt={readyAt}
           action={setAppointmentStage.bind(null, appointmentId, "ready")}
         />
+        {checkoutSlot}
       </div>
-      <div className="mt-2">{checkoutSlot}</div>
     </section>
   );
 }

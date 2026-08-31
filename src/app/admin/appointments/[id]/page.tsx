@@ -5,9 +5,10 @@ import { sendPaymentLinkEmail, getNoShowCount } from "@/app/book/actions";
 import { markAppointmentPaid, setAppointmentDuration } from "@/app/admin/actions";
 import BookingFlow from "@/components/booking-flow";
 import CancelAppointmentButton from "@/components/cancel-appointment-button";
-import QuickMessageButtons from "@/components/quick-message-buttons";
+import QuickActionTiles from "@/components/quick-action-tiles";
 import RefundButton from "@/components/refund-button";
 import MarkCompleteButton from "@/components/mark-complete-button";
+import { CheckoutIcon } from "@/components/stage-icons";
 import PetPhoto from "@/components/pet-photo";
 import CollapsibleCard from "@/components/collapsible-card";
 import GroomingRecipeCard from "@/components/grooming-recipe-card";
@@ -135,7 +136,9 @@ export default async function AdminEditAppointmentPage({
       .order("created_at", { ascending: false }),
     supabase
       .from("appointments")
-      .select("id, appointment_hour, appointment_minute, status, pets(name)")
+      .select(
+        "id, appointment_hour, appointment_minute, status, checked_in_at, groom_started_at, ready_at, pets(name, photo_path)",
+      )
       .eq("appointment_date", appointment.appointment_date)
       .neq("status", "cancelled")
       .order("appointment_hour", { ascending: true })
@@ -208,16 +211,40 @@ export default async function AdminEditAppointmentPage({
     (a) => a.appointment_date < todayStr || a.status === "cancelled",
   );
 
-  const stripAppointments: StripAppointment[] = (sameDayAppts ?? []).map((a) => {
-    const p = Array.isArray(a.pets) ? a.pets[0] : a.pets;
-    return {
-      id: a.id,
-      hour: a.appointment_hour,
-      minute: a.appointment_minute,
-      petName: p?.name ?? "Unknown pet",
-      status: a.status,
-    };
-  });
+  function stageLabelFor(a: {
+    status: string;
+    checked_in_at: string | null;
+    groom_started_at: string | null;
+    ready_at: string | null;
+  }) {
+    if (a.status === "completed") return "Done";
+    if (a.ready_at) return "Ready for pickup";
+    if (a.groom_started_at) return "In progress";
+    if (a.checked_in_at) return "Checked in";
+    return "Upcoming";
+  }
+
+  const stripAppointments: StripAppointment[] = await Promise.all(
+    (sameDayAppts ?? []).map(async (a) => {
+      const p = Array.isArray(a.pets) ? a.pets[0] : a.pets;
+      let photoUrl: string | null = null;
+      if (p?.photo_path) {
+        const { data: signed } = await supabase.storage
+          .from("pet-photos")
+          .createSignedUrl(p.photo_path, 60 * 10);
+        photoUrl = signed?.signedUrl ?? null;
+      }
+      return {
+        id: a.id,
+        hour: a.appointment_hour,
+        minute: a.appointment_minute,
+        petName: p?.name ?? "Unknown pet",
+        photoUrl,
+        stageLabel: stageLabelFor(a),
+        isCurrent: a.id === appointment.id,
+      };
+    }),
+  );
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-16">
@@ -275,10 +302,7 @@ export default async function AdminEditAppointmentPage({
       )}
 
       <div className="mt-5">
-        <TodaysAppointmentsStrip
-          appointments={stripAppointments}
-          currentAppointmentId={appointment.id}
-        />
+        <TodaysAppointmentsStrip appointments={stripAppointments} />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
@@ -290,21 +314,32 @@ export default async function AdminEditAppointmentPage({
             readyAt={appointment.ready_at}
             checkoutSlot={
               appointment.status === "completed" ? (
-                <p className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground/90">
-                  ✓ Marked complete — thank-you email sent
-                </p>
+                <div className="flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-accent-dark bg-accent-tint px-2 py-3 text-center">
+                  <div className="relative">
+                    <CheckoutIcon className="h-5 w-5" />
+                    <span className="absolute -right-1.5 -top-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-accent-dark text-[8px] text-white">
+                      ✓
+                    </span>
+                  </div>
+                  <span className="text-xs font-medium text-accent-dark">
+                    Checkout
+                  </span>
+                  <span className="text-[10px] text-muted">Done</span>
+                </div>
               ) : (
-                <MarkCompleteButton appointmentId={appointment.id} compact />
+                <MarkCompleteButton appointmentId={appointment.id} tile />
               )
             }
           />
 
-          <PriceBreakdownCard
-            price={appointment.price}
-            salesTax={appointment.sales_tax ?? 0}
-            paymentStatus={appointment.payment_status}
-            amountPaid={appointment.amount_paid ?? 0}
-          />
+          <div id="payment-section">
+            <PriceBreakdownCard
+              price={appointment.price}
+              salesTax={appointment.sales_tax ?? 0}
+              paymentStatus={appointment.payment_status}
+              amountPaid={appointment.amount_paid ?? 0}
+            />
+          </div>
 
           {appointment.payment_status === "unpaid" && (
             <div className="flex flex-wrap gap-3">
@@ -370,9 +405,7 @@ export default async function AdminEditAppointmentPage({
             </div>
           )}
 
-          <div>
-            <QuickMessageButtons appointmentId={appointment.id} />
-          </div>
+          <QuickActionTiles appointmentId={appointment.id} />
 
           <GroomingRecipeCard
             petId={pet.id}
