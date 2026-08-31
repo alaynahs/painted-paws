@@ -36,6 +36,12 @@ const realReviews = [
     attribution: "Mary Anne S.",
     rating: 5,
   },
+  {
+    quote:
+      "Love coming to Painted Paws Austin. She has reasonable prices, gentle and kind with my pup. Millie has no problem going straight to the door.",
+    attribution: "Nayda H.",
+    rating: 5,
+  },
 ];
 
 const features = [
