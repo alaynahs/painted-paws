@@ -346,6 +346,49 @@ export default async function AdminPetDetailPage({
               emptyLabel="No pet parent / service notes yet."
             />
           </CollapsibleCard>
+
+          <section className="rounded-2xl border border-border bg-card p-5">
+            <h2 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
+              Upcoming Appointments
+            </h2>
+            {upcomingAppointments.length > 0 ? (
+              <div className="mt-3 space-y-2">
+                {upcomingAppointments.map((appt) => (
+                  <PetAppointmentCard
+                    key={appt.id}
+                    appt={appt}
+                    inspoUrl={inspoUrls[appt.id]}
+                    showActions
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-muted">
+                No upcoming appointments.
+              </p>
+            )}
+          </section>
+
+          <section className="rounded-2xl border border-border bg-card p-5">
+            <h2 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
+              Past Appointments
+            </h2>
+            {pastAppointments.length > 0 ? (
+              <div className="mt-3 max-h-[32rem] space-y-2 overflow-y-auto pr-1">
+                <ShowMoreList initialCount={3}>
+                  {pastAppointments.map((appt) => (
+                    <PetAppointmentCard
+                      key={appt.id}
+                      appt={appt}
+                      inspoUrl={inspoUrls[appt.id]}
+                    />
+                  ))}
+                </ShowMoreList>
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-muted">No past appointments.</p>
+            )}
+          </section>
         </div>
 
         <aside className="space-y-6 lg:sticky lg:top-20 lg:self-start">
@@ -559,49 +602,6 @@ export default async function AdminPetDetailPage({
               <p className="text-sm text-muted">No groom packs.</p>
             )}
           </CollapsibleCard>
-
-          <section className="rounded-2xl border border-border bg-card p-5">
-            <h2 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
-              Upcoming Appointments
-            </h2>
-            {upcomingAppointments.length > 0 ? (
-              <div className="mt-3 space-y-2">
-                {upcomingAppointments.map((appt) => (
-                  <PetAppointmentCard
-                    key={appt.id}
-                    appt={appt}
-                    inspoUrl={inspoUrls[appt.id]}
-                    showActions
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="mt-3 text-sm text-muted">
-                No upcoming appointments.
-              </p>
-            )}
-          </section>
-
-          <section className="rounded-2xl border border-border bg-card p-5">
-            <h2 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
-              Past Appointments
-            </h2>
-            {pastAppointments.length > 0 ? (
-              <div className="mt-3 max-h-[32rem] space-y-2 overflow-y-auto pr-1">
-                <ShowMoreList initialCount={3}>
-                  {pastAppointments.map((appt) => (
-                    <PetAppointmentCard
-                      key={appt.id}
-                      appt={appt}
-                      inspoUrl={inspoUrls[appt.id]}
-                    />
-                  ))}
-                </ShowMoreList>
-              </div>
-            ) : (
-              <p className="mt-3 text-sm text-muted">No past appointments.</p>
-            )}
-          </section>
         </aside>
       </div>
     </div>

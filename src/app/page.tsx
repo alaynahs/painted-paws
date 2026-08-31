@@ -17,7 +17,7 @@ const realReviews = [
   },
   {
     quote:
-      "They did an awesome job with my Pomeranian mix, especially considering he was way overdue and needed some extra attention. He looks and feels so much better, and we will be back for sure!",
+      "They did an awesome job with my Pomeranian mix, especially considering he was way overdue and needed some extra attention. He looks and feels so much better, we will be back for sure!",
     attribution: "Camille E.",
     rating: 5,
   },

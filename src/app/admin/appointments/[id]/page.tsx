@@ -414,6 +414,45 @@ export default async function AdminEditAppointmentPage({
             returnPath={appointmentPath} />
           </CollapsibleCard>
 
+          <section className="rounded-2xl border border-border bg-card p-5">
+            <h2 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
+              Upcoming Appointments
+            </h2>
+            {upcomingAppointments.length > 0 ? (
+              <div className="mt-3 space-y-2">
+                {upcomingAppointments.map((appt) => (
+                  <PetAppointmentCard
+                    key={appt.id}
+                    appt={appt}
+                    inspoUrl={inspoUrls[appt.id]}
+                    showActions
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-muted">No upcoming appointments.</p>
+            )}
+          </section>
+
+          <section className="rounded-2xl border border-border bg-card p-5">
+            <h2 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
+              Past Appointments
+            </h2>
+            {pastAppointments.length > 0 ? (
+              <div className="mt-3 max-h-[24rem] space-y-2 overflow-y-auto pr-1">
+                {pastAppointments.slice(0, 5).map((appt) => (
+                  <PetAppointmentCard
+                    key={appt.id}
+                    appt={appt}
+                    inspoUrl={inspoUrls[appt.id]}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-muted">No past appointments.</p>
+            )}
+          </section>
+
           <CollapsibleCard title="Blocked Length">
             <p className="text-xs text-muted">
               By default this blocks about{" "}
@@ -672,45 +711,6 @@ export default async function AdminEditAppointmentPage({
               <p className="text-sm text-muted">No groom packs.</p>
             )}
           </CollapsibleCard>
-
-          <section className="rounded-2xl border border-border bg-card p-5">
-            <h2 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
-              Upcoming Appointments
-            </h2>
-            {upcomingAppointments.length > 0 ? (
-              <div className="mt-3 space-y-2">
-                {upcomingAppointments.map((appt) => (
-                  <PetAppointmentCard
-                    key={appt.id}
-                    appt={appt}
-                    inspoUrl={inspoUrls[appt.id]}
-                    showActions
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="mt-3 text-sm text-muted">No upcoming appointments.</p>
-            )}
-          </section>
-
-          <section className="rounded-2xl border border-border bg-card p-5">
-            <h2 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
-              Past Appointments
-            </h2>
-            {pastAppointments.length > 0 ? (
-              <div className="mt-3 max-h-[24rem] space-y-2 overflow-y-auto pr-1">
-                {pastAppointments.slice(0, 5).map((appt) => (
-                  <PetAppointmentCard
-                    key={appt.id}
-                    appt={appt}
-                    inspoUrl={inspoUrls[appt.id]}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="mt-3 text-sm text-muted">No past appointments.</p>
-            )}
-          </section>
 
           <section className="rounded-2xl border border-border bg-card p-5">
             <div className="flex items-center justify-between">

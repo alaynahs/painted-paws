@@ -22,11 +22,8 @@ export default function ContactInfoCard({
 
   if (!editing) {
     return (
-      <section className="mt-8 rounded-2xl border border-border bg-card p-6">
-        <div className="flex items-start justify-between gap-4">
-          <h2 className="font-serif text-lg text-foreground">
-            Privacy &amp; Security
-          </h2>
+      <div>
+        <div className="flex justify-end">
           <button
             type="button"
             onClick={() => setEditing(true)}
@@ -35,7 +32,7 @@ export default function ContactInfoCard({
             Edit
           </button>
         </div>
-        <dl className="mt-4 space-y-2 text-sm">
+        <dl className="mt-2 space-y-2 text-sm">
           <div className="flex gap-2">
             <dt className="w-20 shrink-0 text-muted">Name</dt>
             <dd className="text-foreground/90">{fullName}</dd>
@@ -49,17 +46,14 @@ export default function ContactInfoCard({
             <dd className="text-foreground/90">{email}</dd>
           </div>
         </dl>
-      </section>
+      </div>
     );
   }
 
   return (
-    <section className="mt-8 rounded-2xl border border-border bg-card p-6">
-      <div className="flex items-center justify-between">
-        <h2 className="font-serif text-lg text-foreground">
-          Privacy &amp; Security
-        </h2>
-        {hasInfo && (
+    <div>
+      {hasInfo && (
+        <div className="flex justify-end">
           <button
             type="button"
             onClick={() => setEditing(false)}
@@ -67,10 +61,10 @@ export default function ContactInfoCard({
           >
             Cancel
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
-      <form action={updateProfileAction} className="mt-4 space-y-4">
+      <form action={updateProfileAction} className="mt-2 space-y-4">
         <div>
           <label className="text-sm font-medium text-foreground" htmlFor="fullName">
             Name
@@ -183,6 +177,6 @@ export default function ContactInfoCard({
           Update Password
         </button>
       </form>
-    </section>
+    </div>
   );
 }

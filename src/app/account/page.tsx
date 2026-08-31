@@ -284,12 +284,7 @@ export default async function AccountPage({
         )}
       </section>
 
-      <details
-        className="group mt-8 rounded-2xl border border-border bg-card p-6"
-        open={
-          (memberships && memberships.length > 0) || activeGroomPacks.length > 0
-        }
-      >
+      <details className="group mt-8 rounded-2xl border border-border bg-card p-6">
         <summary className="flex cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
           <h2 className="font-serif text-lg text-foreground">
             Membership &amp; Groom Packs
@@ -370,10 +365,7 @@ export default async function AccountPage({
         </div>
       </details>
 
-      <details
-        className="group mt-8 rounded-2xl border border-border bg-card p-6"
-        open={!!coupons && coupons.some((c) => !c.used_at)}
-      >
+      <details className="group mt-8 rounded-2xl border border-border bg-card p-6">
         <summary className="flex cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
           <h2 className="font-serif text-lg text-foreground">Your Coupons</h2>
           <span className="inline-block text-muted transition-transform group-open:rotate-90">
@@ -421,14 +413,29 @@ export default async function AccountPage({
         )}
       </details>
 
-      <ContactInfoCard
-        fullName={profile?.full_name ?? ""}
-        phone={profile?.phone ?? ""}
-        email={user.email ?? ""}
-        updateProfileAction={updateProfile}
-        updateEmailAction={updateEmail}
-        updatePasswordAction={updatePasswordFromAccount}
-      />
+      <details
+        className="group mt-8 rounded-2xl border border-border bg-card p-6"
+        open={!profile?.full_name || !profile?.phone}
+      >
+        <summary className="flex cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
+          <h2 className="font-serif text-lg text-foreground">
+            Privacy &amp; Security
+          </h2>
+          <span className="inline-block text-muted transition-transform group-open:rotate-90">
+            ›
+          </span>
+        </summary>
+        <div className="mt-4">
+          <ContactInfoCard
+            fullName={profile?.full_name ?? ""}
+            phone={profile?.phone ?? ""}
+            email={user.email ?? ""}
+            updateProfileAction={updateProfile}
+            updateEmailAction={updateEmail}
+            updatePasswordAction={updatePasswordFromAccount}
+          />
+        </div>
+      </details>
 
       <details className="group mt-8 rounded-2xl border border-border bg-card p-6">
         <summary className="flex cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
