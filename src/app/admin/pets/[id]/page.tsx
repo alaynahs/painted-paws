@@ -174,18 +174,20 @@ export default async function AdminPetDetailPage({
       <p className="text-sm font-medium tracking-wide text-accent-dark uppercase">
         Admin
       </p>
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
+      <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center justify-between gap-3 sm:justify-start sm:gap-4">
           <PetPhoto
             petId={pet.id}
             photoUrl={petPhotoUrl}
             returnPath={`/admin/pets/${pet.id}`}
           />
-          <h1 className="font-serif text-3xl text-foreground">{pet.name}</h1>
+          <h1 className="font-serif text-2xl text-foreground sm:text-3xl">
+            {pet.name}
+          </h1>
         </div>
         <Link
           href={`/admin/pets/${pet.id}/book`}
-          className="rounded-full bg-accent px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-dark"
+          className="rounded-full bg-accent px-5 py-2 text-center text-sm font-medium text-white transition-colors hover:bg-accent-dark"
         >
           + Book Appointment
         </Link>

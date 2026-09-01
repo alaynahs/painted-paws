@@ -252,15 +252,15 @@ export default async function AdminEditAppointmentPage({
         Admin · Appointment
       </p>
 
-      <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-center gap-4">
+      <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-center justify-between gap-3 sm:justify-start sm:gap-4">
           <PetPhoto
             petId={pet.id}
             photoUrl={petPhotoUrl}
             returnPath={`/admin/appointments/${appointment.id}`}
           />
           <div>
-            <h1 className="font-serif text-3xl text-foreground">
+            <h1 className="font-serif text-xl text-foreground sm:text-3xl">
               {pet.name}&apos;s Appointment
             </h1>
             <p className="mt-1 text-sm text-muted">
@@ -271,7 +271,7 @@ export default async function AdminEditAppointmentPage({
         </div>
         <Link
           href={`/admin/pets/${pet.id}`}
-          className="shrink-0 rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+          className="shrink-0 rounded-full border border-border px-4 py-1.5 text-center text-xs font-medium text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
         >
           View full pet record →
         </Link>

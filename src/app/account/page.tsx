@@ -367,7 +367,14 @@ export default async function AccountPage({
 
       <details className="group mt-8 rounded-2xl border border-border bg-card p-6">
         <summary className="flex cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
-          <h2 className="font-serif text-lg text-foreground">Your Coupons</h2>
+          <span className="flex items-center gap-2">
+            <h2 className="font-serif text-lg text-foreground">Your Coupons</h2>
+            {coupons?.some((c) => !c.used_at) && (
+              <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white">
+                New
+              </span>
+            )}
+          </span>
           <span className="inline-block text-muted transition-transform group-open:rotate-90">
             ›
           </span>
