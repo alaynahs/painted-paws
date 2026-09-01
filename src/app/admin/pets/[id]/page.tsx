@@ -175,15 +175,15 @@ export default async function AdminPetDetailPage({
         Admin
       </p>
       <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center justify-between gap-3 sm:justify-start sm:gap-4">
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="font-serif text-2xl text-foreground sm:text-3xl">
+            {pet.name}
+          </h1>
           <PetPhoto
             petId={pet.id}
             photoUrl={petPhotoUrl}
             returnPath={`/admin/pets/${pet.id}`}
           />
-          <h1 className="font-serif text-2xl text-foreground sm:text-3xl">
-            {pet.name}
-          </h1>
         </div>
         <Link
           href={`/admin/pets/${pet.id}/book`}

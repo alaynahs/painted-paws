@@ -26,6 +26,14 @@ function todayISO() {
   return toISO(new Date());
 }
 
+// Always show a full calendar week, Monday through Sunday, rather than a
+// rolling 7 days from whatever day it happens to be.
+function mondayOf(dateStr: string) {
+  const d = parseISO(dateStr);
+  const daysSinceMonday = (d.getDay() + 6) % 7; // Sun=0 -> 6, Mon=1 -> 0, ...
+  return addDays(dateStr, -daysSinceMonday);
+}
+
 function formatDayHeader(dateStr: string) {
   return parseISO(dateStr).toLocaleDateString("en-US", {
     weekday: "long",
@@ -49,7 +57,7 @@ export default async function AdminScheduleGridPage({
 }) {
   const { supabase } = await requireAdmin();
   const { start: startParam } = await searchParams;
-  const start = startParam || todayISO();
+  const start = mondayOf(startParam || todayISO());
   const end = addDays(start, 6);
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
 

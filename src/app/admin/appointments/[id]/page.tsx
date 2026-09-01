@@ -253,12 +253,7 @@ export default async function AdminEditAppointmentPage({
       </p>
 
       <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-center justify-between gap-3 sm:justify-start sm:gap-4">
-          <PetPhoto
-            petId={pet.id}
-            photoUrl={petPhotoUrl}
-            returnPath={`/admin/appointments/${appointment.id}`}
-          />
+        <div className="flex items-center justify-between gap-3">
           <div>
             <h1 className="font-serif text-xl text-foreground sm:text-3xl">
               {pet.name}&apos;s Appointment
@@ -268,6 +263,11 @@ export default async function AdminEditAppointmentPage({
               {appointment.profiles?.phone ? ` · ${appointment.profiles.phone}` : ""}
             </p>
           </div>
+          <PetPhoto
+            petId={pet.id}
+            photoUrl={petPhotoUrl}
+            returnPath={`/admin/appointments/${appointment.id}`}
+          />
         </div>
         <Link
           href={`/admin/pets/${pet.id}`}
