@@ -16,6 +16,21 @@ export interface PetAppointmentRow {
   customer_note: string | null;
   haircut_description?: string | null;
   inspo_photo_path?: string | null;
+  checked_in_at?: string | null;
+  ready_at?: string | null;
+}
+
+// How long the pet was actually in the salon — check-in to ready-for-
+// pickup — so there's a record of it on the pet's profile, not just a
+// same-day timer that disappears once the visit is over.
+function formatDuration(checkedInAt: string, readyAt: string): string {
+  const minutes = Math.max(
+    0,
+    Math.round((new Date(readyAt).getTime() - new Date(checkedInAt).getTime()) / 60000),
+  );
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
 }
 
 export default function PetAppointmentCard({
@@ -47,6 +62,11 @@ export default function PetAppointmentCard({
       <p className="mt-1 text-xs font-medium text-accent-dark">
         ${appt.price}
       </p>
+      {appt.checked_in_at && appt.ready_at && (
+        <p className="mt-1 text-xs text-muted">
+          Took {formatDuration(appt.checked_in_at, appt.ready_at)}
+        </p>
+      )}
       {appt.customer_note && (
         <p className="mt-2 rounded-lg bg-accent-tint px-2.5 py-1.5 text-xs text-foreground/90">
           <span className="font-medium">Pet parent:</span> {appt.customer_note}

@@ -343,7 +343,7 @@ const STAGE_COLUMN: Record<"checked_in" | "groom_started" | "ready", string> = {
   ready: "ready_at",
 };
 
-// Purely operational, same-day stage tracking (Check In -> Start Groom ->
+// Purely operational, same-day stage tracking (Check In -> Start Haircut ->
 // Mark Ready) — internal only, no customer notification. Checkout is a
 // separate, existing flow (markAppointmentComplete) since it's terminal
 // and already has its own email choice.

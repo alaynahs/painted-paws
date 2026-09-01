@@ -7,7 +7,7 @@ export const APPOINTMENT_HISTORY_ACTION_LABELS: Record<string, string> = {
   confirmed: "Confirmed",
   completed: "Marked complete",
   checked_in: "Checked in",
-  groom_started: "Groom started",
+  groom_started: "Haircut started",
   ready: "Marked ready",
 };
 

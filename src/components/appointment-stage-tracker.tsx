@@ -88,7 +88,7 @@ export default function AppointmentStageTracker({
           action={setAppointmentStage.bind(null, appointmentId, "checked_in")}
         />
         <StageTile
-          label="Start Groom"
+          label="Start Haircut"
           icon={<ScissorsIcon className="h-5 w-5" />}
           doneAt={groomStartedAt}
           action={setAppointmentStage.bind(null, appointmentId, "groom_started")}
