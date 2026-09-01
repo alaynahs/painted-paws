@@ -23,8 +23,11 @@ import {
   CAT_SERVICE_LABELS,
   CAT_SERVICE_DESCRIPTIONS,
   SALES_TAX_PERCENT,
+  PACKAGE_LABELS,
+  PACKAGE_DESCRIPTIONS,
   type DogBookingService,
   type CatServiceLevel,
+  type PackageTier,
   type PricingConfig,
 } from "@/lib/pricing/pricing";
 import { BUSINESS_NAME } from "@/lib/notifications/templates";
@@ -77,6 +80,9 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
   const [dogService, setDogService] = useState<DogBookingService>("bath");
   const [catService, setCatService] = useState<CatServiceLevel>("bath");
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
+  const [deshed, setDeshed] = useState(false);
+  const [packageTier, setPackageTier] = useState<PackageTier | "none">("none");
+  const [pickupDropoff, setPickupDropoff] = useState(false);
 
   const breedOptions = species === "dog" ? DOG_BREEDS : CAT_BREEDS;
   const matchedBreed = useMemo(
@@ -114,7 +120,7 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
           coat,
           service: dogService,
           isPuppy,
-          deshed: false,
+          deshed,
           isDoodleMix: isDoodleMixBreed(fullBreedName),
           isMinimalCoatBreed: isMinimalCoatDiscountBreed(fullBreedName),
         },
@@ -127,7 +133,7 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
         coat,
         service: catService,
         waterless: effectiveWaterless,
-        deshed: false,
+        deshed,
         isKitten,
       },
       config,
@@ -143,6 +149,7 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
     isKitten,
     effectiveWaterless,
     fullBreedName,
+    deshed,
     config,
   ]);
 
@@ -158,7 +165,11 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
     .filter((a) => selectedAddOns.includes(a.name))
     .reduce((sum, a) => sum + a.price, 0);
 
-  const subtotal = (result?.total ?? 0) + addOnsTotal;
+  const packagePrice = packageTier !== "none" ? config.packages[packageTier] : 0;
+  const pickupDropoffFee = pickupDropoff ? config.flatFees.pickupDropoff : 0;
+
+  const subtotal =
+    (result?.total ?? 0) + addOnsTotal + packagePrice + pickupDropoffFee;
   const salesTax = calculateSalesTax(subtotal);
   const total = subtotal + salesTax;
 
@@ -356,7 +367,69 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
             Waterless bath
           </label>
         )}
+        <label className="mt-3 flex items-center gap-2 text-sm text-foreground/90">
+          <input
+            type="checkbox"
+            checked={deshed}
+            onChange={(e) => setDeshed(e.target.checked)}
+            className="h-4 w-4 rounded border-border accent-accent"
+          />
+          De-shed treatment (${config.flatFees.deshed})
+        </label>
       </div>
+
+      <div>
+        <span className="text-sm font-medium text-foreground">
+          Package <span className="font-normal text-muted">(optional)</span>
+        </span>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setPackageTier("none")}
+            className={`rounded-full border px-4 py-2 text-sm transition-colors ${
+              packageTier === "none"
+                ? "border-accent bg-accent text-white"
+                : "border-border bg-card text-foreground/80 hover:border-accent-dark"
+            }`}
+          >
+            None
+          </button>
+          {(Object.keys(PACKAGE_LABELS) as PackageTier[]).map((tier) => (
+            <button
+              key={tier}
+              type="button"
+              onClick={() => setPackageTier(tier)}
+              className={`rounded-full border px-4 py-2 text-sm transition-colors ${
+                packageTier === tier
+                  ? "border-accent bg-accent text-white"
+                  : "border-border bg-card text-foreground/80 hover:border-accent-dark"
+              }`}
+            >
+              {PACKAGE_LABELS[tier]} (${config.packages[tier]})
+            </button>
+          ))}
+        </div>
+        {packageTier !== "none" && (
+          <p className="mt-2 text-xs text-muted">
+            {PACKAGE_DESCRIPTIONS[packageTier]}
+          </p>
+        )}
+      </div>
+
+      <label className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm text-foreground/90">
+        <span className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={pickupDropoff}
+            onChange={(e) => setPickupDropoff(e.target.checked)}
+            className="h-4 w-4 rounded border-border accent-accent"
+          />
+          Pickup &amp; drop-off
+        </span>
+        <span className="shrink-0 text-xs text-muted">
+          ${config.flatFees.pickupDropoff}
+        </span>
+      </label>
 
       <div>
         <span className="text-sm font-medium text-foreground">
@@ -406,8 +479,17 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
               Includes
             </p>
             <p className="mt-1 text-sm text-foreground/90">{serviceDescription}</p>
-            {selectedAddOns.length > 0 && (
+            {(deshed ||
+              packageTier !== "none" ||
+              pickupDropoff ||
+              selectedAddOns.length > 0) && (
               <ul className="mt-2 space-y-0.5 text-sm text-foreground/90">
+                {deshed && <li>+ De-shed treatment (${config.flatFees.deshed})</li>}
+                {packageTier !== "none" && (
+                  <li>
+                    + {PACKAGE_LABELS[packageTier]} (${config.packages[packageTier]})
+                  </li>
+                )}
                 {addOnCatalog
                   .filter((a) => selectedAddOns.includes(a.name))
                   .map((a) => (
@@ -415,6 +497,9 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
                       + {a.name} (${a.price})
                     </li>
                   ))}
+                {pickupDropoff && (
+                  <li>+ Pickup &amp; drop-off (${config.flatFees.pickupDropoff})</li>
+                )}
               </ul>
             )}
           </div>
