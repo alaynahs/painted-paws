@@ -31,6 +31,7 @@ import {
   type PricingConfig,
 } from "@/lib/pricing/pricing";
 import { BUSINESS_NAME } from "@/lib/notifications/templates";
+import { lookupCouponCodeForQuote } from "@/lib/coupons/actions";
 
 type Species = "dog" | "cat";
 
@@ -83,6 +84,37 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
   const [deshed, setDeshed] = useState(false);
   const [packageTier, setPackageTier] = useState<PackageTier | "none">("none");
   const [pickupDropoff, setPickupDropoff] = useState(false);
+  const [couponCodeInput, setCouponCodeInput] = useState("");
+  const [couponCodeError, setCouponCodeError] = useState<string | null>(null);
+  const [couponCodeSubmitting, setCouponCodeSubmitting] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    discountPercent: number | null;
+    discountAmount: number | null;
+  } | null>(null);
+
+  // Preview-only — never redeems/burns the code, since there's no real
+  // customer attached to a quick quote.
+  async function handleApplyCouponCode() {
+    if (!couponCodeInput.trim()) return;
+    setCouponCodeSubmitting(true);
+    setCouponCodeError(null);
+    const result = await lookupCouponCodeForQuote(couponCodeInput);
+    setCouponCodeSubmitting(false);
+    if (!result.success) {
+      setCouponCodeError(result.error ?? "That code isn't valid.");
+      return;
+    }
+    setAppliedCoupon({
+      discountPercent: result.discountPercent ?? null,
+      discountAmount: result.discountAmount ?? null,
+    });
+  }
+
+  function clearAppliedCoupon() {
+    setAppliedCoupon(null);
+    setCouponCodeInput("");
+    setCouponCodeError(null);
+  }
 
   const breedOptions = species === "dog" ? DOG_BREEDS : CAT_BREEDS;
   const matchedBreed = useMemo(
@@ -168,8 +200,17 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
   const packagePrice = packageTier !== "none" ? config.packages[packageTier] : 0;
   const pickupDropoffFee = pickupDropoff ? config.flatFees.pickupDropoff : 0;
 
+  // Same scope real coupons use — the groom + add-ons + package, never the
+  // pickup & drop-off flat fee.
+  const groomSubtotal = (result?.total ?? 0) + addOnsTotal + packagePrice;
+  const couponSavings = appliedCoupon
+    ? appliedCoupon.discountPercent
+      ? Math.round(groomSubtotal * (appliedCoupon.discountPercent / 100) * 100) / 100
+      : (appliedCoupon.discountAmount ?? 0)
+    : 0;
+
   const subtotal =
-    (result?.total ?? 0) + addOnsTotal + packagePrice + pickupDropoffFee;
+    Math.max(0, groomSubtotal - couponSavings) + pickupDropoffFee;
   const salesTax = calculateSalesTax(subtotal);
   const total = subtotal + salesTax;
 
@@ -456,6 +497,57 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
         </div>
       </div>
 
+      <div>
+        <span className="text-sm font-medium text-foreground">
+          Coupon code <span className="font-normal text-muted">(optional)</span>
+        </span>
+        {appliedCoupon ? (
+          <div className="mt-2 flex items-center justify-between gap-2 rounded-xl border border-accent-dark/40 bg-accent-tint px-3.5 py-2.5 text-sm text-foreground/90">
+            <span>
+              {appliedCoupon.discountPercent
+                ? `${appliedCoupon.discountPercent}% off applied`
+                : `$${appliedCoupon.discountAmount} off applied`}
+            </span>
+            <button
+              type="button"
+              onClick={clearAppliedCoupon}
+              className="text-xs text-accent-dark hover:underline"
+            >
+              Remove
+            </button>
+          </div>
+        ) : (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <input
+              type="text"
+              value={couponCodeInput}
+              onChange={(e) => {
+                setCouponCodeInput(e.target.value);
+                setCouponCodeError(null);
+              }}
+              placeholder="Enter code"
+              className="w-36 rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground uppercase outline-none focus:border-accent-dark"
+            />
+            <button
+              type="button"
+              onClick={handleApplyCouponCode}
+              disabled={couponCodeSubmitting || !couponCodeInput.trim()}
+              className="rounded-full border border-accent-dark px-4 py-2 text-sm font-medium text-accent-dark transition-colors hover:bg-accent-dark hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {couponCodeSubmitting ? "Checking…" : "Apply"}
+            </button>
+          </div>
+        )}
+        {couponCodeError && (
+          <p className="mt-2 text-xs text-accent-dark">{couponCodeError}</p>
+        )}
+        <p className="mt-1 text-xs text-muted">
+          Only checks shared/promo codes (like the site banner) — a
+          customer&apos;s own personal coupon isn&apos;t a typed code, so it
+          won&apos;t look up here.
+        </p>
+      </div>
+
       {result ? (
         <div className="rounded-2xl border-2 border-accent bg-card p-6">
           <p className="text-xs font-medium uppercase tracking-wide text-accent-dark">
@@ -474,6 +566,11 @@ export default function QuickQuoteTool({ config }: { config: PricingConfig }) {
           <p className="mt-1 text-xs text-muted">
             ${subtotal.toFixed(2).replace(/\.00$/, "")} + ${salesTax.toFixed(2)} sales tax ({SALES_TAX_PERCENT}%)
           </p>
+          {couponSavings > 0 && (
+            <div className="mt-3 rounded-xl bg-accent px-4 py-2.5 text-center text-sm font-medium text-white">
+              🎁 Coupon applied — saving ${couponSavings.toFixed(2)}
+            </div>
+          )}
           <div className="mt-4 border-t border-border pt-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted">
               Includes

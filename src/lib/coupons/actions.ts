@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { requireAdmin } from "@/lib/supabase/admin";
 
 export interface CustomerCoupon {
   id: string;
@@ -252,6 +253,40 @@ export async function redeemCouponCode(code: string): Promise<RedeemCodeResult> 
 
   if (insertError) {
     return { success: false, error: "Could not apply that code. Please try again." };
+  }
+
+  return {
+    success: true,
+    discountPercent: def.discount_percent,
+    discountAmount: def.discount_amount,
+  };
+}
+
+// A side-effect-free preview for the admin Quick Quote tool, which has no
+// real customer attached — unlike redeemCouponCode, this never inserts a
+// redemption row, so previewing a code here never burns/uses it. Only
+// looks up shared code definitions (customer_id null); a customer's
+// personal, already-issued coupon has no code to type in here anyway.
+export async function lookupCouponCodeForQuote(
+  code: string,
+): Promise<RedeemCodeResult> {
+  await requireAdmin();
+
+  const normalized = code.trim().toUpperCase();
+  if (!normalized) return { success: false, error: "Enter a code." };
+
+  const supabase = createServiceClient();
+  const { data: def } = await supabase
+    .from("coupons")
+    .select("discount_percent, discount_amount, expires_at")
+    .is("customer_id", null)
+    .eq("code", normalized)
+    .maybeSingle();
+
+  if (!def) return { success: false, error: "That code isn't valid." };
+
+  if (def.expires_at && new Date(def.expires_at).getTime() < Date.now()) {
+    return { success: false, error: "That code has expired." };
   }
 
   return {
