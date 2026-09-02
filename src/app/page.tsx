@@ -261,43 +261,6 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="border-y border-border bg-card">
-        <div className="mx-auto max-w-6xl px-6 py-20">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-            <RevealOnScroll>
-              <p className="text-xs font-semibold tracking-widest text-accent-dark uppercase">
-                What we offer
-              </p>
-              <h2 className="mt-3 font-serif text-4xl tracking-tight text-foreground">
-                From a refreshing bath to a full breed-standard cut.
-              </h2>
-              <p className="mt-4 text-muted">
-                Every appointment starts with a bath, brush-out, nail trim,
-                and ear cleaning. From there, choose a breed-standard
-                haircut or a tidy trim, priced to your pet&apos;s coat and
-                weight. (Creative color coming soon!)
-              </p>
-              <Link
-                href="/services"
-                className="mt-6 inline-block text-sm font-medium text-accent-dark hover:underline"
-              >
-                See all services &rarr;
-              </Link>
-            </RevealOnScroll>
-            <RevealOnScroll delay={150} className="rounded-2xl border border-border bg-accent-tint p-8">
-              <p className="font-serif text-xl italic text-foreground">
-                &ldquo;This doodle came in with six months of growth.
-                Let&apos;s bring back the teddy-bear cut.&rdquo;
-              </p>
-              <p className="mt-4 text-sm text-muted">
-                Every pet has a story. Follow along on Instagram for
-                before-and-afters and a look inside the studio.
-              </p>
-            </RevealOnScroll>
-          </div>
-        </div>
-      </section>
-
       <section className="mx-auto max-w-6xl px-6 py-20">
         <div className="grid gap-6 sm:grid-cols-2">
           <RevealOnScroll className="relative rounded-2xl border border-border bg-card p-8">
