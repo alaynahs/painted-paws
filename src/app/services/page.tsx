@@ -1,6 +1,21 @@
 import Link from "next/link";
 import PawIcon from "@/components/paw-icon";
 import RevealOnScroll from "@/components/reveal-on-scroll";
+import { getPricingConfig } from "@/lib/pricing/config";
+import {
+  DOG_WEIGHT_LABELS,
+  PUPPY_WEIGHT_LABELS,
+  type DogWeightClass,
+  type PuppyWeightBand,
+  type WeightCoatPrice,
+} from "@/lib/pricing/pricing";
+
+const DOG_WEIGHT_CLASSES: DogWeightClass[] = ["small", "medium", "large", "xlarge"];
+const PUPPY_WEIGHT_BANDS: PuppyWeightBand[] = ["under5", "under10", "under20", "over20"];
+
+function formatCoatPrice(p: WeightCoatPrice) {
+  return p.short === p.long ? `$${p.short}` : `$${p.short}–$${p.long}`;
+}
 
 const dogCore = [
   {
@@ -136,7 +151,9 @@ function Card({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function ServicesPage() {
+export default async function ServicesPage() {
+  const config = await getPricingConfig();
+
   return (
     <div>
       <section className="mx-auto max-w-4xl px-6 pt-16 pb-10 text-center">
@@ -148,11 +165,11 @@ export default function ServicesPage() {
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-muted">
           Choose a level of service, then make it your own with add-ons.
-          Pricing is calculated for your pet when you{" "}
+          Base pricing by weight and coat is below — {" "}
           <Link href="/book" className="text-accent-dark hover:underline">
             book an appointment
-          </Link>
-          .
+          </Link>{" "}
+          to get your pet&apos;s exact price with any add-ons.
         </p>
       </section>
 
@@ -169,6 +186,86 @@ export default function ServicesPage() {
             </RevealOnScroll>
           ))}
         </div>
+
+        <RevealOnScroll className="mt-8 rounded-2xl border border-border bg-card p-6">
+          <h3 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
+            Dog Pricing by Weight
+          </h3>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[480px] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs font-medium uppercase tracking-wide text-muted">
+                  <th className="py-2 pr-4">Weight</th>
+                  <th className="py-2 pr-4">Bath</th>
+                  <th className="py-2 pr-4">Tidy Up</th>
+                  <th className="py-2">Full Groom</th>
+                </tr>
+              </thead>
+              <tbody>
+                {DOG_WEIGHT_CLASSES.map((wc) => (
+                  <tr key={wc} className="border-b border-border/60">
+                    <td className="py-2 pr-4 font-medium text-foreground">
+                      {DOG_WEIGHT_LABELS[wc]}
+                    </td>
+                    <td className="py-2 pr-4 text-foreground/90">
+                      {formatCoatPrice(config.dog.bath[wc])}
+                    </td>
+                    <td className="py-2 pr-4 text-foreground/90">
+                      {formatCoatPrice(config.dog.trim[wc])}
+                    </td>
+                    <td className="py-2 text-foreground/90">
+                      {formatCoatPrice(config.dog.haircut[wc])}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-2 text-xs text-muted">
+            Prices shown as short coat–long coat. De-shed treatment, add-ons,
+            and packages are priced separately.
+          </p>
+        </RevealOnScroll>
+
+        <RevealOnScroll delay={100} className="mt-6 rounded-2xl border border-border bg-card p-6">
+          <h3 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
+            Puppy Pricing by Weight{" "}
+            <span className="font-normal normal-case text-muted">(under 6 months)</span>
+          </h3>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[480px] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs font-medium uppercase tracking-wide text-muted">
+                  <th className="py-2 pr-4">Weight</th>
+                  <th className="py-2 pr-4">Bath</th>
+                  <th className="py-2 pr-4">Tidy Up</th>
+                  <th className="py-2">Full Groom</th>
+                </tr>
+              </thead>
+              <tbody>
+                {PUPPY_WEIGHT_BANDS.map((band) => (
+                  <tr key={band} className="border-b border-border/60">
+                    <td className="py-2 pr-4 font-medium text-foreground">
+                      {PUPPY_WEIGHT_LABELS[band]}
+                    </td>
+                    <td className="py-2 pr-4 text-foreground/90">
+                      ${config.puppy.bath[band]}
+                    </td>
+                    <td className="py-2 pr-4 text-foreground/90">
+                      ${config.puppy.trim[band]}
+                    </td>
+                    <td className="py-2 text-foreground/90">
+                      ${config.puppy.haircut[band]}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-2 text-xs text-muted">
+            Puppy Intro to Grooming: ${config.puppy.introPrice} flat, any size.
+          </p>
+        </RevealOnScroll>
       </section>
 
       <section className="mx-auto max-w-6xl px-6 py-10">
@@ -184,6 +281,77 @@ export default function ServicesPage() {
             </RevealOnScroll>
           ))}
         </div>
+
+        <RevealOnScroll className="mt-8 rounded-2xl border border-border bg-card p-6">
+          <h3 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
+            Cat Pricing by Coat
+          </h3>
+          <p className="mt-1 text-xs text-muted">
+            Cat pricing is flat rate by coat length, not weight.
+          </p>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[360px] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs font-medium uppercase tracking-wide text-muted">
+                  <th className="py-2 pr-4">Coat</th>
+                  <th className="py-2 pr-4">Bath</th>
+                  <th className="py-2">Bath &amp; Tidy</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-border/60">
+                  <td className="py-2 pr-4 font-medium text-foreground">Short</td>
+                  <td className="py-2 pr-4 text-foreground/90">${config.cat.bath.short}</td>
+                  <td className="py-2 text-foreground/90">${config.cat.lightTrim.short}</td>
+                </tr>
+                <tr>
+                  <td className="py-2 pr-4 font-medium text-foreground">Long</td>
+                  <td className="py-2 pr-4 text-foreground/90">${config.cat.bath.long}</td>
+                  <td className="py-2 text-foreground/90">${config.cat.lightTrim.long}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-2 text-xs text-muted">
+            {`Flea Bath: $${config.cat.fleaBath} flat · Flea Bath & Tidy: $${config.cat.fleaBathTidy} flat. Any size or coat.`}
+          </p>
+        </RevealOnScroll>
+
+        <RevealOnScroll delay={100} className="mt-6 rounded-2xl border border-border bg-card p-6">
+          <h3 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
+            Kitten Pricing
+          </h3>
+          <p className="mt-1 text-xs text-muted">
+            Flat rate, any size or coat. Waterless options are for kittens
+            not yet ready for a full water bath.
+          </p>
+          <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
+            <div className="flex items-center justify-between rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm">
+              <span className="text-foreground/90">Bath</span>
+              <span className="font-medium text-foreground">${config.cat.kitten.bath}</span>
+            </div>
+            <div className="flex items-center justify-between rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm">
+              <span className="text-foreground/90">Bath &amp; Tidy</span>
+              <span className="font-medium text-foreground">${config.cat.kitten.lightTrim}</span>
+            </div>
+            <div className="flex items-center justify-between rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm">
+              <span className="text-foreground/90">Waterless Bath</span>
+              <span className="font-medium text-foreground">${config.cat.kitten.waterlessBath}</span>
+            </div>
+            <div className="flex items-center justify-between rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm">
+              <span className="text-foreground/90">Waterless Bath &amp; Tidy</span>
+              <span className="font-medium text-foreground">${config.cat.kitten.waterlessLightTrim}</span>
+            </div>
+            <div className="flex items-center justify-between rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm">
+              <span className="text-foreground/90">Flea Bath</span>
+              <span className="font-medium text-foreground">${config.cat.kitten.fleaBath}</span>
+            </div>
+            <div className="flex items-center justify-between rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm">
+              <span className="text-foreground/90">Flea Bath &amp; Tidy</span>
+              <span className="font-medium text-foreground">${config.cat.kitten.fleaBathTidy}</span>
+            </div>
+          </div>
+        </RevealOnScroll>
       </section>
 
       <section className="border-y border-border bg-card">

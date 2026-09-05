@@ -111,6 +111,9 @@ export default async function Home() {
               <span className="rounded-full bg-pastel-yellow/70 px-3 py-1 font-semibold text-foreground/85">
                 Zero cages
               </span>
+              <span className="rounded-full bg-pastel-pink/70 px-3 py-1 font-semibold text-foreground/85">
+                Next Day Availability
+              </span>
               <span className="rounded-full bg-pastel-mint/70 px-3 py-1 font-semibold text-foreground/85">
                 Insured
               </span>
