@@ -51,7 +51,7 @@ export default async function AdminDashboardPage({
   const { data: appointments } = await supabase
     .from("appointments")
     .select(
-      "*, pets(id, name, species), profiles:customer_id(full_name, phone)",
+      "*, pets(id, name, species), profiles:customer_id(full_name, phone, email)",
     )
     .neq("status", "cancelled")
     .gte("appointment_date", start)

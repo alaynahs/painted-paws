@@ -23,6 +23,7 @@ export interface ScheduleAppointment {
   ownerId: string;
   ownerName: string;
   ownerPhone: string | null;
+  ownerEmail: string | null;
   service: string;
   addOns: string[];
   price: number;
@@ -162,7 +163,11 @@ export default function AppointmentDetailPanel({
           </form>
         )}
         {appt.status !== "completed" && (
-          <MarkCompleteButton appointmentId={appt.id} compact />
+          <MarkCompleteButton
+            appointmentId={appt.id}
+            customerEmail={appt.ownerEmail}
+            compact
+          />
         )}
         <QuickMessageButtons appointmentId={appt.id} />
         {hasStarted && (

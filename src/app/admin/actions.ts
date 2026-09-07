@@ -487,6 +487,10 @@ export async function markAppointmentComplete(
   appointmentId: string,
   includeTip: boolean,
   includePhotos: boolean,
+  // A one-time override for where this specific email goes — e.g. the
+  // owner asks it be sent to a spouse's inbox just this once. Never
+  // written back to the customer's profile.
+  overrideEmail?: string,
 ) {
   const { supabase, user } = await requireAdmin();
 
@@ -516,10 +520,12 @@ export async function markAppointmentComplete(
     actorId: user.id,
   });
 
-  if (profile?.email) {
+  const sendTo = overrideEmail?.trim() || profile?.email || null;
+
+  if (sendTo) {
     const origin = (await headers()).get("origin");
     const emailVars = {
-      firstName: (profile.full_name || "there").split(" ")[0],
+      firstName: (profile?.full_name || "there").split(" ")[0],
       petName: pet?.name ?? "Your pet",
       reviewUrl: `${origin}/leave-a-review/${appt.id}${includeTip ? "" : "?notip=1"}`,
       pickupDropoff: appt.pickup_dropoff,
@@ -531,7 +537,7 @@ export async function markAppointmentComplete(
         customerId: appt.customer_id,
         petId: pet?.id ?? null,
         appointmentId: appt.id,
-        email: profile.email,
+        email: sendTo,
       },
       "post_visit_thank_you",
       postVisitThankYouEmail(emailVars),
@@ -540,8 +546,8 @@ export async function markAppointmentComplete(
 
   redirect(
     `/admin/appointments/${appointmentId}?message=${encodeURIComponent(
-      profile?.email
-        ? `Marked complete — ${includeTip ? "review + tip" : "review"} email sent${includePhotos ? "" : " (no photos)"}.`
+      sendTo
+        ? `Marked complete — ${includeTip ? "review + tip" : "review"} email sent${includePhotos ? "" : " (no photos)"} to ${sendTo}.`
         : "Marked complete — no email on file to notify.",
     )}`,
   );

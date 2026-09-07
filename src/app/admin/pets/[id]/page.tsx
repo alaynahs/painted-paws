@@ -360,6 +360,7 @@ export default async function AdminPetDetailPage({
                     key={appt.id}
                     appt={appt}
                     inspoUrl={inspoUrls[appt.id]}
+                    customerEmail={pet.profiles?.email}
                     showActions
                   />
                 ))}

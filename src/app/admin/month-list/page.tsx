@@ -49,7 +49,7 @@ export default async function AdminMonthListPage({
   const { data: appointments } = await supabase
     .from("appointments")
     .select(
-      "id, appointment_date, appointment_hour, appointment_minute, service, add_ons, price, status, payment_method, payment_status, pet_id, customer_id, duration_minutes, pets(id, name, species, birth_date, health_concerns, rabies_vaccine_path, rabies_expires_at), profiles:customer_id(full_name, phone)",
+      "id, appointment_date, appointment_hour, appointment_minute, service, add_ons, price, status, payment_method, payment_status, pet_id, customer_id, duration_minutes, pets(id, name, species, birth_date, health_concerns, rabies_vaccine_path, rabies_expires_at), profiles:customer_id(full_name, phone, email)",
     )
     .neq("status", "cancelled")
     .gte("appointment_date", start)
@@ -79,6 +79,7 @@ export default async function AdminMonthListPage({
       ownerId: appt.customer_id,
       ownerName: profile?.full_name ?? "Unknown owner",
       ownerPhone: profile?.phone ?? null,
+      ownerEmail: profile?.email ?? null,
       service: appt.service,
       addOns,
       price: appt.price,

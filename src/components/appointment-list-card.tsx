@@ -21,7 +21,7 @@ export interface AppointmentListItem {
   customer_note: string | null;
   customer_id: string;
   pets: { id: string; name: string } | null;
-  profiles: { full_name: string | null; phone: string | null } | null;
+  profiles: { full_name: string | null; phone: string | null; email: string | null } | null;
 }
 
 // Appointment card used by the week-at-a-time List view (/admin).
@@ -82,7 +82,11 @@ export default function AppointmentListCard({ appt }: { appt: AppointmentListIte
       )}
       <div className="mt-3 flex flex-wrap gap-2">
         {appt.status !== "completed" && (
-          <MarkCompleteButton appointmentId={appt.id} compact />
+          <MarkCompleteButton
+            appointmentId={appt.id}
+            customerEmail={appt.profiles?.email}
+            compact
+          />
         )}
         {appt.payment_method === "in_person" && appt.payment_status === "unpaid" && (
           <form action={setAppointmentOnlinePayment.bind(null, appt.id)}>

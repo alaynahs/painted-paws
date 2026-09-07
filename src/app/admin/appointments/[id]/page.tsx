@@ -327,7 +327,11 @@ export default async function AdminEditAppointmentPage({
                   <span className="text-[10px] text-muted">Done</span>
                 </div>
               ) : (
-                <MarkCompleteButton appointmentId={appointment.id} tile />
+                <MarkCompleteButton
+                  appointmentId={appointment.id}
+                  customerEmail={appointment.profiles?.email}
+                  tile
+                />
               )
             }
           />
@@ -458,6 +462,7 @@ export default async function AdminEditAppointmentPage({
                     key={appt.id}
                     appt={appt}
                     inspoUrl={inspoUrls[appt.id]}
+                    customerEmail={appointment.profiles?.email}
                     showActions
                   />
                 ))}

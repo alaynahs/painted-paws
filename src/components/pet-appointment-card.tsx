@@ -36,10 +36,12 @@ function formatDuration(checkedInAt: string, readyAt: string): string {
 export default function PetAppointmentCard({
   appt,
   inspoUrl,
+  customerEmail,
   showActions = false,
 }: {
   appt: PetAppointmentRow;
   inspoUrl?: string;
+  customerEmail?: string | null;
   showActions?: boolean;
 }) {
   return (
@@ -91,7 +93,11 @@ export default function PetAppointmentCard({
       {showActions && (
         <div className="mt-3 flex flex-wrap gap-2">
           {appt.status !== "completed" && (
-            <MarkCompleteButton appointmentId={appt.id} compact />
+            <MarkCompleteButton
+              appointmentId={appt.id}
+              customerEmail={customerEmail}
+              compact
+            />
           )}
           <Link
             href={`/admin/appointments/${appt.id}`}
