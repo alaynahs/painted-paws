@@ -229,6 +229,39 @@ export default async function ServicesPage() {
 
         <RevealOnScroll delay={100} className="mt-6 rounded-2xl border border-border bg-card p-6">
           <h3 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
+            Standard Doodle Mix Pricing{" "}
+            <span className="font-normal normal-case text-muted">(45+ lb)</span>
+          </h3>
+          <p className="mt-1 text-xs text-muted">
+            Flat rate for standard-size doodle crosses (Goldendoodle,
+            Labradoodle, and similar) at 45 lb and up, regardless of coat
+            length. Smaller doodle mixes are priced on the regular dog
+            matrix above.
+          </p>
+          <div className="mt-4 grid gap-2.5 sm:grid-cols-3">
+            <div className="flex items-center justify-between rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm">
+              <span className="text-foreground/90">Bath</span>
+              <span className="font-medium text-foreground">
+                ${config.doodleMix.bath45Plus}
+              </span>
+            </div>
+            <div className="flex items-center justify-between rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm">
+              <span className="text-foreground/90">Tidy Up</span>
+              <span className="font-medium text-foreground">
+                ${config.doodleMix.trim45Plus}
+              </span>
+            </div>
+            <div className="flex items-center justify-between rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm">
+              <span className="text-foreground/90">Full Groom</span>
+              <span className="font-medium text-foreground">
+                ${config.doodleMix.haircut45Plus}
+              </span>
+            </div>
+          </div>
+        </RevealOnScroll>
+
+        <RevealOnScroll delay={150} className="mt-6 rounded-2xl border border-border bg-card p-6">
+          <h3 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
             Puppy Pricing by Weight{" "}
             <span className="font-normal normal-case text-muted">(under 6 months)</span>
           </h3>
@@ -265,39 +298,6 @@ export default async function ServicesPage() {
           <p className="mt-2 text-xs text-muted">
             Puppy Intro to Grooming: ${config.puppy.introPrice} flat, any size.
           </p>
-        </RevealOnScroll>
-
-        <RevealOnScroll delay={150} className="mt-6 rounded-2xl border border-border bg-card p-6">
-          <h3 className="text-sm font-medium uppercase tracking-wide text-accent-dark">
-            Standard Doodle Mix Pricing{" "}
-            <span className="font-normal normal-case text-muted">(45+ lb)</span>
-          </h3>
-          <p className="mt-1 text-xs text-muted">
-            Flat rate for standard-size doodle crosses (Goldendoodle,
-            Labradoodle, and similar) at 45 lb and up, regardless of coat
-            length. Smaller doodle mixes are priced on the regular dog
-            matrix above.
-          </p>
-          <div className="mt-4 grid gap-2.5 sm:grid-cols-3">
-            <div className="flex items-center justify-between rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm">
-              <span className="text-foreground/90">Bath</span>
-              <span className="font-medium text-foreground">
-                ${config.doodleMix.bath45Plus}
-              </span>
-            </div>
-            <div className="flex items-center justify-between rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm">
-              <span className="text-foreground/90">Tidy Up</span>
-              <span className="font-medium text-foreground">
-                ${config.doodleMix.trim45Plus}
-              </span>
-            </div>
-            <div className="flex items-center justify-between rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm">
-              <span className="text-foreground/90">Full Groom</span>
-              <span className="font-medium text-foreground">
-                ${config.doodleMix.haircut45Plus}
-              </span>
-            </div>
-          </div>
         </RevealOnScroll>
       </section>
 
