@@ -112,7 +112,7 @@ const faqGroups = [
     items: [
       {
         q: "How can I pay?",
-        a: "Payment is collected online by card. You can either pay in full at booking, or pay a 50% deposit and settle the rest after your appointment.",
+        a: "Payment is collected online by card, in full at booking. A deposit option is available on a case-by-case basis — reach out if you'd like to ask about one.",
       },
       {
         q: "What do memberships include?",
