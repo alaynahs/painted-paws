@@ -1,6 +1,7 @@
 import PawIcon from "@/components/paw-icon";
 import RevealOnScroll from "@/components/reveal-on-scroll";
 import GiveawayCountdown from "@/components/giveaway-countdown";
+import GiveawayEntryPopup from "@/components/giveaway-entry-popup";
 import {
   BUSINESS_NAME,
   BUSINESS_PHONE_DISPLAY,
@@ -24,6 +25,7 @@ export default async function GiveawayPage({
 
   return (
     <div>
+      <GiveawayEntryPopup />
       <div aria-hidden className="fixed inset-0 -z-20 bg-white" />
       <section className="mx-auto max-w-3xl px-6 pt-16 pb-10 text-center">
         <p className="text-sm font-semibold tracking-widest text-accent-dark uppercase">
@@ -57,7 +59,7 @@ export default async function GiveawayPage({
         <GiveawayCountdown deadlineIso={ENTRY_DEADLINE_ISO} />
       </section>
 
-      <section className="mx-auto max-w-xl px-6 pb-16">
+      <section id="giveaway-form" className="mx-auto max-w-xl px-6 pb-16">
         {entered && (
           <p className="mb-6 rounded-xl border border-accent/40 bg-accent-tint px-4 py-3 text-center text-sm font-medium text-foreground">
             🎉 You&apos;re entered! We&apos;ll reach out if your pup wins.
