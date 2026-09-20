@@ -35,7 +35,7 @@ export default function GiveawayBanner({
     >
       <PawIcon className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
       <span>
-        🎉 Win a Year of Free Grooms — {left.days}d {left.hours}h{" "}
+        Win a Year of Free Grooms — {left.days}d {left.hours}h{" "}
         {left.minutes}m {left.seconds}s left to enter
       </span>
       <PawIcon className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
