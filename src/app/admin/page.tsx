@@ -142,6 +142,12 @@ export default async function AdminDashboardPage({
         >
           Revenue
         </Link>
+        <Link
+          href="/admin/giveaway"
+          className="rounded-xl border border-border bg-card p-4 text-center text-sm font-medium whitespace-nowrap text-foreground transition-colors hover:border-accent-dark hover:text-accent-dark"
+        >
+          Giveaway
+        </Link>
       </div>
 
       <div className="mt-6 flex items-center justify-between gap-4">
