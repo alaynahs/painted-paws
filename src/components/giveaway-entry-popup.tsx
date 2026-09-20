@@ -1,14 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import PawIcon from "@/components/paw-icon";
 
 const DISMISSED_KEY = "giveaway-popup-dismissed";
 
 export default function GiveawayEntryPopup() {
+  const pathname = usePathname();
+  const router = useRouter();
   const [show, setShow] = useState(false);
 
   useEffect(() => {
+    // No need to nudge someone toward the giveaway page while they're
+    // already looking right at it.
+    if (pathname === "/giveaway") return;
+
     let alreadySeen = false;
     try {
       alreadySeen = localStorage.getItem(DISMISSED_KEY) === "1";
@@ -18,7 +25,7 @@ export default function GiveawayEntryPopup() {
     if (alreadySeen) return;
     const timer = setTimeout(() => setShow(true), 1200);
     return () => clearTimeout(timer);
-  }, []);
+  }, [pathname]);
 
   function dismiss() {
     setShow(false);
@@ -31,9 +38,7 @@ export default function GiveawayEntryPopup() {
 
   function goToForm() {
     dismiss();
-    document
-      .getElementById("giveaway-form")
-      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    router.push("/giveaway#giveaway-form");
   }
 
   if (!show) return null;

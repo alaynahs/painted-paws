@@ -1,5 +1,7 @@
 import Link from "next/link";
 import PawIcon from "@/components/paw-icon";
+import GiveawayBanner from "@/components/giveaway-banner";
+import { GIVEAWAY_DEADLINE_ISO, isGiveawayActive } from "@/lib/giveaway";
 import { getActivePromotion } from "@/lib/promotions/actions";
 import { getFeaturedCouponCode } from "@/lib/coupons/actions";
 
@@ -16,6 +18,12 @@ function couponBannerText(coupon: {
 }
 
 export default async function PromoBanner() {
+  // While the giveaway is running, it takes priority over any other
+  // banner — it's the current campaign.
+  if (isGiveawayActive()) {
+    return <GiveawayBanner deadlineIso={GIVEAWAY_DEADLINE_ISO} />;
+  }
+
   // An automatic promotion (discounts everyone, no code needed) takes
   // priority if one is running; otherwise fall back to announcing a
   // featured coupon code (discount only unlocks if actually redeemed).

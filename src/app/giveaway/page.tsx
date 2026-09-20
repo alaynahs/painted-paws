@@ -1,20 +1,13 @@
 import PawIcon from "@/components/paw-icon";
 import RevealOnScroll from "@/components/reveal-on-scroll";
 import GiveawayCountdown from "@/components/giveaway-countdown";
-import GiveawayEntryPopup from "@/components/giveaway-entry-popup";
 import {
   BUSINESS_NAME,
   BUSINESS_PHONE_DISPLAY,
   BUSINESS_PHONE_TEL,
 } from "@/lib/notifications/templates";
-import { centralWallClockToInstant } from "@/lib/format";
+import { GIVEAWAY_DEADLINE_ISO } from "@/lib/giveaway";
 import { submitGiveawayEntry } from "@/app/giveaway/actions";
-
-const ENTRY_DEADLINE_ISO = centralWallClockToInstant(
-  "2026-09-25",
-  23,
-  59,
-).toISOString();
 
 export default async function GiveawayPage({
   searchParams,
@@ -25,7 +18,6 @@ export default async function GiveawayPage({
 
   return (
     <div>
-      <GiveawayEntryPopup />
       <div aria-hidden className="fixed inset-0 -z-20 bg-white" />
       <section className="mx-auto max-w-3xl px-6 pt-16 pb-10 text-center">
         <p className="text-sm font-semibold tracking-widest text-accent-dark uppercase">
@@ -56,7 +48,7 @@ export default async function GiveawayPage({
           </span>
         </div>
 
-        <GiveawayCountdown deadlineIso={ENTRY_DEADLINE_ISO} />
+        <GiveawayCountdown deadlineIso={GIVEAWAY_DEADLINE_ISO} />
       </section>
 
       <section id="giveaway-form" className="mx-auto max-w-xl px-6 pb-16">
@@ -167,8 +159,8 @@ export default async function GiveawayPage({
                 name="promoOptOut"
                 className="mt-0.5 h-4 w-4 shrink-0 rounded border-border text-accent focus:ring-accent-dark"
               />
-              No, I do not want to receive occasional promotional emails from{" "}
-              {BUSINESS_NAME}.
+              No, I do not want to receive future emails from Painted Paws
+              Austin.
             </label>
 
             <button

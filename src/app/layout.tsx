@@ -8,6 +8,7 @@ import AdminNavLinks from "@/components/admin-nav-links";
 import DecorativeBackground from "@/components/decorative-background";
 import PromoBanner from "@/components/promo-banner";
 import CouponAnnouncement from "@/components/coupon-announcement";
+import GiveawayEntryPopup from "@/components/giveaway-entry-popup";
 import SessionDurationTracker from "@/components/session-duration-tracker";
 import PageViewTracker from "@/components/page-view-tracker";
 import { isCurrentUserAdmin } from "@/lib/supabase/is-admin";
@@ -156,6 +157,7 @@ export default async function RootLayout({
         <DecorativeBackground />
         <PromoBanner />
         <CouponAnnouncement />
+        <GiveawayEntryPopup />
         <SessionDurationTracker />
         <PageViewTracker />
         <SiteHeader
