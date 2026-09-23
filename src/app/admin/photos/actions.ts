@@ -11,6 +11,21 @@ function sanitizeFileName(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9.]+/g, "-");
 }
 
+// Several photo rows can share one storage file, so only delete the file
+// once nothing else points at it.
+async function removeStorageFileIfUnused(
+  supabase: Awaited<ReturnType<typeof requireAdmin>>["supabase"],
+  storagePath: string,
+) {
+  const { count } = await supabase
+    .from("site_photos")
+    .select("id", { count: "exact", head: true })
+    .eq("storage_path", storagePath);
+  if ((count ?? 0) === 0) {
+    await supabase.storage.from("site-photos").remove([storagePath]);
+  }
+}
+
 export async function uploadSitePhoto(formData: FormData) {
   const { supabase } = await requireAdmin();
 
@@ -59,6 +74,7 @@ export async function updateSitePhoto(photoId: string, formData: FormData) {
   const caption = ((formData.get("caption") as string) || "").trim();
   const tag = ((formData.get("tag") as string) || "").trim() || null;
   const file = formData.get("file") as File | null;
+  let oldPathToClean: string | null = null;
 
   const update: { caption: string; tag: string | null; storage_path?: string } = {
     caption,
@@ -80,12 +96,13 @@ export async function updateSitePhoto(photoId: string, formData: FormData) {
 
       if (!uploadError) {
         update.storage_path = newPath;
-        await supabase.storage.from("site-photos").remove([existing.storage_path]);
+        oldPathToClean = existing.storage_path;
       }
     }
   }
 
   await supabase.from("site_photos").update(update).eq("id", photoId);
+  if (oldPathToClean) await removeStorageFileIfUnused(supabase, oldPathToClean);
 
   revalidatePath("/admin/photos");
   revalidatePath("/portfolio");
@@ -102,9 +119,7 @@ export async function deleteSitePhoto(photoId: string) {
     .single();
 
   await supabase.from("site_photos").delete().eq("id", photoId);
-  if (photo) {
-    await supabase.storage.from("site-photos").remove([photo.storage_path]);
-  }
+  if (photo) await removeStorageFileIfUnused(supabase, photo.storage_path);
 
   revalidatePath("/admin/photos");
   revalidatePath("/portfolio");
