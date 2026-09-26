@@ -2,10 +2,13 @@
 
 import { redirect } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/service";
+import { isGiveawayActive } from "@/lib/giveaway";
 
 // Public entry form, no login required — uses the service client since
 // there's no customer session to attach an RLS-friendly owner id to.
 export async function submitGiveawayEntry(formData: FormData) {
+  if (!isGiveawayActive()) redirect("/giveaway");
+
   const fullName = ((formData.get("fullName") as string) || "").trim();
   const email = ((formData.get("email") as string) || "").trim();
   const phone = ((formData.get("phone") as string) || "").trim();

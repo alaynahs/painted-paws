@@ -6,7 +6,7 @@ import {
   BUSINESS_PHONE_DISPLAY,
   BUSINESS_PHONE_TEL,
 } from "@/lib/notifications/templates";
-import { GIVEAWAY_DEADLINE_ISO } from "@/lib/giveaway";
+import { GIVEAWAY_DEADLINE_ISO, isGiveawayActive } from "@/lib/giveaway";
 import { submitGiveawayEntry } from "@/app/giveaway/actions";
 
 export default async function GiveawayPage({
@@ -15,6 +15,7 @@ export default async function GiveawayPage({
   searchParams: Promise<{ entered?: string; error?: string }>;
 }) {
   const { entered, error } = await searchParams;
+  const open = isGiveawayActive();
 
   return (
     <div>
@@ -63,6 +64,19 @@ export default async function GiveawayPage({
           </p>
         )}
 
+        {!open && (
+          <div className="rounded-2xl border-2 border-accent bg-card p-6 text-center sm:p-8">
+            <h2 className="font-serif text-xl text-foreground">
+              This giveaway has ended
+            </h2>
+            <p className="mt-2 text-sm text-muted">
+              Entries closed September 25, 2026. Thank you to everyone who
+              entered!
+            </p>
+          </div>
+        )}
+
+        {open && (
         <RevealOnScroll className="rounded-2xl border-2 border-accent bg-card p-6 sm:p-8">
           <div className="flex items-center gap-2">
             <PawIcon className="h-5 w-5 text-accent-dark" />
@@ -171,6 +185,7 @@ export default async function GiveawayPage({
             </button>
           </form>
         </RevealOnScroll>
+        )}
 
         <details className="mt-8 rounded-xl border border-border bg-card p-5 text-xs text-muted">
           <summary className="cursor-pointer text-sm font-medium text-foreground">
