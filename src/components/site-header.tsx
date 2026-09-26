@@ -7,7 +7,6 @@ import BackButton from "@/components/back-button";
 
 const navLinks = [
   { href: "/", label: "Home" },
-  { href: "/giveaway", label: "Giveaway" },
   { href: "/services", label: "Services" },
   { href: "/portfolio", label: "Portfolio" },
   { href: "/membership", label: "Membership" },

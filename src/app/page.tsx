@@ -134,12 +134,6 @@ export default async function Home() {
               >
                 View Portfolio
               </Link>
-              <Link
-                href="/giveaway"
-                className="rounded-full bg-pastel-pink px-7 py-3 text-sm font-semibold text-foreground/85 transition-colors hover:bg-pastel-pink/70"
-              >
-                🎉 Enter the Giveaway
-              </Link>
             </div>
           </div>
 
