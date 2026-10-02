@@ -417,7 +417,7 @@ export default async function AdminPetDetailPage({
                     rel="noopener noreferrer"
                     className="mt-2 inline-block text-sm text-accent-dark hover:underline"
                   >
-                    View uploaded PDF
+                    View uploaded record
                     {pet.rabies_uploaded_at &&
                       ` (${formatDate(centralDateOnly(pet.rabies_uploaded_at))})`}
                   </a>
@@ -444,14 +444,14 @@ export default async function AdminPetDetailPage({
                       className="text-xs font-medium text-foreground"
                       htmlFor="file"
                     >
-                      Vaccine record (PDF){" "}
+                      Vaccine record (photo or PDF){" "}
                       <span className="font-normal text-muted">(optional)</span>
                     </label>
                     <input
                       id="file"
                       type="file"
                       name="file"
-                      accept="application/pdf"
+                      accept="application/pdf,image/*"
                       className="mt-1 block w-full text-xs text-foreground/80"
                     />
                   </div>

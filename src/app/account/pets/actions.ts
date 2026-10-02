@@ -5,6 +5,13 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/supabase/admin";
 import { monthsSince } from "@/lib/pricing/pricing";
 
+// Customers often only have a phone photo of the record, not an actual
+// PDF — upload needs to accept and correctly label whatever they have.
+function vaccineFileExtension(file: File): string {
+  const match = /\.([a-zA-Z0-9]+)$/.exec(file.name);
+  return match ? match[1].toLowerCase() : "pdf";
+}
+
 function readPetFields(formData: FormData) {
   const birthDate = (formData.get("birthDate") as string) || null;
   const species = formData.get("species") as string;
@@ -131,10 +138,13 @@ export async function uploadRabiesVaccine(formData: FormData) {
     );
   }
 
-  const path = `${user.id}/${petId}.pdf`;
+  const path = `${user.id}/${petId}.${vaccineFileExtension(file)}`;
   const { error: uploadError } = await supabase.storage
     .from("vaccine-records")
-    .upload(path, file, { upsert: true, contentType: "application/pdf" });
+    .upload(path, file, {
+      upsert: true,
+      contentType: file.type || "application/octet-stream",
+    });
 
   if (uploadError) {
     redirect(

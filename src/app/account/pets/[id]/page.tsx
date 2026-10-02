@@ -121,8 +121,8 @@ export default async function EditPetPage({
             )}
             {!pet.rabies_vaccine_path && !isExpired && (
               <p className="mt-1 text-sm text-muted">
-                Upload a PDF of your pet&apos;s current rabies vaccination
-                record.
+                Upload a photo or PDF of your pet&apos;s current rabies
+                vaccination record.
               </p>
             )}
 
@@ -137,13 +137,13 @@ export default async function EditPetPage({
                     className="text-xs font-medium text-foreground"
                     htmlFor="file"
                   >
-                    Vaccine record (PDF)
+                    Vaccine record (photo or PDF)
                   </label>
                   <input
                     id="file"
                     type="file"
                     name="file"
-                    accept="application/pdf"
+                    accept="application/pdf,image/*"
                     required
                     className="mt-1 block text-sm text-foreground/80"
                   />

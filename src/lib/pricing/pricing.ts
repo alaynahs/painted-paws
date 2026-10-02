@@ -289,7 +289,7 @@ export const DOG_ADD_ON_NAMES: string[] = [
   "De-matting (30 min)",
   "Extra brushing (30 min)",
   "Extra scissoring (30 min)",
-  "Nail grinding",
+  "Nail trim + grind",
 ];
 
 export const CAT_ADD_ON_NAMES: string[] = [

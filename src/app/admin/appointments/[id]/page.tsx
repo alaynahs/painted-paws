@@ -610,7 +610,7 @@ export default async function AdminEditAppointmentPage({
                     rel="noopener noreferrer"
                     className="mt-2 inline-block text-sm text-accent-dark hover:underline"
                   >
-                    View uploaded PDF
+                    View uploaded record
                     {pet.rabies_uploaded_at &&
                       ` (${formatDate(centralDateOnly(pet.rabies_uploaded_at))})`}
                   </a>

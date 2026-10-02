@@ -202,10 +202,15 @@ export async function uploadGroomPhoto(formData: FormData) {
 // Lets the admin upload a rabies vaccine record for a customer's pet
 // directly — e.g. a client texts/emails a photo instead of uploading it
 // themselves through their account. Same storage path convention and pets
-// columns as the customer-facing upload in account/pets/actions.ts. The PDF
+// columns as the customer-facing upload in account/pets/actions.ts. The file
 // itself is optional here (unlike the customer-facing version) — the admin
 // may just be recording an expiration date she was told over the phone/in
 // person, with no file on hand to attach.
+function vaccineFileExtension(file: File): string {
+  const match = /\.([a-zA-Z0-9]+)$/.exec(file.name);
+  return match ? match[1].toLowerCase() : "pdf";
+}
+
 export async function uploadRabiesVaccineAdmin(formData: FormData) {
   const { supabase } = await requireAdmin();
 
@@ -238,10 +243,13 @@ export async function uploadRabiesVaccineAdmin(formData: FormData) {
 
     if (!pet) redirect(`/admin/pets/${petId}?error=${encodeURIComponent("Pet not found.")}`);
 
-    const path = `${pet.owner_id}/${petId}.pdf`;
+    const path = `${pet.owner_id}/${petId}.${vaccineFileExtension(file)}`;
     const { error: uploadError } = await supabase.storage
       .from("vaccine-records")
-      .upload(path, file, { upsert: true, contentType: "application/pdf" });
+      .upload(path, file, {
+        upsert: true,
+        contentType: file.type || "application/octet-stream",
+      });
 
     if (uploadError) {
       redirect(`/admin/pets/${petId}?error=${encodeURIComponent(uploadError.message)}`);
