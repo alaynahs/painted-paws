@@ -83,7 +83,7 @@ const dogAddOns = [
   "Nail trim",
   "Sanitary shave",
   "Extra brushing",
-  "Nail grinding",
+  "Nail trim + grind",
 ];
 
 const catAddOns = [
