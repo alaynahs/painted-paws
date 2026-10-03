@@ -345,7 +345,7 @@ export const PACKAGE_DESCRIPTIONS: Record<PackageTier, string> = {
   freshStart:
     "Teeth brushing, bandana or bow, and a deep coat conditioner.",
   pampered: "Everything in Fresh Start, plus nail grinding.",
-  vip: "Everything in Pampered, plus a paw & nose balm, massage, VIP shampoo & conditioner, and a discount on your next visit.",
+  vip: "Everything in Pampered, plus a paw & nose balm, massage, and a discount on your next visit.",
 };
 
 export function applyMemberAddonDiscount(

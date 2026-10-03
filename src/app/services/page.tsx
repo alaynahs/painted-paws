@@ -109,7 +109,7 @@ const packages = [
   {
     name: "VIP Treatment",
     altName: "Prestige",
-    body: "Everything in Pampered, plus a paw & nose balm, massage, VIP shampoo & conditioner, and a discount on your next visit.",
+    body: "Everything in Pampered, plus a paw & nose balm, massage, and a discount on your next visit.",
   },
 ];
 
@@ -448,6 +448,7 @@ export default async function ServicesPage() {
         <h2 className="font-serif text-2xl text-foreground">Luxury Packages</h2>
         <p className="mt-2 text-sm text-muted">
           Can&apos;t decide? These bundles combine our most popular add-ons.
+          All services include a shampoo specific to your pet&apos;s needs.
         </p>
         <div className="mt-6 grid gap-6 sm:grid-cols-3">
           {packages.map((p, i) => (
