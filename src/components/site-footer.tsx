@@ -118,15 +118,6 @@ export default function SiteFooter() {
                 Follow us on Instagram
               </a>
             </p>
-            {/* TODO: replace with the real YouTube channel URL */}
-            <p className="mt-2 text-sm text-muted">
-              <a
-                href="#"
-                className="text-accent-dark hover:underline"
-              >
-                Subscribe on YouTube
-              </a>
-            </p>
           </div>
         </div>
 
