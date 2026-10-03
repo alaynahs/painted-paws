@@ -8,6 +8,7 @@ import CancelAppointmentButton from "@/components/cancel-appointment-button";
 import QuickActionTiles from "@/components/quick-action-tiles";
 import RefundButton from "@/components/refund-button";
 import MarkCompleteButton from "@/components/mark-complete-button";
+import PaymentLinkEmailButton from "@/components/payment-link-email-button";
 import { CheckoutIcon } from "@/components/stage-icons";
 import PetPhoto from "@/components/pet-photo";
 import CollapsibleCard from "@/components/collapsible-card";
@@ -362,24 +363,18 @@ export default async function AdminEditAppointmentPage({
 
           {appointment.payment_status === "unpaid" && (
             <div className="flex flex-wrap gap-3">
-              <form action={sendPaymentLinkWithId}>
-                <input type="hidden" name="portion" value="full" />
-                <button
-                  type="submit"
-                  className="rounded-full border border-blue-600 px-5 py-2 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-600 hover:text-white"
-                >
-                  Email Payment Link (${appointment.price})
-                </button>
-              </form>
-              <form action={sendPaymentLinkWithId}>
-                <input type="hidden" name="portion" value="deposit" />
-                <button
-                  type="submit"
-                  className="rounded-full border border-blue-600 px-5 py-2 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-600 hover:text-white"
-                >
-                  Email 50% Deposit Link (${depositAmount})
-                </button>
-              </form>
+              <PaymentLinkEmailButton
+                action={sendPaymentLinkWithId}
+                portion="full"
+                label={`Email Payment Link ($${appointment.price})`}
+                defaultEmail={appointment.profiles?.email ?? null}
+              />
+              <PaymentLinkEmailButton
+                action={sendPaymentLinkWithId}
+                portion="deposit"
+                label={`Email 50% Deposit Link ($${depositAmount})`}
+                defaultEmail={appointment.profiles?.email ?? null}
+              />
               <form action={markPaidWithId}>
                 <button
                   type="submit"
@@ -393,15 +388,12 @@ export default async function AdminEditAppointmentPage({
 
           {appointment.payment_status === "deposit_paid" && (
             <div className="flex flex-wrap gap-3">
-              <form action={sendPaymentLinkWithId}>
-                <input type="hidden" name="portion" value="remainder" />
-                <button
-                  type="submit"
-                  className="rounded-full border border-blue-600 px-5 py-2 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-600 hover:text-white"
-                >
-                  Email Remaining Balance Link (${remainingAmount})
-                </button>
-              </form>
+              <PaymentLinkEmailButton
+                action={sendPaymentLinkWithId}
+                portion="remainder"
+                label={`Email Remaining Balance Link ($${remainingAmount})`}
+                defaultEmail={appointment.profiles?.email ?? null}
+              />
               <form action={markPaidWithId}>
                 <button
                   type="submit"

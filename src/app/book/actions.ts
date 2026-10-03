@@ -1420,6 +1420,7 @@ export async function sendPaymentLinkEmail(appointmentId: string, formData: Form
   // the appointment in a new "deposit_paid" state; remainder collects
   // whatever's actually still owed once that deposit's in.
   const portion = (formData.get("portion") as string) || "full";
+  const overrideEmail = ((formData.get("overrideEmail") as string) || "").trim();
 
   const { data: appt } = await supabase
     .from("appointments")
@@ -1453,9 +1454,10 @@ export async function sendPaymentLinkEmail(appointmentId: string, formData: Form
     .eq("id", appt.customer_id)
     .single();
 
-  if (!profile?.email) {
+  const sendTo = overrideEmail || profile?.email || null;
+  if (!sendTo) {
     redirect(
-      `${editPath}?error=${encodeURIComponent("This customer doesn't have an email on file.")}`,
+      `${editPath}?error=${encodeURIComponent("Enter an email address to send the link to.")}`,
     );
   }
 
@@ -1507,10 +1509,10 @@ export async function sendPaymentLinkEmail(appointmentId: string, formData: Form
 
   const status = await notifyEmail(
     supabase,
-    { customerId: appt.customer_id, appointmentId: appt.id, email: profile.email },
+    { customerId: appt.customer_id, appointmentId: appt.id, email: sendTo },
     "payment_link",
     paymentLinkEmail({
-      firstName: (profile.full_name || "there").split(" ")[0],
+      firstName: (profile?.full_name || "there").split(" ")[0],
       petName: pet?.name ?? "your pet",
       date: formatDate(appt.appointment_date),
       time: formatHour(appt.appointment_hour, appt.appointment_minute),
@@ -1527,7 +1529,7 @@ export async function sendPaymentLinkEmail(appointmentId: string, formData: Form
     );
   }
 
-  redirect(`${editPath}?message=${encodeURIComponent(`Payment link emailed to ${profile.email}.`)}`);
+  redirect(`${editPath}?message=${encodeURIComponent(`Payment link emailed to ${sendTo}.`)}`);
 }
 
 // One-click full refund straight from the appointment page — refunds the
