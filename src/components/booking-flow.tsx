@@ -890,6 +890,9 @@ export default function BookingFlow({
           De-Shed &amp; Packages{" "}
           <span className="font-normal text-muted">(optional)</span>
         </label>
+        <p className="mt-1 text-xs text-muted">
+          All services include a shampoo specific to your pet&apos;s needs.
+        </p>
         <div className="mt-2 grid gap-3 sm:grid-cols-2">
           <button
             type="button"
