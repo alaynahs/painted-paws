@@ -14,9 +14,7 @@ import CollapsibleCard from "@/components/collapsible-card";
 import GroomingRecipeCard from "@/components/grooming-recipe-card";
 import PriceBreakdownCard from "@/components/price-breakdown-card";
 import AppointmentStageTracker from "@/components/appointment-stage-tracker";
-import TodaysAppointmentsStrip, {
-  type StripAppointment,
-} from "@/components/todays-appointments-strip";
+import TodaysAppointmentsStrip from "@/components/todays-appointments-strip";
 import AppointmentHistoryList from "@/components/appointment-history-list";
 import MembershipCard from "@/components/membership-card";
 import NoteForm from "@/components/note-form";
@@ -39,6 +37,12 @@ import { getPricingConfig } from "@/lib/pricing/config";
 import { estimateDurationMinutes } from "@/lib/schedule-duration";
 import { centralDateOnly, formatDate, todayInCentral } from "@/lib/format";
 import { MAX_NO_SHOWS } from "@/lib/booking-hours";
+
+// This page does a lot of Supabase round-trips (pet record, notes,
+// membership, groom packs/photos, same-day appointments, history, plus a
+// signed URL per photo/record found) — give it more breathing room than
+// the default function timeout before Vercel kills the request.
+export const maxDuration = 30;
 
 export default async function AdminEditAppointmentPage({
   params,
@@ -160,27 +164,6 @@ export default async function AdminEditAppointmentPage({
   const petPhotoUrl = petPhotoSigned?.signedUrl ?? null;
   const vaccineUrl = vaccineSigned?.signedUrl ?? null;
 
-  const groomPhotoUrls = await Promise.all(
-    (groomPhotos ?? []).map(async (p) => {
-      const { data: signed } = await supabase.storage
-        .from("groom-photos")
-        .createSignedUrl(p.storage_path, 60 * 10);
-      return { ...p, url: signed?.signedUrl ?? null };
-    }),
-  );
-
-  const noteUrls: Record<string, string> = {};
-  await Promise.all(
-    (notes ?? [])
-      .filter((n) => n.photo_path)
-      .map(async (n) => {
-        const { data: signed } = await supabase.storage
-          .from("groom-note-photos")
-          .createSignedUrl(n.photo_path, 60 * 10);
-        if (signed?.signedUrl) noteUrls[n.id] = signed.signedUrl;
-      }),
-  );
-
   const groomingNotes = (notes ?? []).filter((n) => n.note_type === "grooming");
   const behaviorNotes = (notes ?? []).filter((n) => n.note_type === "behavior");
   const parentNotes = (notes ?? []).filter((n) => n.note_type === "parent");
@@ -190,19 +173,6 @@ export default async function AdminEditAppointmentPage({
     pet.species === "dog" && !!pet.birth_date && monthsSince(pet.birth_date) < 4;
   const isVaccineExpired =
     !!pet.rabies_expires_at && pet.rabies_expires_at < todayStr;
-  const noShowCount = await getNoShowCount(supabase, appointment.customer_id);
-
-  const inspoUrls: Record<string, string> = {};
-  await Promise.all(
-    (petAppointments ?? [])
-      .filter((a) => a.inspo_photo_path)
-      .map(async (a) => {
-        const { data: signed } = await supabase.storage
-          .from("inspo-photos")
-          .createSignedUrl(a.inspo_photo_path, 60 * 10);
-        if (signed?.signedUrl) inspoUrls[a.id] = signed.signedUrl;
-      }),
-  );
 
   const upcomingAppointments = (petAppointments ?? []).filter(
     (a) => a.appointment_date >= todayStr && a.status !== "cancelled",
@@ -224,27 +194,72 @@ export default async function AdminEditAppointmentPage({
     return "Upcoming";
   }
 
-  const stripAppointments: StripAppointment[] = await Promise.all(
-    (sameDayAppts ?? []).map(async (a) => {
-      const p = Array.isArray(a.pets) ? a.pets[0] : a.pets;
-      let photoUrl: string | null = null;
-      if (p?.photo_path) {
-        const { data: signed } = await supabase.storage
-          .from("pet-photos")
-          .createSignedUrl(p.photo_path, 60 * 10);
-        photoUrl = signed?.signedUrl ?? null;
-      }
-      return {
-        id: a.id,
-        hour: a.appointment_hour,
-        minute: a.appointment_minute,
-        petName: p?.name ?? "Unknown pet",
-        photoUrl,
-        stageLabel: stageLabelFor(a),
-        isCurrent: a.id === appointment.id,
-      };
-    }),
-  );
+  // These five are all independent of each other — run them concurrently
+  // (each one's own signed-URL lookups are already parallelized internally)
+  // instead of one after another, since this page already does a lot of
+  // Supabase round-trips and was at real risk of running long enough to
+  // time out the serverless function.
+  const [groomPhotoUrls, noteUrls, inspoUrls, noShowCount, stripAppointments] =
+    await Promise.all([
+      Promise.all(
+        (groomPhotos ?? []).map(async (p) => {
+          const { data: signed } = await supabase.storage
+            .from("groom-photos")
+            .createSignedUrl(p.storage_path, 60 * 10);
+          return { ...p, url: signed?.signedUrl ?? null };
+        }),
+      ),
+      (async () => {
+        const urls: Record<string, string> = {};
+        await Promise.all(
+          (notes ?? [])
+            .filter((n) => n.photo_path)
+            .map(async (n) => {
+              const { data: signed } = await supabase.storage
+                .from("groom-note-photos")
+                .createSignedUrl(n.photo_path, 60 * 10);
+              if (signed?.signedUrl) urls[n.id] = signed.signedUrl;
+            }),
+        );
+        return urls;
+      })(),
+      (async () => {
+        const urls: Record<string, string> = {};
+        await Promise.all(
+          (petAppointments ?? [])
+            .filter((a) => a.inspo_photo_path)
+            .map(async (a) => {
+              const { data: signed } = await supabase.storage
+                .from("inspo-photos")
+                .createSignedUrl(a.inspo_photo_path, 60 * 10);
+              if (signed?.signedUrl) urls[a.id] = signed.signedUrl;
+            }),
+        );
+        return urls;
+      })(),
+      getNoShowCount(supabase, appointment.customer_id),
+      Promise.all(
+        (sameDayAppts ?? []).map(async (a) => {
+          const p = Array.isArray(a.pets) ? a.pets[0] : a.pets;
+          let photoUrl: string | null = null;
+          if (p?.photo_path) {
+            const { data: signed } = await supabase.storage
+              .from("pet-photos")
+              .createSignedUrl(p.photo_path, 60 * 10);
+            photoUrl = signed?.signedUrl ?? null;
+          }
+          return {
+            id: a.id,
+            hour: a.appointment_hour,
+            minute: a.appointment_minute,
+            petName: p?.name ?? "Unknown pet",
+            photoUrl,
+            stageLabel: stageLabelFor(a),
+            isCurrent: a.id === appointment.id,
+          };
+        }),
+      ),
+    ]);
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-16">

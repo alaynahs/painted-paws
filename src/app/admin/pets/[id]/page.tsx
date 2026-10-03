@@ -29,6 +29,12 @@ import {
   type GroomPackService,
 } from "@/lib/pricing/pricing";
 
+// This page does a lot of Supabase round-trips (pet record, notes,
+// membership, groom packs/photos, plus a signed URL per photo/record
+// found) — give it more breathing room than the default function timeout
+// before Vercel kills the request.
+export const maxDuration = 30;
+
 export default async function AdminPetDetailPage({
   params,
   searchParams,
@@ -57,94 +63,107 @@ export default async function AdminPetDetailPage({
   );
   const togglePetDoNotBook = setPetDoNotBook.bind(null, pet.id, !pet.do_not_book);
 
-  const { data: appointments } = await supabase
-    .from("appointments")
-    .select("*")
-    .eq("pet_id", id)
-    .order("appointment_date", { ascending: false })
-    .order("appointment_hour", { ascending: false })
-    .order("appointment_minute", { ascending: false });
-
-  const { data: notes } = await supabase
-    .from("groom_notes")
-    .select("*")
-    .eq("pet_id", id)
-    .order("created_at", { ascending: false });
-
-  let vaccineUrl: string | null = null;
-  if (pet.rabies_vaccine_path) {
-    const { data: signed } = await supabase.storage
-      .from("vaccine-records")
-      .createSignedUrl(pet.rabies_vaccine_path, 60 * 10);
-    vaccineUrl = signed?.signedUrl ?? null;
-  }
-
-  let petPhotoUrl: string | null = null;
-  if (pet.photo_path) {
-    const { data: signed } = await supabase.storage
-      .from("pet-photos")
-      .createSignedUrl(pet.photo_path, 60 * 10);
-    petPhotoUrl = signed?.signedUrl ?? null;
-  }
-
   const isPuppyExempt =
     pet.species === "dog" &&
     !!pet.birth_date &&
     monthsSince(pet.birth_date) < 4;
 
-  const noShowCount = await getNoShowCount(supabase, pet.owner_id);
+  // These queries are all independent of each other and of anything above
+  // — run them concurrently instead of one after another. This page does
+  // a lot of Supabase round-trips, and was at real risk of running long
+  // enough to time out the serverless function.
+  const [
+    { data: appointments },
+    { data: notes },
+    vaccineSigned,
+    photoSigned,
+    noShowCount,
+    { data: membership },
+    { data: groomPacks },
+    { data: groomPhotos },
+  ] = await Promise.all([
+    supabase
+      .from("appointments")
+      .select("*")
+      .eq("pet_id", id)
+      .order("appointment_date", { ascending: false })
+      .order("appointment_hour", { ascending: false })
+      .order("appointment_minute", { ascending: false }),
+    supabase
+      .from("groom_notes")
+      .select("*")
+      .eq("pet_id", id)
+      .order("created_at", { ascending: false }),
+    pet.rabies_vaccine_path
+      ? supabase.storage
+          .from("vaccine-records")
+          .createSignedUrl(pet.rabies_vaccine_path, 60 * 10)
+      : Promise.resolve({ data: null }),
+    pet.photo_path
+      ? supabase.storage.from("pet-photos").createSignedUrl(pet.photo_path, 60 * 10)
+      : Promise.resolve({ data: null }),
+    getNoShowCount(supabase, pet.owner_id),
+    supabase
+      .from("memberships")
+      .select("*")
+      .eq("pet_id", id)
+      .eq("status", "active")
+      .maybeSingle(),
+    supabase
+      .from("groom_credit_packs")
+      .select("*")
+      .eq("pet_id", id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("groom_photos")
+      .select("id, storage_path, caption, created_at")
+      .eq("pet_id", id)
+      .order("created_at", { ascending: false }),
+  ]);
 
-  const { data: membership } = await supabase
-    .from("memberships")
-    .select("*")
-    .eq("pet_id", id)
-    .eq("status", "active")
-    .maybeSingle();
+  const vaccineUrl = vaccineSigned?.data?.signedUrl ?? null;
+  const petPhotoUrl = photoSigned?.data?.signedUrl ?? null;
 
-  const { data: groomPacks } = await supabase
-    .from("groom_credit_packs")
-    .select("*")
-    .eq("pet_id", id)
-    .order("created_at", { ascending: false });
-
-  const inspoUrls: Record<string, string> = {};
-  await Promise.all(
-    (appointments ?? [])
-      .filter((a) => a.inspo_photo_path)
-      .map(async (a) => {
+  // Same idea for the per-row signed URLs below — each group is
+  // independent, so look them all up at once.
+  const [inspoUrls, groomPhotoUrls, noteUrls] = await Promise.all([
+    (async () => {
+      const urls: Record<string, string> = {};
+      await Promise.all(
+        (appointments ?? [])
+          .filter((a) => a.inspo_photo_path)
+          .map(async (a) => {
+            const { data: signed } = await supabase.storage
+              .from("inspo-photos")
+              .createSignedUrl(a.inspo_photo_path, 60 * 10);
+            if (signed?.signedUrl) urls[a.id] = signed.signedUrl;
+          }),
+      );
+      return urls;
+    })(),
+    Promise.all(
+      (groomPhotos ?? []).map(async (p) => {
         const { data: signed } = await supabase.storage
-          .from("inspo-photos")
-          .createSignedUrl(a.inspo_photo_path, 60 * 10);
-        if (signed?.signedUrl) inspoUrls[a.id] = signed.signedUrl;
+          .from("groom-photos")
+          .createSignedUrl(p.storage_path, 60 * 10);
+        return { ...p, url: signed?.signedUrl ?? null };
       }),
-  );
-
-  const { data: groomPhotos } = await supabase
-    .from("groom_photos")
-    .select("id, storage_path, caption, created_at")
-    .eq("pet_id", id)
-    .order("created_at", { ascending: false });
-
-  const groomPhotoUrls = await Promise.all(
-    (groomPhotos ?? []).map(async (p) => {
-      const { data: signed } = await supabase.storage
-        .from("groom-photos")
-        .createSignedUrl(p.storage_path, 60 * 10);
-      return { ...p, url: signed?.signedUrl ?? null };
-    }),
-  );
-
-  const noteUrls: Record<string, string> = {};
-  await Promise.all(
-    (notes ?? [])
-      .filter((n) => n.photo_path)
-      .map(async (n) => {
-        const { data: signed } = await supabase.storage
-          .from("groom-note-photos")
-          .createSignedUrl(n.photo_path, 60 * 10);
-        if (signed?.signedUrl) noteUrls[n.id] = signed.signedUrl;
-      }),
-  );
+    ),
+    (async () => {
+      const urls: Record<string, string> = {};
+      await Promise.all(
+        (notes ?? [])
+          .filter((n) => n.photo_path)
+          .map(async (n) => {
+            const { data: signed } = await supabase.storage
+              .from("groom-note-photos")
+              .createSignedUrl(n.photo_path, 60 * 10);
+            if (signed?.signedUrl) urls[n.id] = signed.signedUrl;
+          }),
+      );
+      return urls;
+    })(),
+  ]);
 
   const groomingNotes = (notes ?? []).filter((n) => n.note_type === "grooming");
   const behaviorNotes = (notes ?? []).filter((n) => n.note_type === "behavior");
