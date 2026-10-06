@@ -214,7 +214,9 @@ export default function BookingFlow({
 
   const initialIsDogService = pet?.species === "dog";
   const [dogService, setDogService] = useState<DogBookingService>(
-    (initialIsDogService && (initial?.service as DogBookingService)) ||
+    (initialIsDogService &&
+      !initial?.standalone &&
+      (initial?.service as DogBookingService)) ||
       "haircut",
   );
   const [catService, setCatService] = useState<CatServiceLevel>(
