@@ -45,6 +45,7 @@ import {
   ADMIN_EXTRA_HOURS,
   BOOKING_HOURS,
   MAX_NO_SHOWS,
+  MIN_ONLINE_BOOKING_LEAD_MINUTES,
   PICKUP_MIN_LEAD_HOURS,
   expandToHalfHourSlots,
   minGapHoursFor,
@@ -657,6 +658,8 @@ const PICKUP_UNVERIFIED_MESSAGE =
 const PAST_TIME_MESSAGE =
   "That time has already passed. Please choose a different time.";
 
+const SHORT_NOTICE_MESSAGE = `Online booking needs at least ${MIN_ONLINE_BOOKING_LEAD_MINUTES} minutes' notice. Please choose a later time or call us.`;
+
 const PICKUP_LEAD_TIME_MESSAGE = `Pickup & drop-off appointments must be booked at least ${PICKUP_MIN_LEAD_HOURS} hour${PICKUP_MIN_LEAD_HOURS === 1 ? "" : "s"} in advance. Please choose a later time or a different day.`;
 
 function bookingTimeError(
@@ -668,6 +671,9 @@ function bookingTimeError(
   const apptTime = appointmentDateTime(date, hour, minute);
   const now = new Date();
   if (apptTime.getTime() <= now.getTime()) return PAST_TIME_MESSAGE;
+  if (apptTime.getTime() - now.getTime() < MIN_ONLINE_BOOKING_LEAD_MINUTES * 60 * 1000) {
+    return SHORT_NOTICE_MESSAGE;
+  }
   if (pickupDropoff) {
     const minLeadMs = PICKUP_MIN_LEAD_HOURS * 60 * 60 * 1000;
     if (apptTime.getTime() - now.getTime() < minLeadMs) {

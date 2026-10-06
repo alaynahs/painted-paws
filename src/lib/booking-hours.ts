@@ -37,6 +37,9 @@ export function minGapHoursFor(
 // can't be booked for a slot starting less than this many hours from now.
 export const PICKUP_MIN_LEAD_HOURS = 1;
 
+// Customers can't book a slot that starts sooner than this from now.
+export const MIN_ONLINE_BOOKING_LEAD_MINUTES = 30;
+
 // A cancellation counts as a no-show once the appointment time has already
 // passed. Admin-initiated cancellations get a grace window (in case the
 // groomer is just tidying up the schedule shortly after start time).

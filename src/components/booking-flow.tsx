@@ -44,6 +44,7 @@ import { logBookingStep } from "@/lib/analytics/booking-funnel";
 import {
   ADMIN_EXTRA_HOURS,
   BOOKING_HOURS as HOURS,
+  MIN_ONLINE_BOOKING_LEAD_MINUTES,
   PICKUP_MIN_LEAD_HOURS,
   expandToHalfHourSlots,
 } from "@/lib/booking-hours";
@@ -114,6 +115,9 @@ function isPastOrTooSoon(
   const apptTime = centralWallClockToInstant(date, hour, minute);
   const now = new Date();
   if (apptTime.getTime() <= now.getTime()) return true;
+  if (apptTime.getTime() - now.getTime() < MIN_ONLINE_BOOKING_LEAD_MINUTES * 60 * 1000) {
+    return true;
+  }
   if (pickupDropoff) {
     const minLeadMs = PICKUP_MIN_LEAD_HOURS * 60 * 60 * 1000;
     if (apptTime.getTime() - now.getTime() < minLeadMs) return true;
